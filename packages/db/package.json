@@ -1,10 +1,16 @@
 {
   "name": "@vitals/db",
   "version": "0.0.0",
-  "private": true,
-  "type": "module",
   "main": "src/index.ts",
   "exports": {
     ".": "./src/index.ts"
+  },
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "smoke": "bun src/smoke.ts"
+  },
+  "dependencies": {
+    "@duckdb/node-api": "^1.5.2-r.1"
   }
 }
