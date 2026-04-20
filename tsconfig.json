@@ -1,0 +1,11 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/core" },
+    { "path": "packages/db" },
+    { "path": "packages/ingest" },
+    { "path": "packages/queries" },
+    { "path": "apps/server" },
+    { "path": "apps/web" }
+  ]
+}
