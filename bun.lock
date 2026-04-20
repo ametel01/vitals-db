@@ -56,6 +56,10 @@
     "packages/queries": {
       "name": "@vitals/queries",
       "version": "0.0.0",
+      "dependencies": {
+        "@vitals/core": "workspace:*",
+        "@vitals/db": "workspace:*",
+      },
     },
   },
   "trustedDependencies": [

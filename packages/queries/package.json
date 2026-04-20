@@ -6,5 +6,9 @@
   "main": "src/index.ts",
   "exports": {
     ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@vitals/core": "workspace:*",
+    "@vitals/db": "workspace:*"
   }
 }
