@@ -78,3 +78,22 @@ export const HRVPointSchema = z.object({
   avg_hrv: PositiveNumber,
 });
 export type HRVPoint = z.infer<typeof HRVPointSchema>;
+
+export const StepsPointSchema = z.object({
+  day: IsoDate,
+  total_steps: NonNegativeNumber,
+});
+export type StepsPoint = z.infer<typeof StepsPointSchema>;
+
+export const DistancePointSchema = z.object({
+  day: IsoDate,
+  total_meters: NonNegativeNumber,
+});
+export type DistancePoint = z.infer<typeof DistancePointSchema>;
+
+export const EnergyPointSchema = z.object({
+  day: IsoDate,
+  active_kcal: NonNegativeNumber,
+  basal_kcal: NonNegativeNumber,
+});
+export type EnergyPoint = z.infer<typeof EnergyPointSchema>;

@@ -1,11 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import {
   ActivityPointSchema,
+  DistancePointSchema,
+  EnergyPointSchema,
   HRPointSchema,
   HRVPointSchema,
   LoadRowSchema,
   RestingHRPointSchema,
   SleepSummarySchema,
+  StepsPointSchema,
   VO2MaxPointSchema,
   WorkoutDetailSchema,
   WorkoutSummarySchema,
@@ -125,5 +128,38 @@ describe("DTO round-trip parsing", () => {
 
   test("HRVPoint rejects non-positive avg", () => {
     expect(() => HRVPointSchema.parse({ day: "2024-06-01", avg_hrv: 0 })).toThrow();
+  });
+
+  test("StepsPoint", () => {
+    const fixture = { day: "2024-06-01", total_steps: 8421 };
+    expect(StepsPointSchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("StepsPoint rejects negative totals and non-ISO day", () => {
+    expect(() => StepsPointSchema.parse({ day: "2024-06-01", total_steps: -1 })).toThrow();
+    expect(() => StepsPointSchema.parse({ day: "06/01/2024", total_steps: 100 })).toThrow();
+  });
+
+  test("DistancePoint", () => {
+    const fixture = { day: "2024-06-01", total_meters: 5421.7 };
+    expect(DistancePointSchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("DistancePoint rejects negative totals", () => {
+    expect(() => DistancePointSchema.parse({ day: "2024-06-01", total_meters: -10 })).toThrow();
+  });
+
+  test("EnergyPoint", () => {
+    const fixture = { day: "2024-06-01", active_kcal: 420.5, basal_kcal: 1680.2 };
+    expect(EnergyPointSchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("EnergyPoint rejects negative components", () => {
+    expect(() =>
+      EnergyPointSchema.parse({ day: "2024-06-01", active_kcal: -1, basal_kcal: 1000 }),
+    ).toThrow();
+    expect(() =>
+      EnergyPointSchema.parse({ day: "2024-06-01", active_kcal: 200, basal_kcal: -1 }),
+    ).toThrow();
   });
 });
