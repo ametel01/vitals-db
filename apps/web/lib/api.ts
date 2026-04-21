@@ -11,14 +11,22 @@ import {
   HRVPointSchema,
   type LoadRow,
   LoadRowSchema,
+  type PowerPoint,
+  PowerPointSchema,
   type RestingHRPoint,
   RestingHRPointSchema,
+  type SleepNightPoint,
+  SleepNightPointSchema,
   type SleepSummary,
   SleepSummarySchema,
+  type SpeedPoint,
+  SpeedPointSchema,
   type StepsPoint,
   StepsPointSchema,
   type VO2MaxPoint,
   VO2MaxPointSchema,
+  type WalkingHRPoint,
+  WalkingHRPointSchema,
   type WorkoutDetail,
   WorkoutDetailSchema,
   type WorkoutSummary,
@@ -104,6 +112,10 @@ const ActivityListSchema = z.array(ActivityPointSchema);
 const StepsListSchema = z.array(StepsPointSchema);
 const DistanceListSchema = z.array(DistancePointSchema);
 const EnergyListSchema = z.array(EnergyPointSchema);
+const WalkingHRListSchema = z.array(WalkingHRPointSchema);
+const SpeedListSchema = z.array(SpeedPointSchema);
+const PowerListSchema = z.array(PowerPointSchema);
+const SleepNightListSchema = z.array(SleepNightPointSchema);
 
 export function listWorkouts(
   params: ListWorkoutsParams = {},
@@ -166,6 +178,22 @@ export function getDistance(range: DateRange): Promise<FetchResult<DistancePoint
 
 export function getEnergy(range: DateRange): Promise<FetchResult<EnergyPoint[]>> {
   return requestJson(buildUrl("metrics/energy", range), EnergyListSchema);
+}
+
+export function getWalkingHR(range: DateRange): Promise<FetchResult<WalkingHRPoint[]>> {
+  return requestJson(buildUrl("metrics/walking-hr", range), WalkingHRListSchema);
+}
+
+export function getSpeed(range: DateRange): Promise<FetchResult<SpeedPoint[]>> {
+  return requestJson(buildUrl("metrics/speed", range), SpeedListSchema);
+}
+
+export function getPower(range: DateRange): Promise<FetchResult<PowerPoint[]>> {
+  return requestJson(buildUrl("metrics/power", range), PowerListSchema);
+}
+
+export function getSleepNightly(range: DateRange): Promise<FetchResult<SleepNightPoint[]>> {
+  return requestJson(buildUrl("metrics/sleep/nightly", range), SleepNightListSchema);
 }
 
 // Legacy client-side fallback used before the server exposed /metrics/activity

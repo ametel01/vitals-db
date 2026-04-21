@@ -5,10 +5,13 @@ import {
   deriveWeeklyActivity,
   getActivity,
   getHRV,
+  getPower,
   getRestingHR,
   getSleepSummary,
+  getSpeed,
   getSteps,
   getVO2Max,
+  getWalkingHR,
   listWorkouts,
 } from "@/lib/api";
 import {
@@ -29,14 +32,18 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
   const from = windowStartIso(30);
   const activityFrom = windowStartIso(12 * 7);
 
-  const [restingHR, sleep, vo2max, hrv, steps, activity] = await Promise.all([
-    getRestingHR({ from, to }),
-    getSleepSummary({ from, to }),
-    getVO2Max({ from, to }),
-    getHRV({ from, to }),
-    getSteps({ from, to }),
-    getActivity({ from: activityFrom, to }),
-  ]);
+  const [restingHR, sleep, vo2max, hrv, steps, walkingHR, speed, power, activity] =
+    await Promise.all([
+      getRestingHR({ from, to }),
+      getSleepSummary({ from, to }),
+      getVO2Max({ from, to }),
+      getHRV({ from, to }),
+      getSteps({ from, to }),
+      getWalkingHR({ from, to }),
+      getSpeed({ from, to }),
+      getPower({ from, to }),
+      getActivity({ from: activityFrom, to }),
+    ]);
   const workouts = activity.ok ? null : await listWorkouts({ from: activityFrom, to });
 
   return (
@@ -55,6 +62,13 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
 
       <div className="grid cols-2" style={{ marginBottom: 20 }}>
         <StepsCard result={steps} />
+        <WalkingHRCard result={walkingHR} />
+      </div>
+
+      <h3 className="section-title">Performance</h3>
+      <div className="grid cols-2" style={{ marginBottom: 20 }}>
+        <SpeedCard result={speed} />
+        <PowerCard result={power} />
       </div>
 
       <div className="card">
@@ -301,6 +315,165 @@ function StepsCard({
           key={chartDataKey("steps", series)}
           series={series}
           yAxisLabel="steps"
+          height={220}
+        />
+      </div>
+    </div>
+  );
+}
+
+function WalkingHRCard({
+  result,
+}: {
+  result: Awaited<ReturnType<typeof getWalkingHR>>;
+}): React.ReactElement {
+  if (!result.ok) {
+    return (
+      <div className="card">
+        <h2>Walking heart rate</h2>
+        <ErrorBanner title="Could not load walking HR" detail={result.message} />
+      </div>
+    );
+  }
+
+  const points = result.data;
+  if (points.length === 0) {
+    return (
+      <div className="card">
+        <h2>Walking heart rate</h2>
+        <div className="empty-state">No walking HR samples in range.</div>
+      </div>
+    );
+  }
+
+  const last = points[points.length - 1];
+  const avg = points.reduce((sum, p) => sum + p.avg_walking_hr, 0) / points.length;
+  const series = [
+    {
+      name: "Walking HR",
+      color: "#a78bfa",
+      data: points.map((p) => [`${p.day}T00:00:00Z`, p.avg_walking_hr] as [string, number]),
+    },
+  ];
+
+  return (
+    <div className="card">
+      <h2>Walking heart rate</h2>
+      <div className="stat-value">
+        {last === undefined ? "—" : `${formatNumber(last.avg_walking_hr, 0)} bpm`}
+      </div>
+      <div className="stat-sub">30-day avg {formatNumber(avg, 1)} bpm</div>
+      <div style={{ marginTop: 16 }}>
+        <LineChart
+          key={chartDataKey("walking-hr", series)}
+          series={series}
+          yAxisLabel="bpm"
+          height={220}
+        />
+      </div>
+    </div>
+  );
+}
+
+function SpeedCard({
+  result,
+}: {
+  result: Awaited<ReturnType<typeof getSpeed>>;
+}): React.ReactElement {
+  if (!result.ok) {
+    return (
+      <div className="card">
+        <h2>Running speed</h2>
+        <ErrorBanner title="Could not load speed" detail={result.message} />
+      </div>
+    );
+  }
+
+  const points = result.data;
+  if (points.length === 0) {
+    return (
+      <div className="card">
+        <h2>Running speed</h2>
+        <div className="empty-state">No running speed samples in range.</div>
+      </div>
+    );
+  }
+
+  const last = points[points.length - 1];
+  const avg = points.reduce((sum, p) => sum + p.avg_speed, 0) / points.length;
+  const series = [
+    {
+      name: "Speed",
+      color: "#22d3ee",
+      data: points.map((p) => [`${p.day}T00:00:00Z`, p.avg_speed] as [string, number]),
+    },
+  ];
+
+  return (
+    <div className="card">
+      <h2>Running speed</h2>
+      <div className="stat-value">
+        {last === undefined ? "—" : `${formatNumber(last.avg_speed, 2)} m/s`}
+      </div>
+      <div className="stat-sub">30-day avg {formatNumber(avg, 2)} m/s</div>
+      <div style={{ marginTop: 16 }}>
+        <LineChart
+          key={chartDataKey("speed", series)}
+          series={series}
+          yAxisLabel="m/s"
+          height={220}
+        />
+      </div>
+    </div>
+  );
+}
+
+function PowerCard({
+  result,
+}: {
+  result: Awaited<ReturnType<typeof getPower>>;
+}): React.ReactElement {
+  if (!result.ok) {
+    return (
+      <div className="card">
+        <h2>Running power</h2>
+        <ErrorBanner title="Could not load power" detail={result.message} />
+      </div>
+    );
+  }
+
+  const points = result.data;
+  if (points.length === 0) {
+    return (
+      <div className="card">
+        <h2>Running power</h2>
+        <div className="empty-state">No running power samples in range.</div>
+      </div>
+    );
+  }
+
+  const last = points[points.length - 1];
+  const avg = points.reduce((sum, p) => sum + p.avg_power, 0) / points.length;
+  const series = [
+    {
+      name: "Power",
+      color: "#fb7185",
+      data: points.map((p) => [`${p.day}T00:00:00Z`, p.avg_power] as [string, number]),
+    },
+  ];
+
+  return (
+    <div className="card">
+      <h2>Running power</h2>
+      <div className="stat-value">
+        {last === undefined ? "—" : `${formatNumber(last.avg_power, 0)} W`}
+      </div>
+      <div className="stat-sub">30-day avg {formatNumber(avg, 0)} W</div>
+      <div style={{ marginTop: 16 }}>
+        <LineChart
+          key={chartDataKey("power", series)}
+          series={series}
+          yAxisLabel="watts"
           height={220}
         />
       </div>
