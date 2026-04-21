@@ -12,6 +12,8 @@ import {
   VO2MaxPointSchema,
   WorkoutDetailSchema,
   WorkoutSummarySchema,
+  WorkoutZoneBreakdownListSchema,
+  WorkoutZoneBreakdownRowSchema,
   ZonesRowSchema,
 } from "../dto";
 
@@ -74,6 +76,35 @@ describe("DTO round-trip parsing", () => {
     expect(ZonesRowSchema.parse({ z2_ratio: null })).toEqual({ z2_ratio: null });
     expect(() => ZonesRowSchema.parse({ z2_ratio: -0.01 })).toThrow();
     expect(() => ZonesRowSchema.parse({ z2_ratio: 1.01 })).toThrow();
+  });
+
+  test("WorkoutZoneBreakdownRow round-trips for each zone name", () => {
+    for (const zone of ["Z1", "Z2", "Z3", "Z4", "Z5"] as const) {
+      const fixture = { zone, sample_count: 12, ratio: 0.4 };
+      expect(WorkoutZoneBreakdownRowSchema.parse(fixture)).toEqual(fixture);
+    }
+  });
+
+  test("WorkoutZoneBreakdownRow rejects non-integer sample_count and out-of-range ratio", () => {
+    expect(() =>
+      WorkoutZoneBreakdownRowSchema.parse({ zone: "Z2", sample_count: 1.5, ratio: 0.2 }),
+    ).toThrow();
+    expect(() =>
+      WorkoutZoneBreakdownRowSchema.parse({ zone: "Z2", sample_count: -1, ratio: 0.2 }),
+    ).toThrow();
+    expect(() =>
+      WorkoutZoneBreakdownRowSchema.parse({ zone: "Z2", sample_count: 3, ratio: 1.01 }),
+    ).toThrow();
+  });
+
+  test("WorkoutZoneBreakdownRow rejects unknown zone labels", () => {
+    expect(() =>
+      WorkoutZoneBreakdownRowSchema.parse({ zone: "Z6", sample_count: 1, ratio: 0.1 }),
+    ).toThrow();
+  });
+
+  test("WorkoutZoneBreakdownList accepts the empty list (no HR samples case)", () => {
+    expect(WorkoutZoneBreakdownListSchema.parse([])).toEqual([]);
   });
 
   test("RestingHRPoint", () => {

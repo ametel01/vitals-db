@@ -1,10 +1,14 @@
 import { z } from "zod";
+import { HR_ZONE_ORDER } from "./zones";
 
 const IsoDateTime = z.string().datetime({ offset: true });
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const NonNegativeNumber = z.number().finite().nonnegative();
+const NonNegativeInt = z.number().int().nonnegative();
 const PositiveNumber = z.number().finite().positive();
 const Ratio = z.number().finite().min(0).max(1);
+
+export const HRZoneNameSchema = z.enum(HR_ZONE_ORDER);
 
 export const WorkoutSummarySchema = z.object({
   id: z.string(),
@@ -38,6 +42,19 @@ export const ZonesRowSchema = z.object({
   z2_ratio: Ratio.nullable(),
 });
 export type ZonesRow = z.infer<typeof ZonesRowSchema>;
+
+// Per-zone breakdown for a single scope (e.g. one workout). Modeled on
+// `sample_count` and `ratio` rather than claimed "seconds in zone" because
+// the data layer stores discrete HR samples with uneven intervals.
+export const WorkoutZoneBreakdownRowSchema = z.object({
+  zone: HRZoneNameSchema,
+  sample_count: NonNegativeInt,
+  ratio: Ratio,
+});
+export type WorkoutZoneBreakdownRow = z.infer<typeof WorkoutZoneBreakdownRowSchema>;
+
+export const WorkoutZoneBreakdownListSchema = z.array(WorkoutZoneBreakdownRowSchema);
+export type WorkoutZoneBreakdownList = z.infer<typeof WorkoutZoneBreakdownListSchema>;
 
 export const RestingHRPointSchema = z.object({
   day: IsoDate,
