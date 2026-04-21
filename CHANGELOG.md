@@ -4,6 +4,86 @@ All notable changes to this project are documented here. This file follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] — 2026-04-21
+
+Zones-distribution slice per `local-docs/IMPLEMENTATION_PLAN_0.5.0.md`.
+Expands the HR zone model from Z2-only to a full Z1..Z5 set and ships a
+per-workout breakdown end-to-end: DTO → query → route → client → stacked-bar
+chart on the workout-detail page. The existing scalar `z2_ratio` contract is
+preserved exactly: `ZonesRowSchema` is unchanged, `/metrics/zones` still
+returns `{ z2_ratio }`, and the Z2 ratio stat card remains on the workout
+detail page.
+
+### Added — core (`packages/core`)
+
+- `HR_ZONES` expanded from `{ Z2 }` to `{ Z1, Z2, Z3, Z4, Z5 }`. Z2 is pinned
+  to `115–125` to keep the existing `z2_ratio` semantic contract; the
+  surrounding zones partition the integer bpm range with contiguous
+  inclusive-`BETWEEN` bounds so every practical sample falls in exactly one
+  zone.
+- `HR_ZONE_ORDER` — ordered tuple `["Z1", "Z2", "Z3", "Z4", "Z5"]` used to
+  drive query shape, route output, and chart series order.
+- `HRZoneNameSchema`, `WorkoutZoneBreakdownRowSchema` / `WorkoutZoneBreakdownRow`
+  (`zone`, `sample_count`, `ratio`), and a matching
+  `WorkoutZoneBreakdownListSchema`. Modeled on `sample_count` and `ratio`
+  rather than claimed "seconds in zone" because `heart_rate` stores discrete
+  samples with uneven intervals.
+- Zones test pins Z1/Z3/Z4/Z5 boundaries and asserts no gaps or overlaps
+  across the Z1..Z5 partition.
+- DTO tests round-trip each zone label, reject non-integer / out-of-range
+  values, reject unknown zone names, and accept the empty list.
+
+### Added — queries (`packages/queries`)
+
+- `getWorkoutZoneBreakdown(db, workoutId)` — one SQL scan with N+1
+  `COUNT(*) FILTER (…)::INTEGER` columns (`total` plus one `<zone>_count` per
+  zone), reusing the `heart_rate ⨝ workouts` window from `getWorkoutZones`.
+  Returns `WorkoutZoneBreakdownRow[]` in `Z1..Z5` order. Returns `[]` for an
+  unknown workout or a workout with zero HR samples.
+- `getZones` and `getWorkoutZones` are untouched; the scalar `z2_ratio`
+  contract is preserved.
+- Tests cover ordered output, counts summing to total, `ratio` matching the
+  scalar `z2_ratio` for Z2, and the empty-workout path.
+
+### Added — API (`apps/server`)
+
+- `GET /workouts/:id/zones` — returns `WorkoutZoneBreakdownRow[]` on 200.
+  Mirrors `/workouts/:id/hr`: validates `id`, 404s on a missing workout via
+  `getWorkoutSummary`, then returns the typed rows. Additive to
+  `/metrics/zones`, which continues to return the scalar `z2_ratio`.
+- Server tests cover ordered Z1..Z5 output with counts, sum-to-1 ratios,
+  404 on missing workout, and `[]` for the no-HR walking fixture.
+
+### Added — web (`apps/web`)
+
+- `getWorkoutZonesBreakdown(id)` client helper in `lib/api.ts`, Zod-validated
+  against `WorkoutZoneBreakdownListSchema`.
+- Workout detail page (`app/workouts/[id]/page.tsx`) loads the breakdown
+  beside `getWorkoutDetail` and `getWorkoutHR`, and renders a new "Zones
+  distribution" card. The card uses the existing `StackedBar` primitive with
+  a single `["Workout"]` category, one stacked segment per zone in `Z1..Z5`
+  order, stable per-zone colors, and `% of samples` on the y-axis. Empty and
+  error states match the HR chart's convention.
+- The existing Z2 ratio stat card is intentionally kept; the new chart is
+  purely additive for this release.
+
+### Changed — docs
+
+- `docs/API_CONTRACT.md` adds the `GET /workouts/:id/zones` entry and calls
+  out that it is additive to `/metrics/zones`.
+- `README.md` "Dashboard Views", "API Surface", and the top-level feature
+  summary now reflect the Z1..Z5 zones distribution on workout detail.
+
+### Release gate
+
+- `bun run test` (201/201), `bun run typecheck`, `bun run build` all green.
+- Existing scalar zone contracts remain unchanged:
+  `ZonesRowSchema = { z2_ratio }` is untouched and `/metrics/zones` still
+  returns the same shape. The new zone breakdown route and chart are
+  additive only.
+
+[0.5.0]: https://github.com/alexmetelli/vitals-db/releases/tag/v0.5.0
+
 ## [0.4.0] — 2026-04-21
 
 Movement metrics slice per `local-docs/IMPLEMENTATION_PLAN_0.4.0.md`. Surfaces
