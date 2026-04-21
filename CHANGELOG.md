@@ -4,6 +4,54 @@ All notable changes to this project are documented here. This file follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] — 2026-04-21
+
+Endurance-KPI slice per `local-docs/IMPLEMENTATION_PLAN_0.9.0.md`. Ships the
+remaining high-signal training metrics before the `1.0.0` contract freeze
+without widening `WorkoutDetail` or changing the existing drift / `z2_ratio` /
+`/metrics/resting-hr` contracts.
+
+### Added — core / queries / API
+
+- `RestingHRRollingPoint`, `WorkoutPaceAtHR`, `WorkoutDecoupling`, and
+  `WorkoutEfficiency` DTOs.
+- `getRestingHRRolling7d` — trailing 7-day average over the shipped daily
+  resting-HR series, emitting only existing day rows.
+- `getWorkoutEfficiency` — aligned workout HR + speed logic for:
+  - pace at fixed HR band (`120–130 bpm` by default)
+  - fixed-duration decoupling over the first `45–60` minutes only
+- `GET /metrics/resting-hr/rolling`
+- `GET /workouts/:id/efficiency`
+
+### Added — web
+
+- Dedicated `/performance` page with:
+  - rolling 7-day resting HR chart
+  - recent runs table showing fixed-HR pace, decoupling, and explicit Z2 share
+- Workout detail now renders:
+  - pace at `120–130 bpm`
+  - fixed-duration decoupling
+  - explicit "Z2 share" labeling on the existing `z2_ratio`
+- Navigation and dashboard performance section now link to `/performance`.
+
+### Changed — docs
+
+- `README.md`, `docs/API_CONTRACT.md`, `local-docs/GAP_ANALYSIS.md`,
+  `local-docs/RELEASE_PLAN.md`, and
+  `local-docs/IMPLEMENTATION_PLAN_1.0.0.md` now treat the endurance KPI layer
+  as shipped and define the canonical formulas explicitly.
+
+### Release gate
+
+- `WorkoutDetail.drift_pct`, `WorkoutDetail.z2_ratio`, and
+  `GET /metrics/resting-hr` remain backward compatible.
+- Missing aligned HR/speed samples return null KPI values rather than false
+  zeroes.
+- `bun run test`, `bun run typecheck`, and `bun run build` run green for the
+  release candidate.
+
+[0.9.0]: https://github.com/alexmetelli/vitals-db/releases/tag/v0.9.0
+
 ## [0.8.0] — 2026-04-21
 
 Sleep-detail slice per `local-docs/IMPLEMENTATION_PLAN_0.8.0.md`. Ships a
