@@ -147,7 +147,12 @@ describe("mapRecord", () => {
       }),
     );
     expect(m?.table).toBe("sleep");
-    expect(m?.values).toEqual(["2024-06-01 23:00:00.000", "2024-06-02 06:30:00.000", "asleep"]);
+    expect(m?.values).toEqual([
+      "2024-06-01 23:00:00.000",
+      "2024-06-02 06:30:00.000",
+      "asleep",
+      "HKCategoryValueSleepAnalysisAsleepCore",
+    ]);
   });
 
   test("SleepAnalysis drops unknown category values", () => {

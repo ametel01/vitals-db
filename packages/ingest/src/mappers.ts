@@ -348,7 +348,7 @@ export function mapRecord(rec: ParsedRecord): MappedInsert | null {
       const state = SLEEP_STATE_MAP[rec.value];
       return makeMapped(
         "sleep",
-        [startTs, endTs, state],
+        [startTs, endTs, state, rec.value],
         rec.type,
         rawValue,
         startTs,

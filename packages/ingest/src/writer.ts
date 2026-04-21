@@ -12,7 +12,7 @@ const TABLE_INSERTS: Record<AnalyticsTable, string> = {
   distance: "INSERT INTO distance (ts, meters) VALUES (?, ?)",
   energy: "INSERT INTO energy (ts, active_kcal, basal_kcal) VALUES (?, ?, ?)",
   performance: "INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)",
-  sleep: "INSERT INTO sleep (start_ts, end_ts, state) VALUES (?, ?, ?)",
+  sleep: "INSERT INTO sleep (start_ts, end_ts, state, raw_state) VALUES (?, ?, ?, ?)",
   workouts:
     "INSERT INTO workouts (id, type, start_ts, end_ts, duration_sec, source) " +
     "VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING RETURNING id",

@@ -173,10 +173,15 @@ describe("ingestFile integration", () => {
     expect(rows.some((r) => r.active_kcal === null && r.basal_kcal === 1.1)).toBe(true);
   });
 
-  test("sleep state is normalized", async () => {
+  test("sleep state is normalized while raw stages are preserved", async () => {
     await ingestFile(db, xmlPath);
-    const rows = await db.all<{ state: string }>("SELECT state FROM sleep ORDER BY start_ts");
-    expect(rows.map((r) => r.state)).toEqual(["in_bed", "asleep"]);
+    const rows = await db.all<{ state: string; raw_state: string | null }>(
+      "SELECT state, raw_state FROM sleep ORDER BY start_ts",
+    );
+    expect(rows).toEqual([
+      { state: "in_bed", raw_state: "HKCategoryValueSleepAnalysisInBed" },
+      { state: "asleep", raw_state: "HKCategoryValueSleepAnalysisAsleepCore" },
+    ]);
   });
 });
 
