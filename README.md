@@ -139,13 +139,14 @@ The server currently exposes:
 - `GET /workouts`
 - `GET /workouts/:id`
 - `GET /workouts/:id/hr`
-- `GET /metrics/zones?from=YYYY-MM-DD&to=YYYY-MM-DD`
-- `GET /metrics/resting-hr?from=YYYY-MM-DD&to=YYYY-MM-DD`
-- `GET /metrics/sleep?from=YYYY-MM-DD&to=YYYY-MM-DD`
-- `GET /metrics/load?from=YYYY-MM-DD&to=YYYY-MM-DD`
-- `GET /metrics/vo2max?from=YYYY-MM-DD&to=YYYY-MM-DD`
+- `GET /metrics/zones`
+- `GET /metrics/resting-hr`
+- `GET /metrics/sleep`
+- `GET /metrics/load`
+- `GET /metrics/vo2max`
 
-Date-only bounds are treated as full UTC days.
+See [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) for query params,
+response DTOs, and error shapes. Date-only bounds are treated as full UTC days.
 
 ## Useful Environment Variables
 
