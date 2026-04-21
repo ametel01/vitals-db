@@ -4,6 +4,61 @@ All notable changes to this project are documented here. This file follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] — 2026-04-21
+
+HRV vertical slice per `local-docs/IMPLEMENTATION_PLAN_0.3.0.md`. Takes HRV from
+ingested-only data (one of the metrics deferred in 0.1.0) to a fully shipped
+trend: DTO → query → route → client → dashboard card. No ingest changes, no
+changes to existing routes.
+
+### Added — core (`packages/core`)
+
+- `HRVPointSchema` / `HRVPoint` (`day`, `avg_hrv`), mirroring
+  `VO2MaxPointSchema` and `RestingHRPointSchema`. Round-trip and validation
+  tests (ISO day, positive avg) added in `dto.test.ts`.
+
+### Added — queries (`packages/queries`)
+
+- `getHRVDaily(db, range)` — UTC-day buckets `AVG(value)` from the `hrv`
+  table, routed through `normalizeRangeStart` / `normalizeRangeEnd` for the
+  shared date-bound semantics. Tests cover grouping with a duplicate-day
+  sample, inclusive date-only upper bound, and empty windows.
+
+### Added — API (`apps/server`)
+
+- `GET /metrics/hrv` — same `parseRange` flow and error shape as every other
+  `/metrics` route. Returns `HRVPoint[]`, day-bucketed. Server fixture
+  gains HRV rows and tests cover the happy path, invalid-range 400, and
+  empty-window `[]`.
+
+### Added — web (`apps/web`)
+
+- `getHRV(range)` client helper in `lib/api.ts`, Zod-validated against
+  `HRVListSchema = z.array(HRVPointSchema)`.
+- Dashboard `HRVCard` modeled on `VO2MaxCard`: latest-day primary stat,
+  30-day average secondary stat, 30-day `LineChart`, plus error and empty
+  states. Uses the shared 30-day window.
+
+### Changed — web (`apps/web`)
+
+- Dashboard top grid switched from `cols-3` to `cols-4` to seat resting HR,
+  sleep, VO2 max, and HRV on one row on desktop (the `.grid.cols-4` rule
+  added in 0.2.0 is reused unchanged).
+
+### Changed — docs
+
+- `docs/API_CONTRACT.md` adds the `GET /metrics/hrv` entry.
+- `README.md` "Dashboard Views" now lists HRV; "API Surface" now lists
+  `GET /metrics/hrv`; the top-level feature summary now includes HRV daily
+  averages.
+
+### Release gate
+
+- `bun run test` (164/164), `bun run typecheck`, `bun run build` all green.
+- No existing route or DTO changed shape; `HRVPoint` is additive.
+
+[0.3.0]: https://github.com/alexmetelli/vitals-db/releases/tag/v0.3.0
+
 ## [0.2.0] — 2026-04-21
 
 Frontend completion release per `local-docs/IMPLEMENTATION_PLAN_0.2.0.md`. Closes
