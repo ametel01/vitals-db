@@ -4,6 +4,41 @@ All notable changes to this project are documented here. This file follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] — 2026-04-21
+
+Baseline hardening release per `local-docs/IMPLEMENTATION_PLAN_0.1.1.md`. No
+new endpoints, no DTO shape changes, no new dashboard surfaces — docs, copy,
+and tests only.
+
+### Changed — web (`apps/web`)
+
+- Replaced the `SleepCard` caption that promised a v0.2 `/metrics/sleep/nightly`
+  endpoint with factual copy describing the shipped 30-day summary and the
+  definitions of its efficiency and consistency stats.
+
+### Added — tests (`apps/server`)
+
+- `/workouts` now asserts descending `start_ts` ordering across the returned
+  array, not just the expected id sequence.
+- `/workouts/:id` now pins `drift_pct`, `drift_classification`, `load`, and
+  `z2_ratio` on the running-workout fixture.
+- `/metrics/zones` gains a case that verifies nullable `z2_ratio` on an empty
+  window.
+- `/metrics/load` now asserts `workout_id`, `duration_sec`, `avg_hr`, and
+  `load` for both the HR-covered and no-HR workouts.
+- Explicit invalid-`from`/`to` 400 paths added for `/metrics/zones`,
+  `/metrics/sleep`, `/metrics/load`, and `/metrics/vo2max` (previously only
+  `/metrics/resting-hr` had a dedicated error-path case).
+
+### Added — docs
+
+- New `docs/API_CONTRACT.md` listing every live route, its query params,
+  and the top-level DTO name from `packages/core/src/dto.ts`.
+- `README.md` "API Surface" section now links to the contract doc instead of
+  duplicating per-route query-string details.
+
+[0.1.1]: https://github.com/alexmetelli/vitals-db/releases/tag/v0.1.1
+
 ## [0.1.0] — 2026-04-21
 
 First tagged release. Ships the MVP cut defined in `local-docs/IMPLEMENTATION_PLAN.md` §M8:
