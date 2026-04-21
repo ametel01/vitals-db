@@ -11,7 +11,7 @@
     "check:ci": "biome check --error-on-warnings .",
     "typecheck": "tsc -b --pretty",
     "test": "bun test",
-    "build": "tsc -b --pretty",
+    "build": "bun run typecheck && bun run build:web",
     "build:web": "bun run --filter @vitals/web build",
     "verify": "bun run check:ci && bun run typecheck && bun run test",
     "health": "bun apps/server/src/cli.ts",
