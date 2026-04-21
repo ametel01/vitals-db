@@ -11,6 +11,9 @@ export interface Fixture {
 
 export const WORKOUT_ID = "wk-running-2024-06-01";
 export const WORKOUT_ID_WALK = "wk-walking-2024-06-03";
+export const WORKOUT_ID_EFFICIENCY = "wk-running-efficiency-2024-06-04";
+export const WORKOUT_ID_EFFICIENCY_NO_ALIGNMENT = "wk-running-no-alignment-2024-06-05";
+export const WORKOUT_ID_EFFICIENCY_SHORT = "wk-running-efficiency-short-2024-06-06";
 
 export async function makeFixtureDb(): Promise<Fixture> {
   const dir = await mkdtemp(join(tmpdir(), "vitals-server-"));
@@ -31,16 +34,36 @@ export async function seedAll(db: Db): Promise<void> {
   try {
     // Workouts
     await db.run(
-      "INSERT INTO workouts (id, type, start_ts, end_ts, duration_sec, source) VALUES (?, ?, ?, ?, ?, ?)",
-      [WORKOUT_ID, "Running", "2024-06-01 08:00:00", "2024-06-01 09:00:00", 3600, "Apple Watch"],
-    );
-    await db.run(
-      "INSERT INTO workouts (id, type, start_ts, end_ts, duration_sec, source) VALUES (?, ?, ?, ?, ?, ?)",
+      "INSERT INTO workouts (id, type, start_ts, end_ts, duration_sec, source) VALUES (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)",
       [
+        WORKOUT_ID,
+        "Running",
+        "2024-06-01 08:00:00",
+        "2024-06-01 09:00:00",
+        3600,
+        "Apple Watch",
         WORKOUT_ID_WALK,
         "Walking",
         "2024-06-03 09:00:00",
         "2024-06-03 09:30:00",
+        1800,
+        "Apple Watch",
+        WORKOUT_ID_EFFICIENCY,
+        "Running",
+        "2024-06-04 08:00:00",
+        "2024-06-04 09:00:00",
+        3600,
+        "Apple Watch",
+        WORKOUT_ID_EFFICIENCY_NO_ALIGNMENT,
+        "Running",
+        "2024-06-05 08:00:00",
+        "2024-06-05 09:00:00",
+        3600,
+        "Apple Watch",
+        WORKOUT_ID_EFFICIENCY_SHORT,
+        "Running",
+        "2024-06-06 08:00:00",
+        "2024-06-06 08:30:00",
         1800,
         "Apple Watch",
       ],
@@ -54,6 +77,17 @@ export async function seedAll(db: Db): Promise<void> {
       ["2024-06-01 08:35:00", 120],
       ["2024-06-01 08:45:00", 130],
       ["2024-06-01 08:55:00", 140],
+      ["2024-06-04 08:05:00", 118],
+      ["2024-06-04 08:15:00", 122],
+      ["2024-06-04 08:25:00", 126],
+      ["2024-06-04 08:35:00", 128],
+      ["2024-06-04 08:45:00", 130],
+      ["2024-06-04 08:55:00", 132],
+      ["2024-06-05 08:00:00", 120],
+      ["2024-06-05 08:30:00", 128],
+      ["2024-06-06 08:05:00", 122],
+      ["2024-06-06 08:15:00", 125],
+      ["2024-06-06 08:25:00", 128],
     ];
     for (const [ts, bpm] of hrRows) {
       await db.run("INSERT INTO heart_rate (ts, bpm, source) VALUES (?, ?, ?)", [
@@ -64,9 +98,29 @@ export async function seedAll(db: Db): Promise<void> {
     }
 
     // Resting HR
-    await db.run("INSERT INTO resting_hr (ts, bpm) VALUES (?, ?)", ["2024-06-01 05:00:00", 52]);
-    await db.run("INSERT INTO resting_hr (ts, bpm) VALUES (?, ?)", ["2024-06-01 05:30:00", 54]);
-    await db.run("INSERT INTO resting_hr (ts, bpm) VALUES (?, ?)", ["2024-06-02 05:00:00", 56]);
+    await db.run(
+      "INSERT INTO resting_hr (ts, bpm) VALUES (?, ?), (?, ?), (?, ?), (?, ?), (?, ?), (?, ?), (?, ?), (?, ?), (?, ?)",
+      [
+        "2024-05-29 05:00:00",
+        51,
+        "2024-05-30 05:00:00",
+        52,
+        "2024-05-31 05:00:00",
+        54,
+        "2024-06-01 05:00:00",
+        52,
+        "2024-06-01 05:30:00",
+        54,
+        "2024-06-02 05:00:00",
+        56,
+        "2024-06-03 05:00:00",
+        55,
+        "2024-06-04 05:00:00",
+        57,
+        "2024-06-05 05:00:00",
+        58,
+      ],
+    );
 
     // Sleep
     await db.run(
@@ -131,6 +185,72 @@ export async function seedAll(db: Db): Promise<void> {
       "2024-06-02 08:00:00",
       null,
       3.6,
+      null,
+    ]);
+    await db.run("INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)", [
+      "2024-06-04 08:05:00",
+      null,
+      3.6,
+      null,
+    ]);
+    await db.run("INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)", [
+      "2024-06-04 08:15:00",
+      null,
+      3.8,
+      null,
+    ]);
+    await db.run("INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)", [
+      "2024-06-04 08:25:00",
+      null,
+      3.7,
+      null,
+    ]);
+    await db.run("INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)", [
+      "2024-06-04 08:35:00",
+      null,
+      3.5,
+      null,
+    ]);
+    await db.run("INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)", [
+      "2024-06-04 08:45:00",
+      null,
+      3.4,
+      null,
+    ]);
+    await db.run("INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)", [
+      "2024-06-04 08:55:00",
+      null,
+      3.3,
+      null,
+    ]);
+    await db.run("INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)", [
+      "2024-06-05 08:10:00",
+      null,
+      3.7,
+      null,
+    ]);
+    await db.run("INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)", [
+      "2024-06-05 08:40:00",
+      null,
+      3.5,
+      null,
+    ]);
+    await db.run("INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)", [
+      "2024-06-06 08:05:00",
+      null,
+      3.9,
+      null,
+    ]);
+    await db.run("INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)", [
+      "2024-06-06 08:15:00",
+      null,
+      4.0,
+      null,
+    ]);
+    await db.run("INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)", [
+      "2024-06-06 08:25:00",
+      null,
+      3.8,
       null,
     ]);
 

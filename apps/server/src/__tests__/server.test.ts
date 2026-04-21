@@ -8,6 +8,7 @@ import {
   LoadRowSchema,
   PowerPointSchema,
   RestingHRPointSchema,
+  RestingHRRollingPointSchema,
   SleepNightDetailSchema,
   SleepNightPointSchema,
   SleepSegmentSchema,
@@ -17,13 +18,23 @@ import {
   VO2MaxPointSchema,
   WalkingHRPointSchema,
   WorkoutDetailSchema,
+  WorkoutEfficiencySchema,
   WorkoutSummarySchema,
   WorkoutZoneBreakdownListSchema,
   ZonesRowSchema,
 } from "@vitals/core";
 import { z } from "zod";
 import { createApp } from "../server";
-import { type Fixture, WORKOUT_ID, WORKOUT_ID_WALK, makeFixtureDb, seedAll } from "./seed";
+import {
+  type Fixture,
+  WORKOUT_ID,
+  WORKOUT_ID_EFFICIENCY,
+  WORKOUT_ID_EFFICIENCY_NO_ALIGNMENT,
+  WORKOUT_ID_EFFICIENCY_SHORT,
+  WORKOUT_ID_WALK,
+  makeFixtureDb,
+  seedAll,
+} from "./seed";
 
 describe("Hono server", () => {
   let fixture: Fixture;
@@ -42,7 +53,13 @@ describe("Hono server", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     const parsed = z.array(WorkoutSummarySchema).parse(body);
-    expect(parsed.map((w) => w.id)).toEqual([WORKOUT_ID_WALK, WORKOUT_ID]);
+    expect(parsed.map((w) => w.id)).toEqual([
+      WORKOUT_ID_EFFICIENCY_SHORT,
+      WORKOUT_ID_EFFICIENCY_NO_ALIGNMENT,
+      WORKOUT_ID_EFFICIENCY,
+      WORKOUT_ID_WALK,
+      WORKOUT_ID,
+    ]);
     const starts = parsed.map((w) => Date.parse(w.start_ts));
     for (let i = 1; i < starts.length; i++) {
       expect(starts[i - 1]).toBeGreaterThanOrEqual(starts[i] ?? 0);
@@ -53,8 +70,12 @@ describe("Hono server", () => {
     const res = await app.request("/workouts?type=Running");
     expect(res.status).toBe(200);
     const body = z.array(WorkoutSummarySchema).parse(await res.json());
-    expect(body).toHaveLength(1);
-    expect(body[0]?.id).toBe(WORKOUT_ID);
+    expect(body.map((workout) => workout.id)).toEqual([
+      WORKOUT_ID_EFFICIENCY_SHORT,
+      WORKOUT_ID_EFFICIENCY_NO_ALIGNMENT,
+      WORKOUT_ID_EFFICIENCY,
+      WORKOUT_ID,
+    ]);
   });
 
   test("GET /workouts?from&to filters by date range", async () => {
@@ -133,6 +154,63 @@ describe("Hono server", () => {
     expect(rows).toEqual([]);
   });
 
+  test("GET /workouts/:id/efficiency returns pace-at-HR and decoupling", async () => {
+    const res = await app.request(`/workouts/${WORKOUT_ID_EFFICIENCY}/efficiency`);
+    expect(res.status).toBe(200);
+    const body = WorkoutEfficiencySchema.parse(await res.json());
+    expect(body.pace_at_hr.sample_count).toBe(4);
+    expect(body.pace_at_hr.avg_speed_mps).toBeCloseTo(3.6, 6);
+    expect(body.pace_at_hr.pace_sec_per_km).toBeCloseTo(1000 / 3.6, 6);
+    expect(body.decoupling.window_duration_sec).toBe(3600);
+    expect(body.decoupling.sample_count).toBe(6);
+    expect(body.decoupling.decoupling_pct).toBeCloseTo(
+      ((3.7 / 122 - 3.4 / 130) / (3.7 / 122)) * 100,
+      6,
+    );
+  });
+
+  test("GET /workouts/:id/efficiency accepts a custom HR band", async () => {
+    const res = await app.request(
+      `/workouts/${WORKOUT_ID_EFFICIENCY}/efficiency?hr_min=126&hr_max=128`,
+    );
+    expect(res.status).toBe(200);
+    const body = WorkoutEfficiencySchema.parse(await res.json());
+    expect(body.pace_at_hr.hr_min).toBe(126);
+    expect(body.pace_at_hr.hr_max).toBe(128);
+    expect(body.pace_at_hr.sample_count).toBe(2);
+    expect(body.pace_at_hr.avg_speed_mps).toBeCloseTo((3.7 + 3.5) / 2, 6);
+  });
+
+  test("GET /workouts/:id/efficiency returns null-safe metrics when samples do not align", async () => {
+    const res = await app.request(`/workouts/${WORKOUT_ID_EFFICIENCY_NO_ALIGNMENT}/efficiency`);
+    expect(res.status).toBe(200);
+    const body = WorkoutEfficiencySchema.parse(await res.json());
+    expect(body.pace_at_hr.avg_speed_mps).toBeNull();
+    expect(body.pace_at_hr.pace_sec_per_km).toBeNull();
+    expect(body.decoupling.decoupling_pct).toBeNull();
+  });
+
+  test("GET /workouts/:id/efficiency nulls decoupling when the workout is too short", async () => {
+    const res = await app.request(`/workouts/${WORKOUT_ID_EFFICIENCY_SHORT}/efficiency`);
+    expect(res.status).toBe(200);
+    const body = WorkoutEfficiencySchema.parse(await res.json());
+    expect(body.pace_at_hr.sample_count).toBe(3);
+    expect(body.decoupling.window_duration_sec).toBe(1800);
+    expect(body.decoupling.decoupling_pct).toBeNull();
+  });
+
+  test("GET /workouts/:id/efficiency rejects invalid HR band params", async () => {
+    const res = await app.request(
+      `/workouts/${WORKOUT_ID_EFFICIENCY}/efficiency?hr_min=130&hr_max=120`,
+    );
+    expect(res.status).toBe(400);
+  });
+
+  test("GET /workouts/:id/efficiency 404s when workout is missing", async () => {
+    const res = await app.request("/workouts/does-not-exist/efficiency");
+    expect(res.status).toBe(404);
+  });
+
   test("GET /metrics/zones validates required from/to", async () => {
     const missing = await app.request("/metrics/zones");
     expect(missing.status).toBe(400);
@@ -144,7 +222,7 @@ describe("Hono server", () => {
   });
 
   test("GET /metrics/zones returns null z2_ratio for an empty window", async () => {
-    const res = await app.request("/metrics/zones?from=2024-06-05&to=2024-06-05");
+    const res = await app.request("/metrics/zones?from=2024-06-07&to=2024-06-07");
     expect(res.status).toBe(200);
     const parsed = ZonesRowSchema.parse(await res.json());
     expect(parsed.z2_ratio).toBeNull();
@@ -183,6 +261,24 @@ describe("Hono server", () => {
     expect(body[0]?.day).toBe("2024-06-01");
     expect(body[0]?.avg_rhr).toBeCloseTo(53, 5);
     expect(body[1]?.avg_rhr).toBeCloseTo(56, 5);
+  });
+
+  test("GET /metrics/resting-hr/rolling returns the rolling 7-day KPI", async () => {
+    const res = await app.request("/metrics/resting-hr/rolling?from=2024-06-01&to=2024-06-05");
+    expect(res.status).toBe(200);
+    const body = z.array(RestingHRRollingPointSchema).parse(await res.json());
+    expect(body).toEqual([
+      { day: "2024-06-01", avg_rhr_7d: 52.5 },
+      { day: "2024-06-02", avg_rhr_7d: 53.2 },
+      { day: "2024-06-03", avg_rhr_7d: 53.5 },
+      { day: "2024-06-04", avg_rhr_7d: 54 },
+      { day: "2024-06-05", avg_rhr_7d: 55 },
+    ]);
+  });
+
+  test("GET /metrics/resting-hr/rolling rejects invalid date ranges", async () => {
+    const res = await app.request("/metrics/resting-hr/rolling?from=bad&to=2024-06-05");
+    expect(res.status).toBe(400);
   });
 
   test("GET /metrics/sleep returns a summary", async () => {
@@ -338,7 +434,7 @@ describe("Hono server", () => {
     const body = z.array(ActivityPointSchema).parse(await res.json());
     expect(body).toEqual([
       { week: "2024-05-27", workout_count: 1, total_duration_sec: 3600 },
-      { week: "2024-06-03", workout_count: 1, total_duration_sec: 1800 },
+      { week: "2024-06-03", workout_count: 4, total_duration_sec: 10800 },
     ]);
   });
 
@@ -573,5 +669,36 @@ describe("Hono server", () => {
       expect(point.workout_count).toBe(d.workout_count);
       expect(point.total_duration_sec).toBe(d.total_duration_sec);
     }
+  });
+
+  test("GET /metrics/resting-hr/rolling pins the compact row shape", async () => {
+    const res = await app.request("/metrics/resting-hr/rolling?from=2024-06-01&to=2024-06-05");
+    expect(res.status).toBe(200);
+    const rows = (await res.json()) as Array<Record<string, unknown>>;
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(Object.keys(row).sort()).toEqual(["avg_rhr_7d", "day"]);
+    }
+  });
+
+  test("GET /workouts/:id/efficiency pins the additive response shape", async () => {
+    const res = await app.request(`/workouts/${WORKOUT_ID_EFFICIENCY}/efficiency`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Record<string, Record<string, unknown>>;
+    expect(Object.keys(body).sort()).toEqual(["decoupling", "pace_at_hr"]);
+    expect(Object.keys(body.pace_at_hr ?? {}).sort()).toEqual([
+      "avg_speed_mps",
+      "hr_max",
+      "hr_min",
+      "pace_sec_per_km",
+      "sample_count",
+    ]);
+    expect(Object.keys(body.decoupling ?? {}).sort()).toEqual([
+      "decoupling_pct",
+      "first_half_efficiency",
+      "sample_count",
+      "second_half_efficiency",
+      "window_duration_sec",
+    ]);
   });
 });

@@ -2,6 +2,7 @@ import type { Db } from "@vitals/db";
 import {
   type ListWorkoutsParams,
   getWorkoutDetail,
+  getWorkoutEfficiency,
   getWorkoutHR,
   getWorkoutSummary,
   getWorkoutZoneBreakdown,
@@ -41,6 +42,20 @@ const DateInputSchema = z
 const WorkoutIdParamsSchema = z.object({
   id: z.string().min(1),
 });
+
+const EfficiencyQuerySchema = z
+  .object({
+    hr_min: z.coerce.number().int().positive().optional(),
+    hr_max: z.coerce.number().int().positive().optional(),
+  })
+  .refine(
+    (value) =>
+      value.hr_min === undefined || value.hr_max === undefined || value.hr_max > value.hr_min,
+    {
+      message: "Expected hr_max to be greater than hr_min",
+      path: ["hr_max"],
+    },
+  );
 
 const ListQuerySchema = z.object({
   type: z.string().min(1).optional(),
@@ -107,6 +122,31 @@ export function workoutsRouter(db: Db): Hono {
 
     const rows = await getWorkoutZoneBreakdown(db, parsed.data.id);
     return c.json(rows);
+  });
+
+  app.get("/:id/efficiency", async (c) => {
+    const parsedParams = WorkoutIdParamsSchema.safeParse({ id: c.req.param("id") });
+    if (!parsedParams.success) {
+      return c.json({ error: "invalid_params", issues: parsedParams.error.issues }, 400);
+    }
+
+    const parsedQuery = EfficiencyQuerySchema.safeParse(c.req.query());
+    if (!parsedQuery.success) {
+      return c.json({ error: "invalid_query", issues: parsedQuery.error.issues }, 400);
+    }
+
+    const workout = await getWorkoutSummary(db, parsedParams.data.id);
+    if (workout === null) {
+      return c.json({ error: "not_found" }, 404);
+    }
+
+    const efficiencyParams: { hrMin?: number; hrMax?: number } = {};
+    if (parsedQuery.data.hr_min !== undefined) efficiencyParams.hrMin = parsedQuery.data.hr_min;
+    if (parsedQuery.data.hr_max !== undefined) efficiencyParams.hrMax = parsedQuery.data.hr_max;
+    const efficiency = await getWorkoutEfficiency(db, parsedParams.data.id, {
+      ...efficiencyParams,
+    });
+    return c.json(efficiency);
   });
 
   return app;
