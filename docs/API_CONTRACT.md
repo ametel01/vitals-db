@@ -91,6 +91,15 @@ Query params:
 
 Response: `VO2MaxPoint[]`, day-bucketed.
 
+### `GET /metrics/hrv`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `HRVPoint[]`, day-bucketed.
+
 ## Error shape
 
 - `400 { error: "invalid_query", issues: ZodIssue[] }` — invalid query params
