@@ -37,7 +37,14 @@ export default async function WorkoutsPage({
 
   return (
     <div>
-      <h2 className="page-title">Workouts</h2>
+      <div className="kicker">
+        <span>Sessions</span>
+        <span>·</span>
+        <span>Logged effort</span>
+      </div>
+      <h2 className="page-title">
+        Every session, <em>accounted for.</em>
+      </h2>
       <p className="page-subtitle">Filter by type and date range. Latest 100 workouts shown.</p>
 
       <form method="get" className="filters">

@@ -1,3 +1,4 @@
+import { CardTitle } from "@/components/CardTitle";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { LineChart } from "@/components/charts/LineChart";
 import {
@@ -56,16 +57,26 @@ export default async function PerformancePage(): Promise<React.ReactElement> {
 
   return (
     <div>
-      <h2 className="page-title">Performance</h2>
+      <div className="kicker">
+        <span>Endurance</span>
+        <span>·</span>
+        <span>{RUN_WINDOW_DAYS}-day window</span>
+      </div>
+      <h2 className="page-title">
+        Slow burn, <em>sharp read.</em>
+      </h2>
       <p className="page-subtitle">
-        Endurance KPIs with explicit contracts: rolling 7-day resting HR, fixed-HR pace, first 45-60
-        minute decoupling, and sample-based Z2 share.
+        Endurance KPIs with explicit contracts — rolling 7-day resting HR, fixed-HR pace, first
+        45-60 minute decoupling, and sample-based Z2 share.
       </p>
 
       <div className="grid cols-2" style={{ marginBottom: 20 }}>
         <RollingRHRCard result={rollingResult} from={rhrFrom} to={to} />
         <div className="card">
-          <h2>KPI notes</h2>
+          <CardTitle
+            title="KPI notes"
+            tip="Contract definitions for the endurance KPIs — what each number includes and excludes."
+          />
           <div style={{ color: "var(--text-muted)", fontSize: 14, lineHeight: 1.6 }}>
             Fixed-HR pace uses only aligned workout speed + HR samples in the 120-130 bpm band.
             Decoupling uses the first 45-60 minutes only and returns null when a run is too short or
@@ -76,7 +87,10 @@ export default async function PerformancePage(): Promise<React.ReactElement> {
       </div>
 
       <div className="card">
-        <h2>Recent runs</h2>
+        <CardTitle
+          title="Recent runs"
+          tip="Your most recent running sessions, each with pace @ 120-130 bpm, first-hour decoupling, and Z2 share."
+        />
         {!workoutsResult.ok ? (
           <ErrorBanner title="Could not load running workouts" detail={workoutsResult.message} />
         ) : runRows.length === 0 ? (
@@ -101,7 +115,10 @@ function RollingRHRCard({
   if (!result.ok) {
     return (
       <div className="card">
-        <h2>Rolling resting HR</h2>
+        <CardTitle
+          title="Rolling resting HR"
+          tip="A 7-day centered moving average of resting heart rate. Smooths daily noise so multi-week trends are easier to read."
+        />
         <ErrorBanner title="Could not load rolling resting HR" detail={result.message} />
       </div>
     );
@@ -110,7 +127,10 @@ function RollingRHRCard({
   if (result.data.length === 0) {
     return (
       <div className="card">
-        <h2>Rolling resting HR</h2>
+        <CardTitle
+          title="Rolling resting HR"
+          tip="A 7-day centered moving average of resting heart rate. Smooths daily noise so multi-week trends are easier to read."
+        />
         <div className="empty-state">
           No resting-HR rows were found between {from} and {to}.
         </div>
@@ -124,7 +144,7 @@ function RollingRHRCard({
   const series = [
     {
       name: "7-day avg RHR",
-      color: "#60a5fa",
+      color: "#FF6B4A",
       data: result.data.map(
         (point) => [`${point.day}T00:00:00Z`, point.avg_rhr_7d] as [string, number],
       ),
@@ -133,7 +153,10 @@ function RollingRHRCard({
 
   return (
     <div className="card">
-      <h2>Rolling resting HR</h2>
+      <CardTitle
+        title="Rolling resting HR"
+        tip="A 7-day centered moving average of resting heart rate. Smooths daily noise so multi-week trends are easier to read."
+      />
       <div className="stat-value">
         {latest === undefined ? "—" : `${latest.avg_rhr_7d.toFixed(1)} bpm`}
       </div>

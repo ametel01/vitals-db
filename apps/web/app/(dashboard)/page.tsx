@@ -1,3 +1,4 @@
+import { CardTitle } from "@/components/CardTitle";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { LineChart } from "@/components/charts/LineChart";
 import { StackedBar } from "@/components/charts/StackedBar";
@@ -49,9 +50,17 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
 
   return (
     <div>
-      <h2 className="page-title">Dashboard</h2>
+      <div className="kicker">
+        <span className="live">Live signal</span>
+        <span>·</span>
+        <span>30-day window</span>
+      </div>
+      <h2 className="page-title">
+        Your body, <em>read carefully.</em>
+      </h2>
       <p className="page-subtitle">
-        Last 30 days — {from} to {to}
+        A quiet look at the numbers that matter — resting rhythms, sleep, oxygen, variability, and
+        the work you&apos;ve logged from {from} to {to}.
       </p>
 
       <div className="grid cols-4" style={{ marginBottom: 20 }}>
@@ -67,7 +76,7 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
       </div>
 
       <h3 className="section-title">Performance</h3>
-      <div style={{ marginBottom: 12, fontSize: 13 }}>
+      <div style={{ marginBottom: 16, fontSize: 13, fontFamily: "var(--font-mono)" }}>
         <Link href="/performance">Open the dedicated performance page →</Link>
       </div>
       <div className="grid cols-2" style={{ marginBottom: 20 }}>
@@ -76,7 +85,10 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
       </div>
 
       <div className="card">
-        <h2>Weekly workout activity (last 12 weeks)</h2>
+        <CardTitle
+          title="Weekly workout activity (last 12 weeks)"
+          tip="Total workout minutes per ISO week across all workout types — a quick read on training volume."
+        />
         <WorkoutActivityChart activity={activity} workouts={workouts} />
       </div>
     </div>
@@ -91,7 +103,10 @@ function RestingHRCard({
   if (!result.ok) {
     return (
       <div className="card">
-        <h2>Resting heart rate</h2>
+        <CardTitle
+          title="Resting heart rate"
+          tip="Average daily resting heart rate. A lower baseline usually reflects stronger aerobic fitness and better recovery."
+        />
         <ErrorBanner title="Could not load resting HR" detail={result.message} />
       </div>
     );
@@ -101,7 +116,10 @@ function RestingHRCard({
   if (points.length === 0) {
     return (
       <div className="card">
-        <h2>Resting heart rate</h2>
+        <CardTitle
+          title="Resting heart rate"
+          tip="Average daily resting heart rate. A lower baseline usually reflects stronger aerobic fitness and better recovery."
+        />
         <div className="empty-state">No resting HR samples in range.</div>
       </div>
     );
@@ -112,14 +130,17 @@ function RestingHRCard({
   const series = [
     {
       name: "Resting HR",
-      color: "#60a5fa",
+      color: "#FF6B4A",
       data: points.map((p) => [`${p.day}T00:00:00Z`, p.avg_rhr] as [string, number]),
     },
   ];
 
   return (
     <div className="card">
-      <h2>Resting heart rate</h2>
+      <CardTitle
+        title="Resting heart rate"
+        tip="Average daily resting heart rate. A lower baseline usually reflects stronger aerobic fitness and better recovery."
+      />
       <div className="stat-value">
         {last === undefined ? "—" : `${formatNumber(last.avg_rhr, 0)} bpm`}
       </div>
@@ -144,7 +165,10 @@ function SleepCard({
   if (!result.ok) {
     return (
       <div className="card">
-        <h2>Sleep</h2>
+        <CardTitle
+          title="Sleep"
+          tip="Total asleep hours over the window, with efficiency (asleep ÷ in-bed) and bedtime consistency (σ in minutes)."
+        />
         <ErrorBanner title="Could not load sleep summary" detail={result.message} />
       </div>
     );
@@ -157,7 +181,10 @@ function SleepCard({
 
   return (
     <div className="card">
-      <h2>Sleep (30-day total)</h2>
+      <CardTitle
+        title="Sleep (30-day total)"
+        tip="Total asleep hours over the window, with efficiency (asleep ÷ in-bed) and bedtime consistency (σ in minutes)."
+      />
       <div className="stat-value">{formatNumber(hours, 1)} h</div>
       <div className="stat-sub">
         Efficiency {efficiency === null ? "—" : formatPercent(efficiency, 0)} · Consistency σ{" "}
@@ -182,7 +209,10 @@ function VO2MaxCard({
   if (!result.ok) {
     return (
       <div className="card">
-        <h2>VO2 max</h2>
+        <CardTitle
+          title="VO2 max"
+          tip="Apple's estimated maximum oxygen uptake — a running-fitness proxy. Higher is better; it changes slowly across weeks."
+        />
         <ErrorBanner title="Could not load VO2 max" detail={result.message} />
       </div>
     );
@@ -192,7 +222,10 @@ function VO2MaxCard({
   if (points.length === 0) {
     return (
       <div className="card">
-        <h2>VO2 max</h2>
+        <CardTitle
+          title="VO2 max"
+          tip="Apple's estimated maximum oxygen uptake — a running-fitness proxy. Higher is better; it changes slowly across weeks."
+        />
         <div className="empty-state">No VO2 max samples in range.</div>
       </div>
     );
@@ -203,14 +236,17 @@ function VO2MaxCard({
   const series = [
     {
       name: "VO2 max",
-      color: "#34d399",
+      color: "#7FE09D",
       data: points.map((p) => [`${p.day}T00:00:00Z`, p.avg_vo2max] as [string, number]),
     },
   ];
 
   return (
     <div className="card">
-      <h2>VO2 max</h2>
+      <CardTitle
+        title="VO2 max"
+        tip="Apple's estimated maximum oxygen uptake — a running-fitness proxy. Higher is better; it changes slowly across weeks."
+      />
       <div className="stat-value">
         {last === undefined ? "—" : `${formatNumber(last.avg_vo2max, 1)} ml/kg/min`}
       </div>
@@ -235,7 +271,10 @@ function HRVCard({
   if (!result.ok) {
     return (
       <div className="card">
-        <h2>HRV</h2>
+        <CardTitle
+          title="HRV"
+          tip="Heart-rate variability (SDNN). The beat-to-beat fluctuation that reflects autonomic recovery — higher is generally better."
+        />
         <ErrorBanner title="Could not load HRV" detail={result.message} />
       </div>
     );
@@ -245,7 +284,10 @@ function HRVCard({
   if (points.length === 0) {
     return (
       <div className="card">
-        <h2>HRV</h2>
+        <CardTitle
+          title="HRV"
+          tip="Heart-rate variability (SDNN). The beat-to-beat fluctuation that reflects autonomic recovery — higher is generally better."
+        />
         <div className="empty-state">No HRV samples in range.</div>
       </div>
     );
@@ -256,14 +298,17 @@ function HRVCard({
   const series = [
     {
       name: "HRV",
-      color: "#f472b6",
+      color: "#FF5D8F",
       data: points.map((p) => [`${p.day}T00:00:00Z`, p.avg_hrv] as [string, number]),
     },
   ];
 
   return (
     <div className="card">
-      <h2>HRV</h2>
+      <CardTitle
+        title="HRV"
+        tip="Heart-rate variability (SDNN). The beat-to-beat fluctuation that reflects autonomic recovery — higher is generally better."
+      />
       <div className="stat-value">
         {last === undefined ? "—" : `${formatNumber(last.avg_hrv, 0)} ms`}
       </div>
@@ -283,7 +328,10 @@ function StepsCard({
   if (!result.ok) {
     return (
       <div className="card">
-        <h2>Steps</h2>
+        <CardTitle
+          title="Steps"
+          tip="Daily step count captured by iPhone and Apple Watch. Most useful as a long-term movement trend."
+        />
         <ErrorBanner title="Could not load steps" detail={result.message} />
       </div>
     );
@@ -293,7 +341,10 @@ function StepsCard({
   if (points.length === 0) {
     return (
       <div className="card">
-        <h2>Steps</h2>
+        <CardTitle
+          title="Steps"
+          tip="Daily step count captured by iPhone and Apple Watch. Most useful as a long-term movement trend."
+        />
         <div className="empty-state">No step samples in range.</div>
       </div>
     );
@@ -305,14 +356,17 @@ function StepsCard({
   const series = [
     {
       name: "Steps",
-      color: "#f59e0b",
+      color: "#D8FF3D",
       data: points.map((p) => [`${p.day}T00:00:00Z`, p.total_steps] as [string, number]),
     },
   ];
 
   return (
     <div className="card">
-      <h2>Steps</h2>
+      <CardTitle
+        title="Steps"
+        tip="Daily step count captured by iPhone and Apple Watch. Most useful as a long-term movement trend."
+      />
       <div className="stat-value">
         {last === undefined ? "—" : formatNumber(last.total_steps, 0)}
       </div>
@@ -337,7 +391,10 @@ function WalkingHRCard({
   if (!result.ok) {
     return (
       <div className="card">
-        <h2>Walking heart rate</h2>
+        <CardTitle
+          title="Walking heart rate"
+          tip="Average heart rate while walking. Rises with illness or detraining and falls as aerobic fitness improves."
+        />
         <ErrorBanner title="Could not load walking HR" detail={result.message} />
       </div>
     );
@@ -347,7 +404,10 @@ function WalkingHRCard({
   if (points.length === 0) {
     return (
       <div className="card">
-        <h2>Walking heart rate</h2>
+        <CardTitle
+          title="Walking heart rate"
+          tip="Average heart rate while walking. Rises with illness or detraining and falls as aerobic fitness improves."
+        />
         <div className="empty-state">No walking HR samples in range.</div>
       </div>
     );
@@ -358,14 +418,17 @@ function WalkingHRCard({
   const series = [
     {
       name: "Walking HR",
-      color: "#a78bfa",
+      color: "#BFA6FF",
       data: points.map((p) => [`${p.day}T00:00:00Z`, p.avg_walking_hr] as [string, number]),
     },
   ];
 
   return (
     <div className="card">
-      <h2>Walking heart rate</h2>
+      <CardTitle
+        title="Walking heart rate"
+        tip="Average heart rate while walking. Rises with illness or detraining and falls as aerobic fitness improves."
+      />
       <div className="stat-value">
         {last === undefined ? "—" : `${formatNumber(last.avg_walking_hr, 0)} bpm`}
       </div>
@@ -390,7 +453,10 @@ function SpeedCard({
   if (!result.ok) {
     return (
       <div className="card">
-        <h2>Running speed</h2>
+        <CardTitle
+          title="Running speed"
+          tip="Average speed across running samples (m/s). Pair with heart rate for a read on effort vs. fitness."
+        />
         <ErrorBanner title="Could not load speed" detail={result.message} />
       </div>
     );
@@ -400,7 +466,10 @@ function SpeedCard({
   if (points.length === 0) {
     return (
       <div className="card">
-        <h2>Running speed</h2>
+        <CardTitle
+          title="Running speed"
+          tip="Average speed across running samples (m/s). Pair with heart rate for a read on effort vs. fitness."
+        />
         <div className="empty-state">No running speed samples in range.</div>
       </div>
     );
@@ -411,14 +480,17 @@ function SpeedCard({
   const series = [
     {
       name: "Speed",
-      color: "#22d3ee",
+      color: "#5FD3F3",
       data: points.map((p) => [`${p.day}T00:00:00Z`, p.avg_speed] as [string, number]),
     },
   ];
 
   return (
     <div className="card">
-      <h2>Running speed</h2>
+      <CardTitle
+        title="Running speed"
+        tip="Average speed across running samples (m/s). Pair with heart rate for a read on effort vs. fitness."
+      />
       <div className="stat-value">
         {last === undefined ? "—" : `${formatNumber(last.avg_speed, 2)} m/s`}
       </div>
@@ -443,7 +515,10 @@ function PowerCard({
   if (!result.ok) {
     return (
       <div className="card">
-        <h2>Running power</h2>
+        <CardTitle
+          title="Running power"
+          tip="Average running power in watts. Combines pace and vertical motion into one effort metric independent of terrain."
+        />
         <ErrorBanner title="Could not load power" detail={result.message} />
       </div>
     );
@@ -453,7 +528,10 @@ function PowerCard({
   if (points.length === 0) {
     return (
       <div className="card">
-        <h2>Running power</h2>
+        <CardTitle
+          title="Running power"
+          tip="Average running power in watts. Combines pace and vertical motion into one effort metric independent of terrain."
+        />
         <div className="empty-state">No running power samples in range.</div>
       </div>
     );
@@ -464,14 +542,17 @@ function PowerCard({
   const series = [
     {
       name: "Power",
-      color: "#fb7185",
+      color: "#F5A524",
       data: points.map((p) => [`${p.day}T00:00:00Z`, p.avg_power] as [string, number]),
     },
   ];
 
   return (
     <div className="card">
-      <h2>Running power</h2>
+      <CardTitle
+        title="Running power"
+        tip="Average running power in watts. Combines pace and vertical motion into one effort metric independent of terrain."
+      />
       <div className="stat-value">
         {last === undefined ? "—" : `${formatNumber(last.avg_power, 0)} W`}
       </div>
@@ -515,7 +596,7 @@ function WorkoutActivityChart({
   const series = [
     {
       name: "Duration",
-      color: "#60a5fa",
+      color: "#D8FF3D",
       data: weekly.map((w) => Math.round(w.total_duration_sec / 60)),
     },
   ];

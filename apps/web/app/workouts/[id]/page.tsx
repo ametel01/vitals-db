@@ -1,3 +1,4 @@
+import { CardTitle } from "@/components/CardTitle";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { LineChart } from "@/components/charts/LineChart";
 import { StackedBar } from "@/components/charts/StackedBar";
@@ -59,17 +60,27 @@ export default async function WorkoutDetailPage({
 
   return (
     <div>
+      <div className="kicker">
+        <span>Session detail</span>
+        <span>·</span>
+        <span>{detail.type === "" ? "Workout" : detail.type}</span>
+      </div>
       <h2 className="page-title">{detail.type === "" ? "Workout" : detail.type}</h2>
       <p className="page-subtitle">
         {formatIsoDateTime(detail.start_ts)} — {formatIsoDateTime(detail.end_ts)}
       </p>
 
       <div className="grid cols-3" style={{ marginBottom: 20 }}>
-        <StatCard label="Duration" value={formatDuration(detail.duration_sec)} />
+        <StatCard
+          label="Duration"
+          value={formatDuration(detail.duration_sec)}
+          tip="Total elapsed time for this session, from start to end timestamp."
+        />
         <StatCard
           label="Z2 share"
           value={detail.z2_ratio === null ? "—" : formatPercent(detail.z2_ratio, 1)}
           sub={`${HR_ZONES.Z2.min}–${HR_ZONES.Z2.max} bpm`}
+          tip="Share of HR samples in Zone 2. A proxy for how much of the session was aerobic-base work."
         />
         <EfficiencyPaceCard result={efficiencyResult} />
         <DriftCard detail={detail} />
@@ -78,11 +89,15 @@ export default async function WorkoutDetailPage({
           label="Load"
           value={detail.load === null ? "—" : formatNumber(detail.load, 0)}
           sub="duration × avg HR"
+          tip="Duration multiplied by average HR. A rough internal-load proxy for comparing session intensity over time."
         />
       </div>
 
       <div className="card">
-        <h2>Heart rate</h2>
+        <CardTitle
+          title="Heart rate"
+          tip="Full heart-rate time series for this session, with the Zone 2 band highlighted in lime."
+        />
         {hrResult.ok ? (
           <HRChart points={hrResult.data} />
         ) : (
@@ -91,7 +106,10 @@ export default async function WorkoutDetailPage({
       </div>
 
       <div className="card">
-        <h2>Zones distribution</h2>
+        <CardTitle
+          title="Zones distribution"
+          tip="Share of HR samples in each of the five HR zones — helpful to confirm the session hit its intended zone."
+        />
         {zonesResult.ok ? (
           <ZonesBreakdownChart rows={zonesResult.data} />
         ) : (
@@ -106,14 +124,16 @@ function StatCard({
   label,
   value,
   sub,
+  tip,
 }: {
   label: string;
   value: string;
   sub?: string;
+  tip?: string;
 }): React.ReactElement {
   return (
     <div className="card">
-      <h2>{label}</h2>
+      <CardTitle title={label} tip={tip} />
       <div className="stat-value">{value}</div>
       {sub === undefined ? null : <div className="stat-sub">{sub}</div>}
     </div>
@@ -125,7 +145,10 @@ function DriftCard({ detail }: { detail: WorkoutDetail }): React.ReactElement {
   const tagClass = driftTagClass(detail.drift_classification);
   return (
     <div className="card">
-      <h2>HR drift</h2>
+      <CardTitle
+        title="HR drift"
+        tip="How much heart rate drifts upward across steady pace. Classified as stable, moderate, or high based on the slope."
+      />
       <div className="stat-value">{value}</div>
       <div className="stat-sub">
         <span className={`tag ${tagClass}`}>{detail.drift_classification}</span>
@@ -139,8 +162,12 @@ function EfficiencyPaceCard({
 }: {
   result: Awaited<ReturnType<typeof getWorkoutEfficiency>>;
 }): React.ReactElement {
+  const tip =
+    "Average running pace only while heart rate was 120-130 bpm. Neutralizes effort so aerobic economy is comparable across runs.";
   if (!result.ok) {
-    return <StatCard label="Pace @ 120-130 bpm" value="—" sub="Efficiency route unavailable" />;
+    return (
+      <StatCard label="Pace @ 120-130 bpm" value="—" sub="Efficiency route unavailable" tip={tip} />
+    );
   }
 
   const pace = result.data.pace_at_hr;
@@ -153,6 +180,7 @@ function EfficiencyPaceCard({
           ? "No aligned HR + speed samples"
           : `${pace.sample_count} matched samples`
       }
+      tip={tip}
     />
   );
 }
@@ -162,8 +190,10 @@ function EfficiencyDecouplingCard({
 }: {
   result: Awaited<ReturnType<typeof getWorkoutEfficiency>>;
 }): React.ReactElement {
+  const tip =
+    "HR-to-pace change over the first 45-60 min. High values suggest loss of aerobic efficiency within the session.";
   if (!result.ok) {
-    return <StatCard label="Decoupling" value="—" sub="Efficiency route unavailable" />;
+    return <StatCard label="Decoupling" value="—" sub="Efficiency route unavailable" tip={tip} />;
   }
 
   const decoupling = result.data.decoupling;
@@ -176,7 +206,7 @@ function EfficiencyDecouplingCard({
         : "No aligned HR + speed samples"
       : `First ${Math.round(decoupling.window_duration_sec / 60)} min`;
 
-  return <StatCard label="Decoupling" value={value} sub={sub} />;
+  return <StatCard label="Decoupling" value={value} sub={sub} tip={tip} />;
 }
 
 function driftTagClass(classification: DriftClassification): string {
@@ -193,11 +223,11 @@ function driftTagClass(classification: DriftClassification): string {
 }
 
 const ZONE_COLORS: Record<(typeof HR_ZONE_ORDER)[number], string> = {
-  Z1: "#60a5fa",
-  Z2: "#34d399",
-  Z3: "#facc15",
-  Z4: "#fb923c",
-  Z5: "#f87171",
+  Z1: "#5FD3F3",
+  Z2: "#D8FF3D",
+  Z3: "#F5A524",
+  Z4: "#FF6B4A",
+  Z5: "#FF5D8F",
 };
 
 function ZonesBreakdownChart({
@@ -239,7 +269,7 @@ function HRChart({ points }: { points: HRPoint[] }): React.ReactElement {
   const series = [
     {
       name: "HR",
-      color: "#f87171",
+      color: "#FF6B4A",
       data: points.map((p) => [p.ts, p.bpm] as [string, number]),
     },
   ];

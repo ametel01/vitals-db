@@ -1,3 +1,4 @@
+import { CardTitle } from "@/components/CardTitle";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { LineChart } from "@/components/charts/LineChart";
 import { StackedBar } from "@/components/charts/StackedBar";
@@ -19,20 +20,20 @@ export const dynamic = "force-dynamic";
 const WINDOW_OPTIONS = [7, 14, 30, 90] as const;
 
 const STAGE_COLORS = {
-  core: "#60a5fa",
-  deep: "#4ade80",
-  rem: "#f472b6",
-  unspecified: "#fbbf24",
+  core: "#5FD3F3",
+  deep: "#BFA6FF",
+  rem: "#FF5D8F",
+  unspecified: "#F5A524",
 } as const;
 
 const SEGMENT_COLORS = {
-  in_bed: "rgba(148, 163, 184, 0.55)",
-  awake: "#f87171",
+  in_bed: "rgba(138, 151, 144, 0.35)",
+  awake: "#FF6B4A",
   core: STAGE_COLORS.core,
   deep: STAGE_COLORS.deep,
   rem: STAGE_COLORS.rem,
   unspecified: STAGE_COLORS.unspecified,
-  asleep: "#60a5fa",
+  asleep: "#5FD3F3",
 } as const;
 
 interface SleepPageProps {
@@ -121,7 +122,14 @@ export default async function SleepPage({
 
   return (
     <div>
-      <h2 className="page-title">Sleep</h2>
+      <div className="kicker">
+        <span>Recovery</span>
+        <span>·</span>
+        <span>Night architecture</span>
+      </div>
+      <h2 className="page-title">
+        The hours you <em>actually</em> slept.
+      </h2>
       <p className="page-subtitle">
         Night-by-night detail for {from} to {to}. The dashboard card stays compact; this page is for
         drill-down, stage totals, and the segment timeline.
@@ -181,14 +189,14 @@ function SleepPageContent({
   const trendSeries = [
     {
       name: "Asleep",
-      color: "#60a5fa",
+      color: "#BFA6FF",
       data: nights.map(
         (night) => [`${night.day}T00:00:00Z`, night.asleep_hours] as [string, number],
       ),
     },
     {
       name: "In bed",
-      color: "#94a3b8",
+      color: "#546058",
       data: nights.map(
         (night) => [`${night.day}T00:00:00Z`, night.in_bed_hours] as [string, number],
       ),
@@ -202,16 +210,19 @@ function SleepPageContent({
           label="Nights"
           value={String(nights.length)}
           sub={`Window size ${days} days`}
+          tip="Number of sleep nights analyzed in this window."
         />
         <SummaryCard
           label="Total asleep"
           value={`${formatNumber(totalAsleepHours, 1)} h`}
           sub={`Average ${formatNumber(avgAsleepHours, 1)} h/night`}
+          tip="Sum of hours classified as asleep across every night in the window."
         />
         <SummaryCard
           label="Average efficiency"
           value={efficiency === null ? "—" : formatPercent(efficiency, 0)}
           sub="Asleep hours divided by in-bed hours"
+          tip="Mean of per-night efficiency (asleep ÷ in-bed). 85% or higher is a common healthy benchmark."
         />
         <SummaryCard
           label="Stage coverage"
@@ -221,12 +232,16 @@ function SleepPageContent({
               ? "All nights include preserved stage detail"
               : "Some nights predate raw stage preservation"
           }
+          tip="Share of nights that include preserved Core/Deep/REM totals. Older rows may only have the normalized timeline."
         />
       </div>
 
       <div className="grid cols-2" style={{ marginBottom: 20 }}>
         <div className="card">
-          <h2>Nightly trend</h2>
+          <CardTitle
+            title="Nightly trend"
+            tip="Per-night in-bed and asleep hours across the selected window."
+          />
           <LineChart
             key={chartDataKey("sleep-nights-trend", trendSeries)}
             series={trendSeries}
@@ -236,7 +251,10 @@ function SleepPageContent({
         </div>
 
         <div className="card">
-          <h2>Nights</h2>
+          <CardTitle
+            title="Nights"
+            tip="Every night in the window. Click one to drill into its timeline and stage totals."
+          />
           <div className="sleep-night-list">
             {nights.map((night) => (
               <Link
@@ -262,7 +280,10 @@ function SleepPageContent({
       {selectedNight === undefined ? null : (
         <div className="grid cols-2">
           <div className="card">
-            <h2>Selected night</h2>
+            <CardTitle
+              title="Selected night"
+              tip="Segment-by-segment timeline for this night, from bed through sleep stages and awake periods."
+            />
             <div className="sleep-detail-header">
               <div>
                 <div className="stat-value">{formatIsoDate(selectedNight.day)}</div>
@@ -290,7 +311,10 @@ function SleepPageContent({
           </div>
 
           <div className="card">
-            <h2>Stage breakdown</h2>
+            <CardTitle
+              title="Stage breakdown"
+              tip="Total hours in each stage (Core, Deep, REM, Unspecified) for the selected night, from preserved raw stage data."
+            />
             {hasStageDetail(selectedNight) ? (
               <SleepStageBreakdown night={selectedNight} />
             ) : (
@@ -307,14 +331,16 @@ function SummaryCard({
   label,
   value,
   sub,
+  tip,
 }: {
   label: string;
   value: string;
   sub: string;
+  tip?: string;
 }): React.ReactElement {
   return (
     <div className="card">
-      <h2>{label}</h2>
+      <CardTitle title={label} tip={tip} />
       <div className="stat-value">{value}</div>
       <div className="stat-sub">{sub}</div>
     </div>
