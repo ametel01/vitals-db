@@ -4,6 +4,79 @@ All notable changes to this project are documented here. This file follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] — 2026-04-21
+
+Movement metrics slice per `local-docs/IMPLEMENTATION_PLAN_0.4.0.md`. Surfaces
+the explicit activity/movement data already being ingested (steps, distance,
+energy) and promotes the existing weekly-workout aggregation from a client-side
+deriver to a real API endpoint. No ingest changes, no changes to existing route
+payload shapes, and `ActivityPoint` semantics are preserved.
+
+### Added — core (`packages/core`)
+
+- `StepsPointSchema` / `StepsPoint` (`day`, `total_steps`).
+- `DistancePointSchema` / `DistancePoint` (`day`, `total_meters`).
+- `EnergyPointSchema` / `EnergyPoint` (`day`, `active_kcal`, `basal_kcal`).
+- Round-trip and validation tests for each (ISO day, non-negative totals) in
+  `dto.test.ts`.
+
+### Added — queries (`packages/queries`)
+
+- `getStepsDaily(db, range)` — UTC-day buckets `SUM(count)` from `steps`.
+- `getDistanceDaily(db, range)` — UTC-day buckets `SUM(meters)` from
+  `distance`.
+- `getEnergyDaily(db, range)` — UTC-day buckets `SUM(active_kcal)` and
+  `SUM(basal_kcal)` independently with `COALESCE`, so a sample carrying only
+  one column does not null the other's daily total.
+- All three route through `normalizeRangeStart` / `normalizeRangeEnd` for the
+  shared inclusive-date-only-upper-bound semantics.
+- Tests cover grouping across multiple days, an inclusive date-only upper
+  bound, and empty windows.
+
+### Added — API (`apps/server`)
+
+- `GET /metrics/activity` — wires the existing `getWeeklyActivity` to the HTTP
+  surface, returning `ActivityPoint[]` with unchanged semantics (ISO-week,
+  Monday-start, workouts-only).
+- `GET /metrics/steps` — returns `StepsPoint[]`, day-bucketed.
+- `GET /metrics/distance` — returns `DistancePoint[]`, day-bucketed.
+- `GET /metrics/energy` — returns `EnergyPoint[]`, day-bucketed.
+- All four routes use the shared `parseRange` flow and return the same
+  `400 { error: "invalid_query", issues }` shape as the other `/metrics`
+  routes.
+- Server fixture gains steps/distance/energy rows; tests cover happy paths,
+  invalid-range 400s, and an empty-window `[]` for `/metrics/steps`.
+
+### Added — web (`apps/web`)
+
+- `getActivity`, `getSteps`, `getDistance`, `getEnergy` client helpers in
+  `lib/api.ts`, Zod-validated against matching list schemas.
+- Dashboard `StepsCard`: latest-day primary stat, 30-day average secondary
+  stat, 30-day `LineChart`, plus error and empty states. Uses the shared
+  30-day window.
+
+### Changed — web (`apps/web`)
+
+- `WorkoutActivityChart` now prefers `/metrics/activity` from the server and
+  falls back to the local `deriveWeeklyActivity` only if the server call
+  fails. The dashboard now fetches `/workouts` only on that fallback path
+  instead of on every successful render. `deriveWeeklyActivity` is
+  intentionally retained for back-compat in this release.
+
+### Changed — docs
+
+- `docs/API_CONTRACT.md` adds `GET /metrics/activity`,
+  `GET /metrics/steps`, `GET /metrics/distance`, and `GET /metrics/energy`.
+- `README.md` "Dashboard Views", "API Surface", and the top-level feature
+  summary now reflect steps plus server-backed weekly activity.
+
+### Release gate
+
+- `bun run test` (188/188), `bun run typecheck`, `bun run build` all green.
+- No existing DTO or route payload changed shape; all additions are additive.
+
+[0.4.0]: https://github.com/alexmetelli/vitals-db/releases/tag/v0.4.0
+
 ## [0.3.0] — 2026-04-21
 
 HRV vertical slice per `local-docs/IMPLEMENTATION_PLAN_0.3.0.md`. Takes HRV from
