@@ -100,6 +100,46 @@ Query params:
 
 Response: `HRVPoint[]`, day-bucketed.
 
+### `GET /metrics/activity`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `ActivityPoint[]`, one row per ISO week (Monday-start) aggregated from
+the `workouts` table.
+
+### `GET /metrics/steps`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `StepsPoint[]`, day-bucketed `SUM(count)` from the `steps` table.
+
+### `GET /metrics/distance`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `DistancePoint[]`, day-bucketed `SUM(meters)` from the `distance`
+table.
+
+### `GET /metrics/energy`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `EnergyPoint[]`, day-bucketed totals of `active_kcal` and `basal_kcal`
+from the `energy` table. Each column is aggregated independently so sparse rows
+(active-only or basal-only samples) do not null out the daily total.
+
 ## Error shape
 
 - `400 { error: "invalid_query", issues: ZodIssue[] }` — invalid query params

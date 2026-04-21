@@ -18,7 +18,8 @@ Today the implementation covers:
 - sleep total hours, efficiency, and consistency summary
 - simple workout load (`duration_sec * avg_hr`)
 - VO2 max daily averages
-- weekly workout activity derived from workouts
+- steps, distance, and energy daily totals
+- weekly workout activity served by the API
 - Z2 ratio and heart-rate drift for workouts
 
 ## Stack
@@ -130,7 +131,7 @@ PORT=9999 DB_PATH=./vitals.duckdb bun run health serve
 The current UI has:
 
 - `/`: 30-day resting HR, 30-day sleep summary, 30-day VO2 max, 30-day HRV,
-  and 12-week workout activity
+  30-day steps, and 12-week workout activity
 - `/workouts`: latest 100 workouts with type and date filters
 - `/workouts/:id`: workout duration, Z2 ratio, HR drift classification, load,
   and HR chart
@@ -148,6 +149,10 @@ The server currently exposes:
 - `GET /metrics/load`
 - `GET /metrics/vo2max`
 - `GET /metrics/hrv`
+- `GET /metrics/activity`
+- `GET /metrics/steps`
+- `GET /metrics/distance`
+- `GET /metrics/energy`
 
 See [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) for query params,
 response DTOs, and error shapes. Date-only bounds are treated as full UTC days.
