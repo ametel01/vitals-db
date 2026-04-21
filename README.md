@@ -1,0 +1,165 @@
+# vitals-db
+
+`vitals-db` ingests Apple Health export XML into DuckDB and serves a small analytics dashboard on top of it.
+
+The repo has four main pieces:
+
+- `packages/ingest`: streaming XML parser and incremental importer for Apple Health exports
+- `packages/db`: DuckDB connection and SQL migrations
+- `apps/server`: Hono API plus the `health` CLI
+- `apps/web`: Next.js dashboard that reads from the API
+
+Today the implementation covers:
+
+- workout imports and workout detail pages
+- heart-rate time series for workouts
+- resting heart rate daily averages
+- sleep total hours, efficiency, and consistency summary
+- simple workout load (`duration_sec * avg_hr`)
+- VO2 max daily averages
+- weekly workout activity derived from workouts
+- Z2 ratio and heart-rate drift for workouts
+
+## Stack
+
+- Bun workspaces
+- TypeScript
+- `saxes` for streaming XML parsing
+- DuckDB for storage and analytics
+- Hono for the API
+- Next.js App Router + ECharts for the dashboard
+
+## What gets ingested from Apple Health XML
+
+The importer currently maps these Apple Health types into analytics tables:
+
+- `HKWorkoutActivityType*` workouts
+- `HKQuantityTypeIdentifierHeartRate`
+- `HKQuantityTypeIdentifierRestingHeartRate`
+- `HKQuantityTypeIdentifierHeartRateVariabilitySDNN`
+- `HKQuantityTypeIdentifierWalkingHeartRateAverage`
+- `HKQuantityTypeIdentifierStepCount`
+- `HKQuantityTypeIdentifierDistanceWalkingRunning`
+- `HKQuantityTypeIdentifierActiveEnergyBurned`
+- `HKQuantityTypeIdentifierBasalEnergyBurned`
+- `HKQuantityTypeIdentifierVO2Max`
+- `HKQuantityTypeIdentifierRunningSpeed`
+- `HKQuantityTypeIdentifierRunningPower`
+- `HKCategoryTypeIdentifierSleepAnalysis`
+
+Import behavior in the current code:
+
+- timestamps are normalized to UTC before writing to DuckDB
+- imports are incremental by default
+- a 24-hour lookback buffer is applied around the last imported timestamp
+- `_ingest_seen` is used for deduplication across repeated imports
+- records with `HKWasUserEntered=1` are skipped
+- unsupported Apple Health record types are ignored
+
+## Setup
+
+Prerequisite: Bun installed locally.
+
+```bash
+bun install
+```
+
+## Ingest Data From XML
+
+Import your Apple Health export into DuckDB:
+
+```bash
+bun run health ingest /path/to/export.xml
+```
+
+By default the database file is `./vitals.duckdb`. You can override it:
+
+```bash
+DB_PATH=./my-health.duckdb bun run health ingest /path/to/export.xml
+```
+
+There is also a committed sample file you can use to try the app:
+
+```bash
+bun run health ingest fixtures/sample.xml
+```
+
+Other supported CLI commands:
+
+```bash
+bun run health serve
+bun run health rebuild
+```
+
+- `serve` starts the API and runs migrations first
+- `rebuild` clears analytics tables and re-imports the last imported file in full
+
+## Start The Dashboard
+
+Run the API in one terminal:
+
+```bash
+DB_PATH=./vitals.duckdb bun run health serve
+```
+
+This serves the Hono API on `http://localhost:8787` by default.
+
+Run the web app in a second terminal:
+
+```bash
+bun run --filter @vitals/web dev
+```
+
+Then open `http://localhost:3000`.
+
+If the API is not on `http://localhost:8787`, point the web app at it:
+
+```bash
+VITALS_API_URL=http://localhost:9999 bun run --filter @vitals/web dev
+```
+
+If you also changed the server port, start the API with:
+
+```bash
+PORT=9999 DB_PATH=./vitals.duckdb bun run health serve
+```
+
+## Dashboard Views
+
+The current UI has:
+
+- `/`: 30-day resting HR, 30-day sleep summary, and 12-week workout activity
+- `/workouts`: latest 100 workouts with type and date filters
+- `/workouts/:id`: workout duration, Z2 ratio, HR drift classification, and HR chart
+
+## API Surface
+
+The server currently exposes:
+
+- `GET /workouts`
+- `GET /workouts/:id`
+- `GET /workouts/:id/hr`
+- `GET /metrics/zones?from=YYYY-MM-DD&to=YYYY-MM-DD`
+- `GET /metrics/resting-hr?from=YYYY-MM-DD&to=YYYY-MM-DD`
+- `GET /metrics/sleep?from=YYYY-MM-DD&to=YYYY-MM-DD`
+- `GET /metrics/load?from=YYYY-MM-DD&to=YYYY-MM-DD`
+- `GET /metrics/vo2max?from=YYYY-MM-DD&to=YYYY-MM-DD`
+
+Date-only bounds are treated as full UTC days.
+
+## Useful Environment Variables
+
+- `DB_PATH`: DuckDB file path, default `./vitals.duckdb`
+- `PORT`: API port for `health serve`, default `8787`
+- `VITALS_API_URL`: base URL used by the Next.js app, default `http://localhost:8787`
+- `NODE_ENV`: parsed by the server env loader, default `development`
+
+## Development Checks
+
+```bash
+bun test
+bun run typecheck
+bun run check
+```
+
+The repo test suite currently passes end to end, including ingest, queries, API routes, and the committed sample fixture.
