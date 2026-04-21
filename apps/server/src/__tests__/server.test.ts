@@ -398,4 +398,87 @@ describe("Hono server", () => {
     const body = z.array(SleepNightPointSchema).parse(await res.json());
     expect(body).toEqual([]);
   });
+
+  // 0.7.0 contract pins — these lock the exact top-level key sets on legacy
+  // and preferred paths that ship side-by-side, so an accidental payload
+  // widening (e.g. surfacing a new zone field on the scalar `/metrics/zones`)
+  // fails the suite before it reaches 1.0.0.
+
+  test("GET /metrics/zones keeps exactly the scalar { z2_ratio } shape", async () => {
+    const res = await app.request("/metrics/zones?from=2024-06-01&to=2024-06-01");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(Object.keys(body).sort()).toEqual(["z2_ratio"]);
+  });
+
+  test("GET /workouts/:id/zones pins the additive breakdown row shape", async () => {
+    const res = await app.request(`/workouts/${WORKOUT_ID}/zones`);
+    expect(res.status).toBe(200);
+    const rows = (await res.json()) as Array<Record<string, unknown>>;
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(Object.keys(row).sort()).toEqual(["ratio", "sample_count", "zone"]);
+    }
+  });
+
+  test("GET /metrics/sleep pins the summary top-level keys", async () => {
+    const res = await app.request("/metrics/sleep?from=2024-05-31&to=2024-06-01");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(Object.keys(body).sort()).toEqual(["consistency_stddev", "efficiency", "total_hours"]);
+  });
+
+  test("GET /metrics/sleep/nightly pins the additive per-night row shape", async () => {
+    const res = await app.request("/metrics/sleep/nightly?from=2024-05-31&to=2024-06-01");
+    expect(res.status).toBe(200);
+    const rows = (await res.json()) as Array<Record<string, unknown>>;
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(Object.keys(row).sort()).toEqual([
+        "asleep_hours",
+        "day",
+        "efficiency",
+        "in_bed_hours",
+      ]);
+    }
+  });
+
+  test("GET /metrics/activity pins row keys and agrees with /workouts derivation", async () => {
+    const activityRes = await app.request("/metrics/activity?from=2024-05-27&to=2024-06-09");
+    expect(activityRes.status).toBe(200);
+    const activity = z.array(ActivityPointSchema).parse(await activityRes.json());
+
+    for (const row of activity as unknown as Array<Record<string, unknown>>) {
+      expect(Object.keys(row).sort()).toEqual(["total_duration_sec", "week", "workout_count"]);
+    }
+
+    // Equivalence with the legacy client-side derivation: the server route
+    // and a Monday-bucketed sum over /workouts must produce the same
+    // (workout_count, total_duration_sec) per ISO week for the same range.
+    const workoutsRes = await app.request("/workouts?from=2024-05-27&to=2024-06-09");
+    expect(workoutsRes.status).toBe(200);
+    const workouts = z.array(WorkoutSummarySchema).parse(await workoutsRes.json());
+
+    const derived = new Map<string, { workout_count: number; total_duration_sec: number }>();
+    for (const w of workouts) {
+      const d = new Date(w.start_ts);
+      const day = d.getUTCDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      const monday = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + diff));
+      const week = monday.toISOString().slice(0, 10);
+      const prev = derived.get(week) ?? { workout_count: 0, total_duration_sec: 0 };
+      prev.workout_count += 1;
+      prev.total_duration_sec += w.duration_sec;
+      derived.set(week, prev);
+    }
+
+    expect(activity).toHaveLength(derived.size);
+    for (const point of activity) {
+      const d = derived.get(point.week);
+      expect(d).toBeDefined();
+      if (!d) continue;
+      expect(point.workout_count).toBe(d.workout_count);
+      expect(point.total_duration_sec).toBe(d.total_duration_sec);
+    }
+  });
 });
