@@ -1,7 +1,13 @@
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { LineChart } from "@/components/charts/LineChart";
 import { StackedBar } from "@/components/charts/StackedBar";
-import { deriveWeeklyActivity, getRestingHR, getSleepSummary, listWorkouts } from "@/lib/api";
+import {
+  deriveWeeklyActivity,
+  getRestingHR,
+  getSleepSummary,
+  getVO2Max,
+  listWorkouts,
+} from "@/lib/api";
 import {
   chartDataKey,
   formatDuration,
@@ -19,9 +25,10 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
   const from = windowStartIso(30);
   const activityFrom = windowStartIso(12 * 7);
 
-  const [restingHR, sleep, workouts] = await Promise.all([
+  const [restingHR, sleep, vo2max, workouts] = await Promise.all([
     getRestingHR({ from, to }),
     getSleepSummary({ from, to }),
+    getVO2Max({ from, to }),
     listWorkouts({ from: activityFrom, to }),
   ]);
 
@@ -32,9 +39,10 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
         Last 30 days — {from} to {to}
       </p>
 
-      <div className="grid cols-2" style={{ marginBottom: 20 }}>
+      <div className="grid cols-3" style={{ marginBottom: 20 }}>
         <RestingHRCard result={restingHR} />
         <SleepCard result={sleep} />
+        <VO2MaxCard result={vo2max} />
       </div>
 
       <div className="card">
@@ -128,6 +136,59 @@ function SleepCard({
       <div style={{ marginTop: 16, color: "var(--text-muted)", fontSize: 13 }}>
         Summary across the 30-day window. Efficiency is asleep hours over in-bed hours; consistency
         σ is the standard deviation of bedtime, in minutes.
+      </div>
+    </div>
+  );
+}
+
+function VO2MaxCard({
+  result,
+}: {
+  result: Awaited<ReturnType<typeof getVO2Max>>;
+}): React.ReactElement {
+  if (!result.ok) {
+    return (
+      <div className="card">
+        <h2>VO2 max</h2>
+        <ErrorBanner title="Could not load VO2 max" detail={result.message} />
+      </div>
+    );
+  }
+
+  const points = result.data;
+  if (points.length === 0) {
+    return (
+      <div className="card">
+        <h2>VO2 max</h2>
+        <div className="empty-state">No VO2 max samples in range.</div>
+      </div>
+    );
+  }
+
+  const last = points[points.length - 1];
+  const avg = points.reduce((sum, p) => sum + p.avg_vo2max, 0) / points.length;
+  const series = [
+    {
+      name: "VO2 max",
+      color: "#34d399",
+      data: points.map((p) => [`${p.day}T00:00:00Z`, p.avg_vo2max] as [string, number]),
+    },
+  ];
+
+  return (
+    <div className="card">
+      <h2>VO2 max</h2>
+      <div className="stat-value">
+        {last === undefined ? "—" : `${formatNumber(last.avg_vo2max, 1)} ml/kg/min`}
+      </div>
+      <div className="stat-sub">30-day avg {formatNumber(avg, 1)} ml/kg/min</div>
+      <div style={{ marginTop: 16 }}>
+        <LineChart
+          key={chartDataKey("vo2max", series)}
+          series={series}
+          yAxisLabel="ml/kg/min"
+          height={220}
+        />
       </div>
     </div>
   );

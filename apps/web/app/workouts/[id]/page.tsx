@@ -1,7 +1,13 @@
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { LineChart } from "@/components/charts/LineChart";
 import { getWorkoutDetail, getWorkoutHR } from "@/lib/api";
-import { chartDataKey, formatDuration, formatIsoDateTime, formatPercent } from "@/lib/format";
+import {
+  chartDataKey,
+  formatDuration,
+  formatIsoDateTime,
+  formatNumber,
+  formatPercent,
+} from "@/lib/format";
 import type { DriftClassification, HRPoint, WorkoutDetail } from "@vitals/core";
 import { HR_ZONES } from "@vitals/core";
 import { notFound } from "next/navigation";
@@ -40,7 +46,7 @@ export default async function WorkoutDetailPage({
         {formatIsoDateTime(detail.start_ts)} — {formatIsoDateTime(detail.end_ts)}
       </p>
 
-      <div className="grid cols-3" style={{ marginBottom: 20 }}>
+      <div className="grid cols-4" style={{ marginBottom: 20 }}>
         <StatCard label="Duration" value={formatDuration(detail.duration_sec)} />
         <StatCard
           label="Z2 ratio"
@@ -48,6 +54,11 @@ export default async function WorkoutDetailPage({
           sub={`${HR_ZONES.Z2.min}–${HR_ZONES.Z2.max} bpm`}
         />
         <DriftCard detail={detail} />
+        <StatCard
+          label="Load"
+          value={detail.load === null ? "—" : formatNumber(detail.load, 0)}
+          sub="duration × avg HR"
+        />
       </div>
 
       <div className="card">
