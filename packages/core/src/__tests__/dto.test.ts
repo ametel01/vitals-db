@@ -6,10 +6,14 @@ import {
   HRPointSchema,
   HRVPointSchema,
   LoadRowSchema,
+  PowerPointSchema,
   RestingHRPointSchema,
+  SleepNightPointSchema,
   SleepSummarySchema,
+  SpeedPointSchema,
   StepsPointSchema,
   VO2MaxPointSchema,
+  WalkingHRPointSchema,
   WorkoutDetailSchema,
   WorkoutSummarySchema,
   WorkoutZoneBreakdownListSchema,
@@ -191,6 +195,73 @@ describe("DTO round-trip parsing", () => {
     ).toThrow();
     expect(() =>
       EnergyPointSchema.parse({ day: "2024-06-01", active_kcal: 200, basal_kcal: -1 }),
+    ).toThrow();
+  });
+
+  test("WalkingHRPoint", () => {
+    const fixture = { day: "2024-06-01", avg_walking_hr: 88.5 };
+    expect(WalkingHRPointSchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("WalkingHRPoint rejects non-positive avg and non-ISO day", () => {
+    expect(() => WalkingHRPointSchema.parse({ day: "2024-06-01", avg_walking_hr: 0 })).toThrow();
+    expect(() => WalkingHRPointSchema.parse({ day: "06/01/2024", avg_walking_hr: 80 })).toThrow();
+  });
+
+  test("SpeedPoint", () => {
+    const fixture = { day: "2024-06-01", avg_speed: 3.42 };
+    expect(SpeedPointSchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("SpeedPoint rejects negative averages", () => {
+    expect(() => SpeedPointSchema.parse({ day: "2024-06-01", avg_speed: -0.1 })).toThrow();
+  });
+
+  test("PowerPoint", () => {
+    const fixture = { day: "2024-06-01", avg_power: 245.5 };
+    expect(PowerPointSchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("PowerPoint rejects negative averages", () => {
+    expect(() => PowerPointSchema.parse({ day: "2024-06-01", avg_power: -1 })).toThrow();
+  });
+
+  test("SleepNightPoint", () => {
+    const fixture = {
+      day: "2024-06-01",
+      asleep_hours: 7.25,
+      in_bed_hours: 8.0,
+      efficiency: 0.9,
+    };
+    expect(SleepNightPointSchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("SleepNightPoint accepts null efficiency (no in-bed coverage)", () => {
+    const fixture = {
+      day: "2024-06-01",
+      asleep_hours: 7.25,
+      in_bed_hours: 0,
+      efficiency: null,
+    };
+    expect(SleepNightPointSchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("SleepNightPoint rejects out-of-range efficiency and negative hours", () => {
+    expect(() =>
+      SleepNightPointSchema.parse({
+        day: "2024-06-01",
+        asleep_hours: 7,
+        in_bed_hours: 8,
+        efficiency: 1.2,
+      }),
+    ).toThrow();
+    expect(() =>
+      SleepNightPointSchema.parse({
+        day: "2024-06-01",
+        asleep_hours: -1,
+        in_bed_hours: 8,
+        efficiency: 0.9,
+      }),
     ).toThrow();
   });
 });

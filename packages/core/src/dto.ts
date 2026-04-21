@@ -69,6 +69,16 @@ export const SleepSummarySchema = z.object({
 });
 export type SleepSummary = z.infer<typeof SleepSummarySchema>;
 
+// One row per night. `day` is the DATE of each night's first `asleep` start
+// (UTC). `efficiency` is null when that night has no `in_bed` coverage.
+export const SleepNightPointSchema = z.object({
+  day: IsoDate,
+  asleep_hours: NonNegativeNumber,
+  in_bed_hours: NonNegativeNumber,
+  efficiency: Ratio.nullable(),
+});
+export type SleepNightPoint = z.infer<typeof SleepNightPointSchema>;
+
 export const ActivityPointSchema = z.object({
   week: IsoDate,
   workout_count: z.number().int().nonnegative(),
@@ -95,6 +105,26 @@ export const HRVPointSchema = z.object({
   avg_hrv: PositiveNumber,
 });
 export type HRVPoint = z.infer<typeof HRVPointSchema>;
+
+export const WalkingHRPointSchema = z.object({
+  day: IsoDate,
+  avg_walking_hr: PositiveNumber,
+});
+export type WalkingHRPoint = z.infer<typeof WalkingHRPointSchema>;
+
+// Running speed stored as m/s (normalized at ingest from km/h when needed).
+export const SpeedPointSchema = z.object({
+  day: IsoDate,
+  avg_speed: NonNegativeNumber,
+});
+export type SpeedPoint = z.infer<typeof SpeedPointSchema>;
+
+// Running power stored as watts.
+export const PowerPointSchema = z.object({
+  day: IsoDate,
+  avg_power: NonNegativeNumber,
+});
+export type PowerPoint = z.infer<typeof PowerPointSchema>;
 
 export const StepsPointSchema = z.object({
   day: IsoDate,
