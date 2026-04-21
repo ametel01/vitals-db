@@ -19,11 +19,11 @@ export async function getSleepSummary(db: Db, range: DateRange): Promise<SleepSu
   const upper = normalizeRangeEnd(range.to);
   const sql = `WITH night_starts AS (
                  SELECT
-                   DATE(start_ts) AS day,
+                   DATE(start_ts - INTERVAL 12 HOUR) AS day,
                    MIN(start_ts) AS first_asleep
                  FROM sleep
                  WHERE state = 'asleep' AND start_ts >= ? AND start_ts ${upper.operator} ?
-                 GROUP BY DATE(start_ts)
+                 GROUP BY DATE(start_ts - INTERVAL 12 HOUR)
                )
                SELECT
                  COALESCE(

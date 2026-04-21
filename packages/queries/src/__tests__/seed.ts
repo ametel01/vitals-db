@@ -69,25 +69,80 @@ export async function seedRestingHR(db: Db): Promise<void> {
 }
 
 export async function seedSleep(db: Db): Promise<void> {
-  // Apple's real export shape: InBed brackets one or more AsleepX intervals.
-  // Night 1 (2024-05-31 → 2024-06-01): in_bed 8h, asleep 7h
-  await db.run("INSERT INTO sleep (start_ts, end_ts, state) VALUES (?, ?, ?), (?, ?, ?)", [
-    "2024-05-31 22:30:00",
-    "2024-06-01 06:30:00",
-    "in_bed",
-    "2024-05-31 23:00:00",
-    "2024-06-01 06:00:00",
-    "asleep",
-  ]);
-  // Night 2 (2024-06-01 → 2024-06-02): in_bed 9h, asleep 8h
-  await db.run("INSERT INTO sleep (start_ts, end_ts, state) VALUES (?, ?, ?), (?, ?, ?)", [
-    "2024-06-01 21:30:00",
-    "2024-06-02 06:30:00",
-    "in_bed",
-    "2024-06-01 22:00:00",
-    "2024-06-02 06:00:00",
-    "asleep",
-  ]);
+  // Apple's real export shape: InBed brackets one or more stage segments. The
+  // normalized `state` stays queryable while `raw_state` preserves stage
+  // detail for the dedicated sleep page.
+  const rows: Array<[string, string, string, string]> = [
+    // Night 1 (2024-05-31 → 2024-06-01): in_bed 8h, asleep 7h, awake 0.5h
+    ["2024-05-31 22:30:00", "2024-06-01 06:30:00", "in_bed", "HKCategoryValueSleepAnalysisInBed"],
+    [
+      "2024-05-31 23:00:00",
+      "2024-06-01 02:00:00",
+      "asleep",
+      "HKCategoryValueSleepAnalysisAsleepCore",
+    ],
+    [
+      "2024-06-01 02:00:00",
+      "2024-06-01 03:00:00",
+      "asleep",
+      "HKCategoryValueSleepAnalysisAsleepDeep",
+    ],
+    [
+      "2024-06-01 03:00:00",
+      "2024-06-01 04:00:00",
+      "asleep",
+      "HKCategoryValueSleepAnalysisAsleepREM",
+    ],
+    [
+      "2024-06-01 04:00:00",
+      "2024-06-01 06:00:00",
+      "asleep",
+      "HKCategoryValueSleepAnalysisAsleepCore",
+    ],
+    ["2024-06-01 06:00:00", "2024-06-01 06:30:00", "awake", "HKCategoryValueSleepAnalysisAwake"],
+    // Night 2 (2024-06-01 → 2024-06-02): in_bed 9h, asleep 8h, awake 0.5h
+    ["2024-06-01 21:30:00", "2024-06-02 06:30:00", "in_bed", "HKCategoryValueSleepAnalysisInBed"],
+    [
+      "2024-06-01 22:00:00",
+      "2024-06-01 23:00:00",
+      "asleep",
+      "HKCategoryValueSleepAnalysisAsleepUnspecified",
+    ],
+    [
+      "2024-06-01 23:00:00",
+      "2024-06-02 02:00:00",
+      "asleep",
+      "HKCategoryValueSleepAnalysisAsleepCore",
+    ],
+    [
+      "2024-06-02 02:00:00",
+      "2024-06-02 03:00:00",
+      "asleep",
+      "HKCategoryValueSleepAnalysisAsleepDeep",
+    ],
+    [
+      "2024-06-02 03:00:00",
+      "2024-06-02 05:00:00",
+      "asleep",
+      "HKCategoryValueSleepAnalysisAsleepREM",
+    ],
+    [
+      "2024-06-02 05:00:00",
+      "2024-06-02 06:00:00",
+      "asleep",
+      "HKCategoryValueSleepAnalysisAsleepCore",
+    ],
+    ["2024-06-02 06:00:00", "2024-06-02 06:30:00", "awake", "HKCategoryValueSleepAnalysisAwake"],
+  ];
+
+  for (const [startTs, endTs, state, rawState] of rows) {
+    await db.run("INSERT INTO sleep (start_ts, end_ts, state, raw_state) VALUES (?, ?, ?, ?)", [
+      startTs,
+      endTs,
+      state,
+      rawState,
+    ]);
+  }
 }
 
 export async function seedPerformance(db: Db): Promise<void> {

@@ -10,6 +10,8 @@ export { getWorkoutZoneBreakdown, getWorkoutZones, getZones } from "./zones";
 export { getWorkoutDrift, type WorkoutDrift } from "./drift";
 export { getSleepSummary } from "./sleep";
 export { getSleepNightly } from "./sleep_nightly";
+export { getSleepNights } from "./sleep_nights";
+export { getSleepSegments } from "./sleep_segments";
 export { getRestingHRDaily } from "./resting_hr";
 export { getWeeklyActivity } from "./activity";
 export { getVO2MaxDaily } from "./vo2max";
