@@ -13,7 +13,7 @@
     },
     "apps/server": {
       "name": "@vitals/server",
-      "version": "0.1.1",
+      "version": "0.10.0",
       "bin": {
         "health": "src/cli.ts",
       },
@@ -28,7 +28,7 @@
     },
     "apps/web": {
       "name": "@vitals/web",
-      "version": "0.1.1",
+      "version": "0.10.0",
       "dependencies": {
         "@vitals/core": "workspace:*",
         "echarts": "5.5.1",
@@ -46,21 +46,21 @@
     },
     "packages/core": {
       "name": "@vitals/core",
-      "version": "0.1.1",
+      "version": "0.10.0",
       "dependencies": {
         "zod": "3.23.8",
       },
     },
     "packages/db": {
       "name": "@vitals/db",
-      "version": "0.1.1",
+      "version": "0.10.0",
       "dependencies": {
         "@duckdb/node-api": "^1.5.2-r.1",
       },
     },
     "packages/ingest": {
       "name": "@vitals/ingest",
-      "version": "0.1.1",
+      "version": "0.10.0",
       "dependencies": {
         "@vitals/core": "workspace:*",
         "@vitals/db": "workspace:*",
@@ -69,7 +69,7 @@
     },
     "packages/queries": {
       "name": "@vitals/queries",
-      "version": "0.1.1",
+      "version": "0.10.0",
       "dependencies": {
         "@vitals/core": "workspace:*",
         "@vitals/db": "workspace:*",
