@@ -3,6 +3,8 @@ import {
   ActivityPointSchema,
   type HRPoint,
   HRPointSchema,
+  type HRVPoint,
+  HRVPointSchema,
   type LoadRow,
   LoadRowSchema,
   type RestingHRPoint,
@@ -89,6 +91,7 @@ const HRPointListSchema = z.array(HRPointSchema);
 const RestingHRListSchema = z.array(RestingHRPointSchema);
 const LoadListSchema = z.array(LoadRowSchema);
 const VO2MaxListSchema = z.array(VO2MaxPointSchema);
+const HRVListSchema = z.array(HRVPointSchema);
 
 export function listWorkouts(
   params: ListWorkoutsParams = {},
@@ -122,6 +125,10 @@ export function getLoad(range: DateRange): Promise<FetchResult<LoadRow[]>> {
 
 export function getVO2Max(range: DateRange): Promise<FetchResult<VO2MaxPoint[]>> {
   return requestJson(buildUrl("metrics/vo2max", range), VO2MaxListSchema);
+}
+
+export function getHRV(range: DateRange): Promise<FetchResult<HRVPoint[]>> {
+  return requestJson(buildUrl("metrics/hrv", range), HRVListSchema);
 }
 
 // The server does not expose a weekly activity endpoint in v0.1; the dashboard

@@ -3,6 +3,7 @@ import { LineChart } from "@/components/charts/LineChart";
 import { StackedBar } from "@/components/charts/StackedBar";
 import {
   deriveWeeklyActivity,
+  getHRV,
   getRestingHR,
   getSleepSummary,
   getVO2Max,
@@ -25,10 +26,11 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
   const from = windowStartIso(30);
   const activityFrom = windowStartIso(12 * 7);
 
-  const [restingHR, sleep, vo2max, workouts] = await Promise.all([
+  const [restingHR, sleep, vo2max, hrv, workouts] = await Promise.all([
     getRestingHR({ from, to }),
     getSleepSummary({ from, to }),
     getVO2Max({ from, to }),
+    getHRV({ from, to }),
     listWorkouts({ from: activityFrom, to }),
   ]);
 
@@ -39,10 +41,11 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
         Last 30 days — {from} to {to}
       </p>
 
-      <div className="grid cols-3" style={{ marginBottom: 20 }}>
+      <div className="grid cols-4" style={{ marginBottom: 20 }}>
         <RestingHRCard result={restingHR} />
         <SleepCard result={sleep} />
         <VO2MaxCard result={vo2max} />
+        <HRVCard result={hrv} />
       </div>
 
       <div className="card">
@@ -189,6 +192,54 @@ function VO2MaxCard({
           yAxisLabel="ml/kg/min"
           height={220}
         />
+      </div>
+    </div>
+  );
+}
+
+function HRVCard({
+  result,
+}: {
+  result: Awaited<ReturnType<typeof getHRV>>;
+}): React.ReactElement {
+  if (!result.ok) {
+    return (
+      <div className="card">
+        <h2>HRV</h2>
+        <ErrorBanner title="Could not load HRV" detail={result.message} />
+      </div>
+    );
+  }
+
+  const points = result.data;
+  if (points.length === 0) {
+    return (
+      <div className="card">
+        <h2>HRV</h2>
+        <div className="empty-state">No HRV samples in range.</div>
+      </div>
+    );
+  }
+
+  const last = points[points.length - 1];
+  const avg = points.reduce((sum, p) => sum + p.avg_hrv, 0) / points.length;
+  const series = [
+    {
+      name: "HRV",
+      color: "#f472b6",
+      data: points.map((p) => [`${p.day}T00:00:00Z`, p.avg_hrv] as [string, number]),
+    },
+  ];
+
+  return (
+    <div className="card">
+      <h2>HRV</h2>
+      <div className="stat-value">
+        {last === undefined ? "—" : `${formatNumber(last.avg_hrv, 0)} ms`}
+      </div>
+      <div className="stat-sub">30-day avg {formatNumber(avg, 1)} ms</div>
+      <div style={{ marginTop: 16 }}>
+        <LineChart key={chartDataKey("hrv", series)} series={series} yAxisLabel="ms" height={220} />
       </div>
     </div>
   );
