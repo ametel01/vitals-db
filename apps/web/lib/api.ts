@@ -1,6 +1,10 @@
 import {
   type ActivityPoint,
   ActivityPointSchema,
+  type DistancePoint,
+  DistancePointSchema,
+  type EnergyPoint,
+  EnergyPointSchema,
   type HRPoint,
   HRPointSchema,
   type HRVPoint,
@@ -11,6 +15,8 @@ import {
   RestingHRPointSchema,
   type SleepSummary,
   SleepSummarySchema,
+  type StepsPoint,
+  StepsPointSchema,
   type VO2MaxPoint,
   VO2MaxPointSchema,
   type WorkoutDetail,
@@ -92,6 +98,10 @@ const RestingHRListSchema = z.array(RestingHRPointSchema);
 const LoadListSchema = z.array(LoadRowSchema);
 const VO2MaxListSchema = z.array(VO2MaxPointSchema);
 const HRVListSchema = z.array(HRVPointSchema);
+const ActivityListSchema = z.array(ActivityPointSchema);
+const StepsListSchema = z.array(StepsPointSchema);
+const DistanceListSchema = z.array(DistancePointSchema);
+const EnergyListSchema = z.array(EnergyPointSchema);
 
 export function listWorkouts(
   params: ListWorkoutsParams = {},
@@ -131,8 +141,24 @@ export function getHRV(range: DateRange): Promise<FetchResult<HRVPoint[]>> {
   return requestJson(buildUrl("metrics/hrv", range), HRVListSchema);
 }
 
-// The server does not expose a weekly activity endpoint in v0.1; the dashboard
-// derives it from the workouts list (spec §4.6 / plan M6 route set).
+export function getActivity(range: DateRange): Promise<FetchResult<ActivityPoint[]>> {
+  return requestJson(buildUrl("metrics/activity", range), ActivityListSchema);
+}
+
+export function getSteps(range: DateRange): Promise<FetchResult<StepsPoint[]>> {
+  return requestJson(buildUrl("metrics/steps", range), StepsListSchema);
+}
+
+export function getDistance(range: DateRange): Promise<FetchResult<DistancePoint[]>> {
+  return requestJson(buildUrl("metrics/distance", range), DistanceListSchema);
+}
+
+export function getEnergy(range: DateRange): Promise<FetchResult<EnergyPoint[]>> {
+  return requestJson(buildUrl("metrics/energy", range), EnergyListSchema);
+}
+
+// Legacy client-side fallback used before the server exposed /metrics/activity
+// in v0.4. Retained for back-compat (e.g. offline callers); prefer getActivity.
 export function deriveWeeklyActivity(workouts: WorkoutSummary[]): ActivityPoint[] {
   const buckets = new Map<string, { count: number; duration: number }>();
   for (const workout of workouts) {

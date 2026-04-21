@@ -3,9 +3,11 @@ import { LineChart } from "@/components/charts/LineChart";
 import { StackedBar } from "@/components/charts/StackedBar";
 import {
   deriveWeeklyActivity,
+  getActivity,
   getHRV,
   getRestingHR,
   getSleepSummary,
+  getSteps,
   getVO2Max,
   listWorkouts,
 } from "@/lib/api";
@@ -18,6 +20,7 @@ import {
   todayIso,
   windowStartIso,
 } from "@/lib/format";
+import type { ActivityPoint } from "@vitals/core";
 
 export const dynamic = "force-dynamic";
 
@@ -26,13 +29,15 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
   const from = windowStartIso(30);
   const activityFrom = windowStartIso(12 * 7);
 
-  const [restingHR, sleep, vo2max, hrv, workouts] = await Promise.all([
+  const [restingHR, sleep, vo2max, hrv, steps, activity] = await Promise.all([
     getRestingHR({ from, to }),
     getSleepSummary({ from, to }),
     getVO2Max({ from, to }),
     getHRV({ from, to }),
-    listWorkouts({ from: activityFrom, to }),
+    getSteps({ from, to }),
+    getActivity({ from: activityFrom, to }),
   ]);
+  const workouts = activity.ok ? null : await listWorkouts({ from: activityFrom, to });
 
   return (
     <div>
@@ -48,9 +53,13 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
         <HRVCard result={hrv} />
       </div>
 
+      <div className="grid cols-2" style={{ marginBottom: 20 }}>
+        <StepsCard result={steps} />
+      </div>
+
       <div className="card">
         <h2>Weekly workout activity (last 12 weeks)</h2>
-        <WorkoutActivityChart result={workouts} />
+        <WorkoutActivityChart activity={activity} workouts={workouts} />
       </div>
     </div>
   );
@@ -245,16 +254,78 @@ function HRVCard({
   );
 }
 
-function WorkoutActivityChart({
+function StepsCard({
   result,
 }: {
-  result: Awaited<ReturnType<typeof listWorkouts>>;
+  result: Awaited<ReturnType<typeof getSteps>>;
 }): React.ReactElement {
   if (!result.ok) {
-    return <ErrorBanner title="Could not load workouts" detail={result.message} />;
+    return (
+      <div className="card">
+        <h2>Steps</h2>
+        <ErrorBanner title="Could not load steps" detail={result.message} />
+      </div>
+    );
   }
 
-  const weekly = deriveWeeklyActivity(result.data);
+  const points = result.data;
+  if (points.length === 0) {
+    return (
+      <div className="card">
+        <h2>Steps</h2>
+        <div className="empty-state">No step samples in range.</div>
+      </div>
+    );
+  }
+
+  const total = points.reduce((sum, p) => sum + p.total_steps, 0);
+  const avg = total / points.length;
+  const last = points[points.length - 1];
+  const series = [
+    {
+      name: "Steps",
+      color: "#f59e0b",
+      data: points.map((p) => [`${p.day}T00:00:00Z`, p.total_steps] as [string, number]),
+    },
+  ];
+
+  return (
+    <div className="card">
+      <h2>Steps</h2>
+      <div className="stat-value">
+        {last === undefined ? "—" : formatNumber(last.total_steps, 0)}
+      </div>
+      <div className="stat-sub">30-day avg {formatNumber(avg, 0)} / day</div>
+      <div style={{ marginTop: 16 }}>
+        <LineChart
+          key={chartDataKey("steps", series)}
+          series={series}
+          yAxisLabel="steps"
+          height={220}
+        />
+      </div>
+    </div>
+  );
+}
+
+function WorkoutActivityChart({
+  activity,
+  workouts,
+}: {
+  activity: Awaited<ReturnType<typeof getActivity>>;
+  workouts: Awaited<ReturnType<typeof listWorkouts>> | null;
+}): React.ReactElement {
+  // Prefer the server-backed /metrics/activity endpoint; fall back to the
+  // client-side deriver if the server call fails but the workouts list loaded.
+  let weekly: ActivityPoint[];
+  if (activity.ok) {
+    weekly = activity.data;
+  } else if (workouts?.ok) {
+    weekly = deriveWeeklyActivity(workouts.data);
+  } else {
+    return <ErrorBanner title="Could not load activity" detail={activity.message} />;
+  }
+
   if (weekly.length === 0) {
     return <div className="empty-state">No workouts in the last 12 weeks.</div>;
   }
