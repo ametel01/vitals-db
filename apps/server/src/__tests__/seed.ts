@@ -1,0 +1,100 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { type Db, migrate, openDb } from "@vitals/db";
+
+export interface Fixture {
+  dir: string;
+  db: Db;
+  cleanup: () => Promise<void>;
+}
+
+export const WORKOUT_ID = "wk-running-2024-06-01";
+export const WORKOUT_ID_WALK = "wk-walking-2024-06-03";
+
+export async function makeFixtureDb(): Promise<Fixture> {
+  const dir = await mkdtemp(join(tmpdir(), "vitals-server-"));
+  const db = await openDb(join(dir, "test.duckdb"));
+  await migrate(db);
+  return {
+    dir,
+    db,
+    cleanup: async () => {
+      db.close();
+      await rm(dir, { recursive: true, force: true });
+    },
+  };
+}
+
+export async function seedAll(db: Db): Promise<void> {
+  await db.exec("BEGIN TRANSACTION");
+  try {
+    // Workouts
+    await db.run(
+      "INSERT INTO workouts (id, type, start_ts, end_ts, duration_sec, source) VALUES (?, ?, ?, ?, ?, ?)",
+      [WORKOUT_ID, "Running", "2024-06-01 08:00:00", "2024-06-01 09:00:00", 3600, "Apple Watch"],
+    );
+    await db.run(
+      "INSERT INTO workouts (id, type, start_ts, end_ts, duration_sec, source) VALUES (?, ?, ?, ?, ?, ?)",
+      [
+        WORKOUT_ID_WALK,
+        "Walking",
+        "2024-06-03 09:00:00",
+        "2024-06-03 09:30:00",
+        1800,
+        "Apple Watch",
+      ],
+    );
+
+    // HR samples within running workout: first-half avg 110, second-half avg 130
+    const hrRows: Array<[string, number]> = [
+      ["2024-06-01 08:05:00", 100],
+      ["2024-06-01 08:15:00", 110],
+      ["2024-06-01 08:25:00", 120],
+      ["2024-06-01 08:35:00", 120],
+      ["2024-06-01 08:45:00", 130],
+      ["2024-06-01 08:55:00", 140],
+    ];
+    for (const [ts, bpm] of hrRows) {
+      await db.run("INSERT INTO heart_rate (ts, bpm, source) VALUES (?, ?, ?)", [
+        ts,
+        bpm,
+        "Apple Watch",
+      ]);
+    }
+
+    // Resting HR
+    await db.run("INSERT INTO resting_hr (ts, bpm) VALUES (?, ?)", ["2024-06-01 05:00:00", 52]);
+    await db.run("INSERT INTO resting_hr (ts, bpm) VALUES (?, ?)", ["2024-06-01 05:30:00", 54]);
+    await db.run("INSERT INTO resting_hr (ts, bpm) VALUES (?, ?)", ["2024-06-02 05:00:00", 56]);
+
+    // Sleep
+    await db.run("INSERT INTO sleep (start_ts, end_ts, state) VALUES (?, ?, ?), (?, ?, ?)", [
+      "2024-05-31 22:30:00",
+      "2024-06-01 06:30:00",
+      "in_bed",
+      "2024-05-31 23:00:00",
+      "2024-06-01 06:00:00",
+      "asleep",
+    ]);
+
+    // VO2Max
+    await db.run("INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)", [
+      "2024-06-01 07:00:00",
+      48.0,
+      null,
+      null,
+    ]);
+    await db.run("INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)", [
+      "2024-06-02 07:00:00",
+      51.0,
+      null,
+      null,
+    ]);
+
+    await db.exec("COMMIT");
+  } catch (err) {
+    await db.exec("ROLLBACK");
+    throw err;
+  }
+}
