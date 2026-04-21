@@ -4,6 +4,59 @@ All notable changes to this project are documented here. This file follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] — 2026-04-21
+
+Deprecation-sweep and stabilization slice per
+`local-docs/IMPLEMENTATION_PLAN_0.7.0.md`. No public contracts removed, no
+route or DTO shapes changed. This release marks internal helpers that are now
+transitional only, confirms that first-party UI callers prefer the stable
+server-backed paths, and pins the exact response shape of the legacy +
+preferred route pairs that ship side-by-side so a drift back toward the
+deprecated path is caught before `1.0.0`.
+
+### Changed — web (`apps/web`)
+
+- `deriveWeeklyActivity` in `apps/web/lib/api.ts` is now explicitly
+  `@deprecated`. `/metrics/activity` has been the dashboard's primary path
+  since `0.4.0`; the client-side deriver is retained only as a compatibility
+  fallback on the dashboard when the server call fails and is slated for
+  removal in `1.0.0`. The dashboard comment now documents the compatibility
+  intent instead of describing it as an equal fallback.
+
+### Added — tests (`apps/server`)
+
+- Contract pins on the legacy + preferred route pairs that ship side by side:
+  - `/metrics/zones` — asserts top-level keys are exactly `{ z2_ratio }`,
+    guarding the scalar contract against accidental widening now that
+    `/workouts/:id/zones` exposes the Z1..Z5 breakdown.
+  - `/workouts/:id/zones` — asserts each row has exactly
+    `{ zone, sample_count, ratio }`.
+  - `/metrics/sleep` — asserts top-level keys are exactly
+    `{ total_hours, efficiency, consistency_stddev }`, guarding the summary
+    shape against drift from the additive `/metrics/sleep/nightly` route.
+  - `/metrics/sleep/nightly` — asserts each row has exactly
+    `{ day, asleep_hours, in_bed_hours, efficiency }`.
+  - `/metrics/activity` — asserts the row shape and pins semantic equivalence
+    with the legacy `/workouts` + Monday-bucketed derivation, so a divergence
+    between the server route and the deprecated client deriver is caught
+    before the deriver is removed.
+
+### Changed — docs
+
+- `README.md` and `docs/API_CONTRACT.md` remain unchanged — they already
+  document only supported public routes, so the `0.7.0` deprecation sweep is
+  intentionally documented in code comments and tests rather than the public
+  API docs.
+
+### Release gate
+
+- `bun run test` (240/240), `bun run typecheck`, `bun run build`, and
+  `bun run check` all green.
+- No public route shape or DTO changed. `deriveWeeklyActivity` remains
+  exported and callable; only its JSDoc changed.
+
+[0.7.0]: https://github.com/alexmetelli/vitals-db/releases/tag/v0.7.0
+
 ## [0.6.0] — 2026-04-21
 
 Orphaned-metrics slice per `local-docs/IMPLEMENTATION_PLAN_0.6.0.md`. Closes the
