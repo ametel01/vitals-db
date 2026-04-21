@@ -196,8 +196,13 @@ export function getSleepNightly(range: DateRange): Promise<FetchResult<SleepNigh
   return requestJson(buildUrl("metrics/sleep/nightly", range), SleepNightListSchema);
 }
 
-// Legacy client-side fallback used before the server exposed /metrics/activity
-// in v0.4. Retained for back-compat (e.g. offline callers); prefer getActivity.
+/**
+ * @deprecated since 0.7.0 — prefer `getActivity` backed by `/metrics/activity`.
+ * Retained as a compatibility fallback for the dashboard when the server call
+ * fails and as an offline derivation for first-party callers that already hold
+ * a `WorkoutSummary[]`. Slated for removal in 1.0.0 once the fallback path is
+ * dropped.
+ */
 export function deriveWeeklyActivity(workouts: WorkoutSummary[]): ActivityPoint[] {
   const buckets = new Map<string, { count: number; duration: number }>();
   for (const workout of workouts) {

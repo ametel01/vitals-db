@@ -488,8 +488,9 @@ function WorkoutActivityChart({
   activity: Awaited<ReturnType<typeof getActivity>>;
   workouts: Awaited<ReturnType<typeof listWorkouts>> | null;
 }): React.ReactElement {
-  // Prefer the server-backed /metrics/activity endpoint; fall back to the
-  // client-side deriver if the server call fails but the workouts list loaded.
+  // Prefer the server-backed /metrics/activity endpoint. The client-side
+  // deriveWeeklyActivity path is a compatibility fallback retained for 0.7.0
+  // and is slated for removal in 1.0.0.
   let weekly: ActivityPoint[];
   if (activity.ok) {
     weekly = activity.data;
