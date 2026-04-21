@@ -1,6 +1,6 @@
 # vitals-db
 
-`vitals-db` ingests Apple Health export XML into DuckDB and serves a small analytics dashboard on top of it, including a dedicated sleep detail page.
+`vitals-db` ingests Apple Health export XML into DuckDB and serves a small analytics dashboard on top of it, including dedicated sleep and performance detail pages.
 
 The repo has four main pieces:
 
@@ -18,12 +18,14 @@ Today the implementation covers:
 - walking heart rate daily averages
 - sleep total hours, efficiency, and consistency summary plus nightly breakdown
 - dedicated `/sleep` page with nightly cards, stage totals, and segment timeline
+- dedicated `/performance` page with rolling 7-day resting HR and per-run endurance KPIs
 - simple workout load (`duration_sec * avg_hr`)
 - VO2 max daily averages
 - running speed and running power daily averages
 - steps, distance, and energy daily totals
 - weekly workout activity served by the API
 - Z2 ratio, full Z1..Z5 zones distribution, and heart-rate drift for workouts
+- rolling 7-day resting HR plus per-workout fixed-HR pace and fixed-duration decoupling
 
 ## Stack
 
@@ -160,12 +162,17 @@ The current UI has:
 
 - `/`: 30-day resting HR, 30-day sleep summary, 30-day VO2 max, 30-day HRV,
   30-day steps, 30-day walking HR, a Performance section with 30-day running
-  speed and running power, and 12-week workout activity
+  speed and running power, a link to the dedicated performance page, and
+  12-week workout activity
+- `/performance`: rolling 7-day resting HR, recent running workouts with
+  pace at 120-130 bpm, fixed-duration decoupling, and explicit sample-based Z2
+  share
 - `/sleep`: nightly sleep list, asleep vs in-bed trend, selected-night segment
   timeline, and stage totals when raw sleep stages are available
 - `/workouts`: latest 100 workouts with type and date filters
-- `/workouts/:id`: workout duration, Z2 ratio, HR drift classification, load,
-  HR chart, and Z1..Z5 zones-distribution stacked bar
+- `/workouts/:id`: workout duration, explicit Z2 share, pace at 120-130 bpm,
+  fixed-duration decoupling, HR drift classification, load, HR chart, and
+  Z1..Z5 zones-distribution stacked bar
 
 ## API Surface
 
@@ -175,8 +182,10 @@ The server currently exposes:
 - `GET /workouts/:id`
 - `GET /workouts/:id/hr`
 - `GET /workouts/:id/zones`
+- `GET /workouts/:id/efficiency`
 - `GET /metrics/zones`
 - `GET /metrics/resting-hr`
+- `GET /metrics/resting-hr/rolling`
 - `GET /metrics/sleep`
 - `GET /metrics/sleep/nightly`
 - `GET /metrics/sleep/nights`

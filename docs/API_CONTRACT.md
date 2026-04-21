@@ -53,6 +53,33 @@ order with `sample_count` and `ratio = sample_count / total_samples`. Returns
 when the workout does not exist. Additive to `/metrics/zones`, which continues
 to return the scalar `z2_ratio`.
 
+### `GET /workouts/:id/efficiency`
+
+Path params:
+
+- `id` — workout id
+
+Query params (all optional):
+
+- `hr_min` — lower bpm bound for fixed-HR pace, default `120`
+- `hr_max` — upper bpm bound for fixed-HR pace, default `130`
+
+Response: `WorkoutEfficiency` on 200 with:
+
+- `pace_at_hr` — aligned-sample fixed-HR pace for the requested band
+- `decoupling` — fixed-duration aerobic-efficiency metric over the first
+  `45–60` minutes only
+
+Nullability rules:
+
+- missing aligned HR/speed samples produce null KPI values rather than `0`
+- decoupling is null when the run is shorter than 45 minutes or when one half
+  of the fixed window lacks aligned samples
+
+Returns `404` with `{ error: "not_found" }` when the workout does not exist.
+Additive to `WorkoutDetail`, which keeps the older `drift_pct` and `z2_ratio`
+contract unchanged.
+
 ## Metrics
 
 Every route under `/metrics` requires both `from` and `to`. Invalid or missing
@@ -75,6 +102,19 @@ Query params:
 - `to` — required
 
 Response: `RestingHRPoint[]`, day-bucketed.
+
+### `GET /metrics/resting-hr/rolling`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `RestingHRRollingPoint[]`, one sparse row per existing daily
+resting-HR day with `avg_rhr_7d` computed over the trailing 7 UTC days ending
+on that row's `day`. The route does not synthesize missing calendar days and is
+defined over the shipped daily resting-HR series rather than a second raw
+aggregation path.
 
 ### `GET /metrics/sleep`
 
