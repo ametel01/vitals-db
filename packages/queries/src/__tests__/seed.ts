@@ -110,6 +110,18 @@ export async function seedPerformance(db: Db): Promise<void> {
   );
 }
 
+export async function seedHRV(db: Db): Promise<void> {
+  const rows: Array<[string, number]> = [
+    ["2024-06-01 03:00:00", 60],
+    ["2024-06-01 03:30:00", 70], // day avg = 65
+    ["2024-06-02 03:00:00", 72], // day avg = 72
+    ["2024-06-03 03:00:00", 68], // day avg = 68
+  ];
+  for (const [ts, value] of rows) {
+    await db.run("INSERT INTO hrv (ts, value) VALUES (?, ?)", [ts, value]);
+  }
+}
+
 export async function seedExtraWorkouts(db: Db): Promise<void> {
   await db.run(
     "INSERT INTO workouts (id, type, start_ts, end_ts, duration_sec, source) VALUES (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)",

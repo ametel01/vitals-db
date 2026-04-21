@@ -12,4 +12,5 @@ export { getSleepSummary } from "./sleep";
 export { getRestingHRDaily } from "./resting_hr";
 export { getWeeklyActivity } from "./activity";
 export { getVO2MaxDaily } from "./vo2max";
+export { getHRVDaily } from "./hrv";
 export { getLoadForRange, getWorkoutLoad } from "./load";
