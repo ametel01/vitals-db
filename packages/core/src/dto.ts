@@ -63,6 +63,12 @@ export const RestingHRPointSchema = z.object({
 });
 export type RestingHRPoint = z.infer<typeof RestingHRPointSchema>;
 
+export const RestingHRRollingPointSchema = z.object({
+  day: IsoDate,
+  avg_rhr_7d: PositiveNumber,
+});
+export type RestingHRRollingPoint = z.infer<typeof RestingHRRollingPointSchema>;
+
 export const SleepSummarySchema = z.object({
   total_hours: NonNegativeNumber,
   consistency_stddev: NonNegativeNumber.nullable(),
@@ -152,6 +158,30 @@ export const PowerPointSchema = z.object({
   avg_power: NonNegativeNumber,
 });
 export type PowerPoint = z.infer<typeof PowerPointSchema>;
+
+export const WorkoutPaceAtHRSchema = z.object({
+  hr_min: PositiveNumber,
+  hr_max: PositiveNumber,
+  sample_count: NonNegativeInt,
+  avg_speed_mps: NonNegativeNumber.nullable(),
+  pace_sec_per_km: PositiveNumber.nullable(),
+});
+export type WorkoutPaceAtHR = z.infer<typeof WorkoutPaceAtHRSchema>;
+
+export const WorkoutDecouplingSchema = z.object({
+  window_duration_sec: NonNegativeNumber,
+  sample_count: NonNegativeInt,
+  first_half_efficiency: NonNegativeNumber.nullable(),
+  second_half_efficiency: NonNegativeNumber.nullable(),
+  decoupling_pct: z.number().finite().nullable(),
+});
+export type WorkoutDecoupling = z.infer<typeof WorkoutDecouplingSchema>;
+
+export const WorkoutEfficiencySchema = z.object({
+  pace_at_hr: WorkoutPaceAtHRSchema,
+  decoupling: WorkoutDecouplingSchema,
+});
+export type WorkoutEfficiency = z.infer<typeof WorkoutEfficiencySchema>;
 
 export const StepsPointSchema = z.object({
   day: IsoDate,

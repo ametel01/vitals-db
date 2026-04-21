@@ -8,6 +8,7 @@ import {
   LoadRowSchema,
   PowerPointSchema,
   RestingHRPointSchema,
+  RestingHRRollingPointSchema,
   SleepNightDetailSchema,
   SleepNightPointSchema,
   SleepSegmentSchema,
@@ -16,7 +17,10 @@ import {
   StepsPointSchema,
   VO2MaxPointSchema,
   WalkingHRPointSchema,
+  WorkoutDecouplingSchema,
   WorkoutDetailSchema,
+  WorkoutEfficiencySchema,
+  WorkoutPaceAtHRSchema,
   WorkoutSummarySchema,
   WorkoutZoneBreakdownListSchema,
   WorkoutZoneBreakdownRowSchema,
@@ -120,6 +124,11 @@ describe("DTO round-trip parsing", () => {
 
   test("RestingHRPoint rejects non-ISO day", () => {
     expect(() => RestingHRPointSchema.parse({ day: "06/01/2024", avg_rhr: 52 })).toThrow();
+  });
+
+  test("RestingHRRollingPoint", () => {
+    const fixture = { day: "2024-06-07", avg_rhr_7d: 54.2 };
+    expect(RestingHRRollingPointSchema.parse(fixture)).toEqual(fixture);
   });
 
   test("SleepSummary", () => {
@@ -226,6 +235,59 @@ describe("DTO round-trip parsing", () => {
 
   test("PowerPoint rejects negative averages", () => {
     expect(() => PowerPointSchema.parse({ day: "2024-06-01", avg_power: -1 })).toThrow();
+  });
+
+  test("WorkoutPaceAtHR", () => {
+    const fixture = {
+      hr_min: 120,
+      hr_max: 130,
+      sample_count: 4,
+      avg_speed_mps: 3.8,
+      pace_sec_per_km: 263.1578947368421,
+    };
+    expect(WorkoutPaceAtHRSchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("WorkoutPaceAtHR accepts null metrics when no aligned samples qualify", () => {
+    const fixture = {
+      hr_min: 120,
+      hr_max: 130,
+      sample_count: 0,
+      avg_speed_mps: null,
+      pace_sec_per_km: null,
+    };
+    expect(WorkoutPaceAtHRSchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("WorkoutDecoupling", () => {
+    const fixture = {
+      window_duration_sec: 3600,
+      sample_count: 8,
+      first_half_efficiency: 0.03,
+      second_half_efficiency: 0.028,
+      decoupling_pct: 6.666666666666667,
+    };
+    expect(WorkoutDecouplingSchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("WorkoutEfficiency", () => {
+    const fixture = {
+      pace_at_hr: {
+        hr_min: 120,
+        hr_max: 130,
+        sample_count: 2,
+        avg_speed_mps: 3.9,
+        pace_sec_per_km: 256.4102564102564,
+      },
+      decoupling: {
+        window_duration_sec: 3600,
+        sample_count: 8,
+        first_half_efficiency: 0.03,
+        second_half_efficiency: 0.028,
+        decoupling_pct: 6.666666666666667,
+      },
+    };
+    expect(WorkoutEfficiencySchema.parse(fixture)).toEqual(fixture);
   });
 
   test("SleepNightPoint", () => {
