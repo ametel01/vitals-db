@@ -110,6 +110,39 @@ export async function seedPerformance(db: Db): Promise<void> {
   );
 }
 
+export async function seedWalkingHR(db: Db): Promise<void> {
+  const rows: Array<[string, number]> = [
+    ["2024-06-01 10:00:00", 88],
+    ["2024-06-01 14:00:00", 92], // day avg = 90
+    ["2024-06-02 10:00:00", 95], // day avg = 95
+    ["2024-06-03 10:00:00", 87], // day avg = 87
+  ];
+  for (const [ts, bpm] of rows) {
+    await db.run("INSERT INTO walking_hr (ts, bpm) VALUES (?, ?)", [ts, bpm]);
+  }
+}
+
+export async function seedSpeedAndPower(db: Db): Promise<void> {
+  // Sparse rows: speed-only, power-only, and mixed — mirrors the production
+  // shape where each `performance` row carries at most one measurement.
+  const rows: Array<[string, number | null, number | null, number | null]> = [
+    ["2024-06-01 08:00:00", null, 3.0, null],
+    ["2024-06-01 08:30:00", null, 4.0, null], // speed day avg = 3.5
+    ["2024-06-01 09:00:00", null, null, 200.0],
+    ["2024-06-01 09:30:00", null, null, 240.0], // power day avg = 220
+    ["2024-06-02 08:00:00", null, 3.6, null], // speed day avg = 3.6
+    ["2024-06-02 09:00:00", null, null, 260.0], // power day avg = 260
+  ];
+  for (const [ts, vo2max, speed, power] of rows) {
+    await db.run("INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)", [
+      ts,
+      vo2max,
+      speed,
+      power,
+    ]);
+  }
+}
+
 export async function seedHRV(db: Db): Promise<void> {
   const rows: Array<[string, number]> = [
     ["2024-06-01 03:00:00", 60],
