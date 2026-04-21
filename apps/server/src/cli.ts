@@ -1,12 +1,21 @@
 #!/usr/bin/env bun
+import { parse, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { type Db, migrate, openDb } from "@vitals/db";
-import { type IngestStats, getLastImportFile, ingestFile } from "@vitals/ingest";
+import {
+  BUFFER_MS,
+  type IngestStats,
+  cropHealthExport,
+  getLastImportFile,
+  getLastImportTs,
+  ingestFile,
+} from "@vitals/ingest";
 import { loadEnv } from "./env";
 import { createApp } from "./server";
 
 const USAGE = `Usage:
   health ingest <path>   Migrate, then ingest an Apple Health export incrementally.
+  health crop <in> [out] Crop an Apple Health export to data newer than the last import window.
   health serve           Start the Hono API on PORT (default 8787).
   health rebuild         Drop analytics data and re-ingest the last imported file.
 `;
@@ -31,6 +40,31 @@ async function runIngest(path: string): Promise<void> {
     await migrate(db);
     const stats = await ingestFile(db, path);
     process.stdout.write(`ingest: ${formatStats(stats)}\n`);
+  } finally {
+    db.close();
+  }
+}
+
+function defaultCropPath(inputPath: string): string {
+  const parts = parse(resolve(inputPath));
+  return resolve(parts.dir, `${parts.name}.cropped${parts.ext || ".xml"}`);
+}
+
+async function runCrop(inputPath: string, outputPath?: string): Promise<void> {
+  const env = loadEnv();
+  const db = await openDb(env.DB_PATH);
+  try {
+    await migrate(db);
+    const lastTsMs = await getLastImportTs(db);
+    if (lastTsMs === null) {
+      throw new Error("no previous import recorded; run `health ingest <path>` first");
+    }
+    const cropPath = outputPath === undefined ? defaultCropPath(inputPath) : outputPath;
+    const result = await cropHealthExport(inputPath, {
+      cutoffMs: lastTsMs - BUFFER_MS,
+      outputPath: cropPath,
+    });
+    process.stdout.write(`crop: wrote ${result.outputPath} — ${formatCropStats(result.stats)}\n`);
   } finally {
     db.close();
   }
@@ -76,6 +110,20 @@ function formatStats(stats: IngestStats): string {
   return `inserted ${total} rows, skipped ${stats.skipped} duplicates`;
 }
 
+function formatCropStats(stats: {
+  nodesSeen: number;
+  nodesKept: number;
+  droppedBeforeCutoff: number;
+  droppedUnsupported: number;
+  droppedUserEntered: number;
+}): string {
+  const dropped = stats.droppedBeforeCutoff + stats.droppedUnsupported + stats.droppedUserEntered;
+  return (
+    `kept ${stats.nodesKept}/${stats.nodesSeen} nodes, dropped ${dropped} ` +
+    `(old ${stats.droppedBeforeCutoff}, unsupported ${stats.droppedUnsupported}, manual ${stats.droppedUserEntered})`
+  );
+}
+
 async function clearAnalytics(db: Db): Promise<void> {
   await db.exec("BEGIN TRANSACTION");
   try {
@@ -114,6 +162,15 @@ export async function main(argv: string[]): Promise<number> {
           return 2;
         }
         await runIngest(path);
+        return 0;
+      }
+      case "crop": {
+        const inputPath = rest[0];
+        if (inputPath === undefined) {
+          process.stderr.write("crop: missing <in>\n");
+          return 2;
+        }
+        await runCrop(inputPath, rest[1]);
         return 0;
       }
       case "serve":
