@@ -2,8 +2,8 @@ import { type ActivityPoint, ActivityPointSchema } from "@vitals/core";
 import type { Db } from "@vitals/db";
 import { type DateRange, normalizeRangeEnd, normalizeRangeStart, toIsoDate } from "./dates";
 
-// v0.1 derives weekly activity from workouts only. Steps/distance join in v0.2
-// (spec §10 deferred list).
+// Weekly activity remains workouts-only in v0.4. Movement metrics (steps,
+// distance, energy) are surfaced via separate daily routes.
 export async function getWeeklyActivity(db: Db, range: DateRange): Promise<ActivityPoint[]> {
   const upper = normalizeRangeEnd(range.to);
   const sql = `SELECT
