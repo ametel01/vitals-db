@@ -4,6 +4,94 @@ All notable changes to this project are documented here. This file follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] — 2026-04-21
+
+Orphaned-metrics slice per `local-docs/IMPLEMENTATION_PLAN_0.6.0.md`. Closes the
+lower-priority metrics that were already ingested in 0.1.0 but had no query,
+route, or UI surface: walking HR, running speed, and running power. Ships
+nightly sleep as an additive `/metrics/sleep/nightly` route alongside the
+existing 30-day `/metrics/sleep` summary, which is preserved exactly. No ingest
+changes, no breaking route shapes.
+
+### Added — core (`packages/core`)
+
+- `WalkingHRPointSchema` / `WalkingHRPoint` (`day`, `avg_walking_hr`). Mirrors
+  `RestingHRPointSchema` — positive `avg_walking_hr`, ISO-date `day`.
+- `SpeedPointSchema` / `SpeedPoint` (`day`, `avg_speed`) and
+  `PowerPointSchema` / `PowerPoint` (`day`, `avg_power`). Named explicitly per
+  metric so the contract does not collapse speed and power into a single
+  generic performance DTO. `avg_speed` and `avg_power` accept `0` (rest
+  samples) and reject negatives.
+- `SleepNightPointSchema` / `SleepNightPoint` (`day`, `asleep_hours`,
+  `in_bed_hours`, `efficiency`). `efficiency` is nullable with the same
+  semantics as `SleepSummary` — null when a night carries no `in_bed`
+  coverage.
+- Round-trip and validation tests for each new DTO in `dto.test.ts`.
+
+### Added — queries (`packages/queries`)
+
+- `getWalkingHRDaily(db, range)` — UTC-day buckets `AVG(bpm)` from the
+  existing `walking_hr` table, routed through
+  `normalizeRangeStart` / `normalizeRangeEnd`.
+- `getSpeedDaily(db, range)` and `getPowerDaily(db, range)` — UTC-day buckets
+  `AVG(speed)` / `AVG(power)` from the `performance` table with explicit
+  `IS NOT NULL` filters. `performance` stores one sparse column per source
+  sample (see `vo2max.ts`), so the filter is load-bearing: without it, the
+  average collapses to the intersection of co-populated columns.
+- `getSleepNightly(db, range)` — additive to `getSleepSummary`. One row per
+  night keyed by the UTC `DATE` of the night's first `asleep` start. Raw
+  segment-duration sums (same choice as `getSleepSummary`) so `efficiency`
+  stays consistent between the summary and the nightly view.
+- Tests cover grouping across multiple days, inclusive date-only upper
+  bounds, empty windows, sparse-column filters for speed and power, and the
+  null-efficiency path on a night with no `in_bed` coverage.
+
+### Added — API (`apps/server`)
+
+- `GET /metrics/walking-hr` — returns `WalkingHRPoint[]`, day-bucketed.
+- `GET /metrics/speed` — returns `SpeedPoint[]`, day-bucketed.
+- `GET /metrics/power` — returns `PowerPoint[]`, day-bucketed.
+- `GET /metrics/sleep/nightly` — returns `SleepNightPoint[]`, one row per
+  night. Additive; `GET /metrics/sleep` is unchanged.
+- All four routes use the shared `parseRange` flow and emit the same
+  `400 { error: "invalid_query", issues }` shape as the other `/metrics`
+  routes.
+- Server fixture gains walking-HR, speed, and power rows. Tests cover happy
+  paths, invalid-range 400s, and empty-window `[]` for each new route.
+
+### Added — web (`apps/web`)
+
+- `getWalkingHR`, `getSpeed`, `getPower`, and `getSleepNightly` client
+  helpers in `lib/api.ts`, Zod-validated against matching list schemas.
+- Dashboard `WalkingHRCard`: latest-day primary stat, 30-day average
+  secondary stat, 30-day `LineChart`, plus error and empty states. Seated
+  alongside `StepsCard` in the second row.
+- New "Performance" section with `SpeedCard` (m/s) and `PowerCard` (watts),
+  both mirroring the `VO2MaxCard` pattern. Grouped under a single subsection
+  to keep the dashboard from scattering one-off cards.
+- `globals.css` gains a `.section-title` rule used to introduce the
+  Performance subsection.
+
+### Changed — docs
+
+- `docs/API_CONTRACT.md` adds `GET /metrics/walking-hr`, `GET /metrics/speed`,
+  `GET /metrics/power`, and `GET /metrics/sleep/nightly`. The sleep-nightly
+  entry calls out that it is additive to `/metrics/sleep`.
+- `README.md` top-level feature summary now includes walking HR, running
+  speed, running power, and the nightly sleep breakdown. "Dashboard Views"
+  now reflects the walking-HR card and the new Performance section. "API
+  Surface" lists all four new routes.
+
+### Release gate
+
+- `bun run test` (235/235), `bun run typecheck`, `bun run build`, and
+  `bun run check` all green.
+- `SleepSummarySchema` and `/metrics/sleep` are unchanged — the nightly
+  breakdown is additive via a new route. No existing DTO or route payload
+  changed shape.
+
+[0.6.0]: https://github.com/alexmetelli/vitals-db/releases/tag/v0.6.0
+
 ## [0.5.0] — 2026-04-21
 
 Zones-distribution slice per `local-docs/IMPLEMENTATION_PLAN_0.5.0.md`.
