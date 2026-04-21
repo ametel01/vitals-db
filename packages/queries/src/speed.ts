@@ -2,9 +2,9 @@ import { type SpeedPoint, SpeedPointSchema } from "@vitals/core";
 import type { Db } from "@vitals/db";
 import { type DateRange, normalizeRangeEnd, normalizeRangeStart, toIsoDate } from "./dates";
 
-// Spec §1.F. The `performance` table stores one sparse row per source
-// identifier (vo2max/speed/power), so filtering to NOT NULL gives the
-// speed-only slice. Mirrors the filter pattern in `vo2max.ts`.
+// Spec §1.F daily speed surface. This stays a day-bucketed aggregate over the
+// sparse `performance` table and is intentionally distinct from the 0.9.0
+// fixed-HR pace metric, which must use aligned workout-level HR + speed data.
 export async function getSpeedDaily(db: Db, range: DateRange): Promise<SpeedPoint[]> {
   const upper = normalizeRangeEnd(range.to);
   const sql = `SELECT DATE(ts) AS day, AVG(speed) AS avg_speed

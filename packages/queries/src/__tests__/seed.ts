@@ -24,6 +24,9 @@ export async function makeFixtureDb(): Promise<Fixture> {
 }
 
 export const WORKOUT_ID = "wk-running-2024-06-01";
+export const WORKOUT_EFFICIENCY_ID = "wk-running-efficiency-2024-06-04";
+export const WORKOUT_EFFICIENCY_NO_ALIGNMENT_ID = "wk-running-no-alignment-2024-06-05";
+export const WORKOUT_EFFICIENCY_SHORT_ID = "wk-running-efficiency-short-2024-06-06";
 
 export async function seedWorkoutWithHR(db: Db): Promise<void> {
   await db.exec("BEGIN TRANSACTION");
@@ -195,6 +198,83 @@ export async function seedSpeedAndPower(db: Db): Promise<void> {
       speed,
       power,
     ]);
+  }
+}
+
+export async function seedWorkoutEfficiencyFixtures(db: Db): Promise<void> {
+  await db.exec("BEGIN TRANSACTION");
+  try {
+    await db.run(
+      "INSERT INTO workouts (id, type, start_ts, end_ts, duration_sec, source) VALUES (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)",
+      [
+        WORKOUT_EFFICIENCY_ID,
+        "Running",
+        "2024-06-04 08:00:00",
+        "2024-06-04 09:00:00",
+        3600,
+        "Apple Watch",
+        WORKOUT_EFFICIENCY_NO_ALIGNMENT_ID,
+        "Running",
+        "2024-06-05 08:00:00",
+        "2024-06-05 09:00:00",
+        3600,
+        "Apple Watch",
+        WORKOUT_EFFICIENCY_SHORT_ID,
+        "Running",
+        "2024-06-06 08:00:00",
+        "2024-06-06 08:30:00",
+        1800,
+        "Apple Watch",
+      ],
+    );
+
+    const hrRows: Array<[string, number]> = [
+      ["2024-06-04 08:05:00", 118],
+      ["2024-06-04 08:15:00", 122],
+      ["2024-06-04 08:25:00", 126],
+      ["2024-06-04 08:35:00", 128],
+      ["2024-06-04 08:45:00", 130],
+      ["2024-06-04 08:55:00", 132],
+      ["2024-06-05 08:00:00", 120],
+      ["2024-06-05 08:30:00", 128],
+      ["2024-06-06 08:05:00", 122],
+      ["2024-06-06 08:15:00", 125],
+      ["2024-06-06 08:25:00", 128],
+    ];
+    for (const [ts, bpm] of hrRows) {
+      await db.run("INSERT INTO heart_rate (ts, bpm, source) VALUES (?, ?, ?)", [
+        ts,
+        bpm,
+        "Apple Watch",
+      ]);
+    }
+
+    const speedRows: Array<[string, number]> = [
+      ["2024-06-04 08:05:00", 3.6],
+      ["2024-06-04 08:15:00", 3.8],
+      ["2024-06-04 08:25:00", 3.7],
+      ["2024-06-04 08:35:00", 3.5],
+      ["2024-06-04 08:45:00", 3.4],
+      ["2024-06-04 08:55:00", 3.3],
+      ["2024-06-05 08:10:00", 3.7],
+      ["2024-06-05 08:40:00", 3.5],
+      ["2024-06-06 08:05:00", 3.9],
+      ["2024-06-06 08:15:00", 4.0],
+      ["2024-06-06 08:25:00", 3.8],
+    ];
+    for (const [ts, speed] of speedRows) {
+      await db.run("INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)", [
+        ts,
+        null,
+        speed,
+        null,
+      ]);
+    }
+
+    await db.exec("COMMIT");
+  } catch (err) {
+    await db.exec("ROLLBACK");
+    throw err;
   }
 }
 

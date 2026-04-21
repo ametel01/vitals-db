@@ -1,9 +1,9 @@
 import type { DriftClassification } from "@vitals/core";
 import type { Db } from "@vitals/db";
 
-// Spec §4.3: split a workout into equal-time halves and compare avg HR. The
-// null/unknown path is handled in SQL so the caller gets a single deterministic
-// shape even when a workout has no HR samples (plan M5 failure-modes rule).
+// Spec §4.3: whole-workout HR drift is still defined as equal-time half splits
+// across the full workout. 0.9.0 adds fixed-duration decoupling separately;
+// this query deliberately keeps the older drift contract unchanged.
 const SQL = `WITH
                w AS (
                  SELECT start_ts, end_ts,

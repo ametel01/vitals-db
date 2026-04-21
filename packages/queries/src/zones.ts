@@ -9,11 +9,10 @@ import {
 import type { Db } from "@vitals/db";
 import { type DateRange, normalizeRangeEnd, normalizeRangeStart } from "./dates";
 
-// Spec §4.1. `getZones` / `getWorkoutZones` continue to return the scalar
-// `z2_ratio` contract that 0.1 shipped. `getWorkoutZoneBreakdown` is the
-// additive per-zone view introduced in 0.5.0, built on `sample_count` rather
-// than claimed "seconds in zone" because heart_rate stores discrete samples
-// with uneven spacing.
+// Spec §4.1. `getZones` / `getWorkoutZones` continue to return the canonical
+// sample-based `z2_ratio` surface. 0.9.0 explicitly reuses that contract for
+// "% of run spent in Z2" rather than inventing a second metric with different
+// semantics right before 1.0.0.
 const SQL_WORKOUT = `SELECT
                        CASE
                          WHEN COUNT(*) = 0 THEN NULL
