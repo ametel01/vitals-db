@@ -85,6 +85,19 @@ Query params:
 
 Response: `SleepSummary`.
 
+### `GET /metrics/sleep/nightly`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `SleepNightPoint[]`, one row per night keyed by the UTC `DATE` of
+each night's first `asleep` start. `asleep_hours` and `in_bed_hours` are raw
+segment-duration sums (same choice as `/metrics/sleep`). `efficiency` is null
+when the night has no `in_bed` coverage. Additive to `/metrics/sleep`, which
+continues to return the 30-day summary.
+
 ### `GET /metrics/load`
 
 Query params:
@@ -111,6 +124,37 @@ Query params:
 - `to` — required
 
 Response: `HRVPoint[]`, day-bucketed.
+
+### `GET /metrics/walking-hr`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `WalkingHRPoint[]`, day-bucketed `AVG(bpm)` from the `walking_hr`
+table.
+
+### `GET /metrics/speed`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `SpeedPoint[]`, day-bucketed `AVG(speed)` from the `performance`
+table (m/s). Rows with `speed IS NULL` are excluded because `performance` is
+stored one sparse column per source sample.
+
+### `GET /metrics/power`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `PowerPoint[]`, day-bucketed `AVG(power)` from the `performance`
+table (watts). Rows with `power IS NULL` are excluded.
 
 ### `GET /metrics/activity`
 

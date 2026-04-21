@@ -15,9 +15,11 @@ Today the implementation covers:
 - heart-rate time series for workouts
 - resting heart rate daily averages
 - heart rate variability daily averages
-- sleep total hours, efficiency, and consistency summary
+- walking heart rate daily averages
+- sleep total hours, efficiency, and consistency summary plus nightly breakdown
 - simple workout load (`duration_sec * avg_hr`)
 - VO2 max daily averages
+- running speed and running power daily averages
 - steps, distance, and energy daily totals
 - weekly workout activity served by the API
 - Z2 ratio, full Z1..Z5 zones distribution, and heart-rate drift for workouts
@@ -131,7 +133,8 @@ PORT=9999 DB_PATH=./vitals.duckdb bun run health serve
 The current UI has:
 
 - `/`: 30-day resting HR, 30-day sleep summary, 30-day VO2 max, 30-day HRV,
-  30-day steps, and 12-week workout activity
+  30-day steps, 30-day walking HR, a Performance section with 30-day running
+  speed and running power, and 12-week workout activity
 - `/workouts`: latest 100 workouts with type and date filters
 - `/workouts/:id`: workout duration, Z2 ratio, HR drift classification, load,
   HR chart, and Z1..Z5 zones-distribution stacked bar
@@ -147,9 +150,13 @@ The server currently exposes:
 - `GET /metrics/zones`
 - `GET /metrics/resting-hr`
 - `GET /metrics/sleep`
+- `GET /metrics/sleep/nightly`
 - `GET /metrics/load`
 - `GET /metrics/vo2max`
 - `GET /metrics/hrv`
+- `GET /metrics/walking-hr`
+- `GET /metrics/speed`
+- `GET /metrics/power`
 - `GET /metrics/activity`
 - `GET /metrics/steps`
 - `GET /metrics/distance`
