@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { RawSleepStateSchema, SleepStageDetailSchema, SleepStateSchema } from "./sleep";
 import { HR_ZONE_ORDER } from "./zones";
 
 const IsoDateTime = z.string().datetime({ offset: true });
@@ -78,6 +79,32 @@ export const SleepNightPointSchema = z.object({
   efficiency: Ratio.nullable(),
 });
 export type SleepNightPoint = z.infer<typeof SleepNightPointSchema>;
+
+export const SleepNightDetailSchema = z.object({
+  day: IsoDate,
+  bedtime: IsoDateTime,
+  wake_time: IsoDateTime,
+  asleep_hours: NonNegativeNumber,
+  in_bed_hours: NonNegativeNumber,
+  awake_hours: NonNegativeNumber,
+  efficiency: Ratio.nullable(),
+  core_hours: NonNegativeNumber.nullable(),
+  deep_hours: NonNegativeNumber.nullable(),
+  rem_hours: NonNegativeNumber.nullable(),
+  unspecified_hours: NonNegativeNumber.nullable(),
+});
+export type SleepNightDetail = z.infer<typeof SleepNightDetailSchema>;
+
+export const SleepSegmentSchema = z.object({
+  night: IsoDate,
+  start_ts: IsoDateTime,
+  end_ts: IsoDateTime,
+  state: SleepStateSchema,
+  raw_state: RawSleepStateSchema.nullable(),
+  stage: SleepStageDetailSchema.nullable(),
+  duration_hours: NonNegativeNumber,
+});
+export type SleepSegment = z.infer<typeof SleepSegmentSchema>;
 
 export const ActivityPointSchema = z.object({
   week: IsoDate,

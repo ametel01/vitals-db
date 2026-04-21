@@ -8,7 +8,9 @@ import {
   LoadRowSchema,
   PowerPointSchema,
   RestingHRPointSchema,
+  SleepNightDetailSchema,
   SleepNightPointSchema,
+  SleepSegmentSchema,
   SleepSummarySchema,
   SpeedPointSchema,
   StepsPointSchema,
@@ -263,5 +265,65 @@ describe("DTO round-trip parsing", () => {
         efficiency: 0.9,
       }),
     ).toThrow();
+  });
+
+  test("SleepNightDetail", () => {
+    const fixture = {
+      day: "2024-06-01",
+      bedtime: "2024-06-01T22:30:00.000Z",
+      wake_time: "2024-06-02T06:30:00.000Z",
+      asleep_hours: 7,
+      in_bed_hours: 8,
+      awake_hours: 0.5,
+      efficiency: 0.875,
+      core_hours: 4,
+      deep_hours: 1,
+      rem_hours: 1,
+      unspecified_hours: 1,
+    };
+    expect(SleepNightDetailSchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("SleepNightDetail allows null stage totals for pre-0.8.0 rows", () => {
+    const fixture = {
+      day: "2024-06-01",
+      bedtime: "2024-06-01T22:30:00.000Z",
+      wake_time: "2024-06-02T06:30:00.000Z",
+      asleep_hours: 7,
+      in_bed_hours: 8,
+      awake_hours: 0,
+      efficiency: 0.875,
+      core_hours: null,
+      deep_hours: null,
+      rem_hours: null,
+      unspecified_hours: null,
+    };
+    expect(SleepNightDetailSchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("SleepSegment", () => {
+    const fixture = {
+      night: "2024-06-01",
+      start_ts: "2024-06-01T23:00:00.000Z",
+      end_ts: "2024-06-02T01:30:00.000Z",
+      state: "asleep" as const,
+      raw_state: "HKCategoryValueSleepAnalysisAsleepCore" as const,
+      stage: "core" as const,
+      duration_hours: 2.5,
+    };
+    expect(SleepSegmentSchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("SleepSegment allows null raw stage detail for older data", () => {
+    const fixture = {
+      night: "2024-06-01",
+      start_ts: "2024-06-01T22:30:00.000Z",
+      end_ts: "2024-06-01T23:00:00.000Z",
+      state: "in_bed" as const,
+      raw_state: null,
+      stage: null,
+      duration_hours: 0.5,
+    };
+    expect(SleepSegmentSchema.parse(fixture)).toEqual(fixture);
   });
 });

@@ -1,5 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { SLEEP_STATE_MAP, SleepStateSchema, normalizeSleepState } from "../sleep";
+import {
+  RawSleepStateSchema,
+  SLEEP_STAGE_DETAIL_MAP,
+  SLEEP_STATE_MAP,
+  SleepStageDetailSchema,
+  SleepStateSchema,
+  normalizeSleepStageDetail,
+  normalizeSleepState,
+} from "../sleep";
 
 describe("normalizeSleepState", () => {
   test("maps all asleep variants to 'asleep'", () => {
@@ -48,5 +56,49 @@ describe("SleepStateSchema", () => {
 
   test("rejects raw Apple values", () => {
     expect(() => SleepStateSchema.parse("HKCategoryValueSleepAnalysisAsleep")).toThrow();
+  });
+});
+
+describe("normalizeSleepStageDetail", () => {
+  test("maps raw Apple sleep stages to stage detail labels", () => {
+    expect(normalizeSleepStageDetail("HKCategoryValueSleepAnalysisAsleepCore")).toBe("core");
+    expect(normalizeSleepStageDetail("HKCategoryValueSleepAnalysisAsleepDeep")).toBe("deep");
+    expect(normalizeSleepStageDetail("HKCategoryValueSleepAnalysisAsleepREM")).toBe("rem");
+    expect(normalizeSleepStageDetail("HKCategoryValueSleepAnalysisAsleepUnspecified")).toBe(
+      "unspecified",
+    );
+  });
+
+  test("returns null for normalized-only or non-stage values", () => {
+    expect(normalizeSleepStageDetail("HKCategoryValueSleepAnalysisAsleep")).toBeNull();
+    expect(normalizeSleepStageDetail("HKCategoryValueSleepAnalysisInBed")).toBeNull();
+    expect(normalizeSleepStageDetail("Awake")).toBeNull();
+    expect(normalizeSleepStageDetail("")).toBeNull();
+  });
+
+  test("uses a single exported stage mapping source", () => {
+    expect(SLEEP_STAGE_DETAIL_MAP.HKCategoryValueSleepAnalysisAsleepCore).toBe("core");
+    expect(SLEEP_STAGE_DETAIL_MAP.HKCategoryValueSleepAnalysisAsleepREM).toBe("rem");
+  });
+});
+
+describe("RawSleepStateSchema", () => {
+  test("accepts Apple and legacy raw sleep values", () => {
+    expect(RawSleepStateSchema.parse("HKCategoryValueSleepAnalysisAsleepCore")).toBe(
+      "HKCategoryValueSleepAnalysisAsleepCore",
+    );
+    expect(RawSleepStateSchema.parse("InBed")).toBe("InBed");
+  });
+});
+
+describe("SleepStageDetailSchema", () => {
+  test("round-trips stage detail labels", () => {
+    for (const stage of ["core", "deep", "rem", "unspecified"] as const) {
+      expect(SleepStageDetailSchema.parse(stage)).toBe(stage);
+    }
+  });
+
+  test("rejects non-stage labels", () => {
+    expect(() => SleepStageDetailSchema.parse("asleep")).toThrow();
   });
 });
