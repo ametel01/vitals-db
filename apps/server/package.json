@@ -3,5 +3,21 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "main": "src/index.ts"
+  "main": "src/index.ts",
+  "bin": {
+    "health": "src/cli.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/server.ts",
+    "./env": "./src/env.ts"
+  },
+  "dependencies": {
+    "@vitals/core": "workspace:*",
+    "@vitals/db": "workspace:*",
+    "@vitals/ingest": "workspace:*",
+    "@vitals/queries": "workspace:*",
+    "hono": "4.6.14",
+    "zod": "3.23.8"
+  }
 }

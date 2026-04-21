@@ -8,5 +8,11 @@
     "emitDeclarationOnly": true,
     "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "../../packages/core" },
+    { "path": "../../packages/db" },
+    { "path": "../../packages/ingest" },
+    { "path": "../../packages/queries" }
+  ]
 }

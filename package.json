@@ -14,6 +14,7 @@
     "build": "tsc -b --pretty",
     "build:web": "bun run --filter @vitals/web build",
     "verify": "bun run check:ci && bun run typecheck && bun run test",
+    "health": "bun apps/server/src/cli.ts",
     "postinstall": "lefthook install"
   },
   "devDependencies": {
