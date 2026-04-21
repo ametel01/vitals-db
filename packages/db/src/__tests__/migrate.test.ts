@@ -63,6 +63,7 @@ const EXPECTED_COLUMNS = {
     ["start_ts", "TIMESTAMP"],
     ["end_ts", "TIMESTAMP"],
     ["state", "VARCHAR"],
+    ["raw_state", "VARCHAR"],
   ],
   performance: [
     ["ts", "TIMESTAMP"],
@@ -156,13 +157,13 @@ describe("migrate", () => {
 
   test("is idempotent — re-running applies no new migrations", async () => {
     const first = await migrate(db);
-    expect(first).toEqual(["001_init"]);
+    expect(first).toEqual(["001_init", "002_sleep_raw_state"]);
 
     const second = await migrate(db);
     expect(second).toEqual([]);
 
     const count = await db.get<{ n: number }>("SELECT COUNT(*)::INTEGER AS n FROM _migrations");
-    expect(count?.n).toBe(1);
+    expect(count?.n).toBe(2);
   });
 
   test("persists applied migrations across connections", async () => {

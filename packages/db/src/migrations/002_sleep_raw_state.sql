@@ -1,0 +1,1 @@
+ALTER TABLE sleep ADD COLUMN raw_state TEXT;
