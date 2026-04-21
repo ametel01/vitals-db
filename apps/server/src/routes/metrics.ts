@@ -1,11 +1,15 @@
 import type { Db } from "@vitals/db";
 import {
   type DateRange,
+  getDistanceDaily,
+  getEnergyDaily,
   getHRVDaily,
   getLoadForRange,
   getRestingHRDaily,
   getSleepSummary,
+  getStepsDaily,
   getVO2MaxDaily,
+  getWeeklyActivity,
   getZones,
 } from "@vitals/queries";
 import { Hono } from "hono";
@@ -87,6 +91,30 @@ export function metricsRouter(db: Db): Hono {
     const parsed = parseRange(c.req.query());
     if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
     return c.json(await getHRVDaily(db, parsed));
+  });
+
+  app.get("/activity", async (c) => {
+    const parsed = parseRange(c.req.query());
+    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
+    return c.json(await getWeeklyActivity(db, parsed));
+  });
+
+  app.get("/steps", async (c) => {
+    const parsed = parseRange(c.req.query());
+    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
+    return c.json(await getStepsDaily(db, parsed));
+  });
+
+  app.get("/distance", async (c) => {
+    const parsed = parseRange(c.req.query());
+    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
+    return c.json(await getDistanceDaily(db, parsed));
+  });
+
+  app.get("/energy", async (c) => {
+    const parsed = parseRange(c.req.query());
+    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
+    return c.json(await getEnergyDaily(db, parsed));
   });
 
   return app;

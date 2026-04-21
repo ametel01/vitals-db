@@ -97,6 +97,49 @@ export async function seedAll(db: Db): Promise<void> {
     await db.run("INSERT INTO hrv (ts, value) VALUES (?, ?)", ["2024-06-01 03:30:00", 70]);
     await db.run("INSERT INTO hrv (ts, value) VALUES (?, ?)", ["2024-06-02 03:00:00", 72]);
 
+    // Steps — day 1 total 3500, day 2 total 4100
+    await db.run("INSERT INTO steps (ts, count) VALUES (?, ?)", ["2024-06-01 08:00:00", 1200]);
+    await db.run("INSERT INTO steps (ts, count) VALUES (?, ?)", ["2024-06-01 12:00:00", 2300]);
+    await db.run("INSERT INTO steps (ts, count) VALUES (?, ?)", ["2024-06-02 09:00:00", 4100]);
+
+    // Distance — day 1 total 2250.5, day 2 total 3100.25
+    await db.run("INSERT INTO distance (ts, meters) VALUES (?, ?)", ["2024-06-01 08:00:00", 800.0]);
+    await db.run("INSERT INTO distance (ts, meters) VALUES (?, ?)", [
+      "2024-06-01 12:00:00",
+      1450.5,
+    ]);
+    await db.run("INSERT INTO distance (ts, meters) VALUES (?, ?)", [
+      "2024-06-02 09:00:00",
+      3100.25,
+    ]);
+
+    // Energy — sparse: active-only rows + basal-only rows within the same day
+    await db.run("INSERT INTO energy (ts, active_kcal, basal_kcal) VALUES (?, ?, ?)", [
+      "2024-06-01 08:00:00",
+      120.5,
+      null,
+    ]);
+    await db.run("INSERT INTO energy (ts, active_kcal, basal_kcal) VALUES (?, ?, ?)", [
+      "2024-06-01 12:00:00",
+      80.0,
+      null,
+    ]);
+    await db.run("INSERT INTO energy (ts, active_kcal, basal_kcal) VALUES (?, ?, ?)", [
+      "2024-06-01 23:00:00",
+      null,
+      1600.0,
+    ]);
+    await db.run("INSERT INTO energy (ts, active_kcal, basal_kcal) VALUES (?, ?, ?)", [
+      "2024-06-02 09:00:00",
+      300.0,
+      null,
+    ]);
+    await db.run("INSERT INTO energy (ts, active_kcal, basal_kcal) VALUES (?, ?, ?)", [
+      "2024-06-02 23:00:00",
+      null,
+      1650.0,
+    ]);
+
     await db.exec("COMMIT");
   } catch (err) {
     await db.exec("ROLLBACK");

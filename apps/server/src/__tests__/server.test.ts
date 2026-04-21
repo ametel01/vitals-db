@@ -1,10 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
+  ActivityPointSchema,
+  DistancePointSchema,
+  EnergyPointSchema,
   HRPointSchema,
   HRVPointSchema,
   LoadRowSchema,
   RestingHRPointSchema,
   SleepSummarySchema,
+  StepsPointSchema,
   VO2MaxPointSchema,
   WorkoutDetailSchema,
   WorkoutSummarySchema,
@@ -201,6 +205,75 @@ describe("Hono server", () => {
     const res = await app.request("/metrics/hrv?from=2025-01-01&to=2025-01-08");
     expect(res.status).toBe(200);
     const body = z.array(HRVPointSchema).parse(await res.json());
+    expect(body).toEqual([]);
+  });
+
+  test("GET /metrics/activity returns weekly workout aggregation", async () => {
+    const res = await app.request("/metrics/activity?from=2024-05-27&to=2024-06-09");
+    expect(res.status).toBe(200);
+    const body = z.array(ActivityPointSchema).parse(await res.json());
+    expect(body).toEqual([
+      { week: "2024-05-27", workout_count: 1, total_duration_sec: 3600 },
+      { week: "2024-06-03", workout_count: 1, total_duration_sec: 1800 },
+    ]);
+  });
+
+  test("GET /metrics/activity rejects invalid date ranges", async () => {
+    const res = await app.request("/metrics/activity?from=bad&to=2024-06-03");
+    expect(res.status).toBe(400);
+  });
+
+  test("GET /metrics/steps returns daily totals", async () => {
+    const res = await app.request("/metrics/steps?from=2024-06-01&to=2024-06-02");
+    expect(res.status).toBe(200);
+    const body = z.array(StepsPointSchema).parse(await res.json());
+    expect(body).toEqual([
+      { day: "2024-06-01", total_steps: 3500 },
+      { day: "2024-06-02", total_steps: 4100 },
+    ]);
+  });
+
+  test("GET /metrics/steps rejects invalid date ranges", async () => {
+    const res = await app.request("/metrics/steps?from=bad&to=2024-06-02");
+    expect(res.status).toBe(400);
+  });
+
+  test("GET /metrics/distance returns daily totals", async () => {
+    const res = await app.request("/metrics/distance?from=2024-06-01&to=2024-06-02");
+    expect(res.status).toBe(200);
+    const body = z.array(DistancePointSchema).parse(await res.json());
+    expect(body).toHaveLength(2);
+    expect(body[0]?.total_meters).toBeCloseTo(2250.5, 5);
+    expect(body[1]?.total_meters).toBeCloseTo(3100.25, 5);
+  });
+
+  test("GET /metrics/distance rejects invalid date ranges", async () => {
+    const res = await app.request("/metrics/distance?from=2024-06-01&to=bad");
+    expect(res.status).toBe(400);
+  });
+
+  test("GET /metrics/energy aggregates sparse active/basal columns by day", async () => {
+    const res = await app.request("/metrics/energy?from=2024-06-01&to=2024-06-02");
+    expect(res.status).toBe(200);
+    const body = z.array(EnergyPointSchema).parse(await res.json());
+    expect(body).toHaveLength(2);
+    expect(body[0]?.day).toBe("2024-06-01");
+    expect(body[0]?.active_kcal).toBeCloseTo(200.5, 5);
+    expect(body[0]?.basal_kcal).toBeCloseTo(1600, 5);
+    expect(body[1]?.day).toBe("2024-06-02");
+    expect(body[1]?.active_kcal).toBeCloseTo(300, 5);
+    expect(body[1]?.basal_kcal).toBeCloseTo(1650, 5);
+  });
+
+  test("GET /metrics/energy rejects invalid date ranges", async () => {
+    const res = await app.request("/metrics/energy?from=nope&to=2024-06-02");
+    expect(res.status).toBe(400);
+  });
+
+  test("GET /metrics/steps returns [] for an empty window", async () => {
+    const res = await app.request("/metrics/steps?from=2025-01-01&to=2025-01-08");
+    expect(res.status).toBe(200);
+    const body = z.array(StepsPointSchema).parse(await res.json());
     expect(body).toEqual([]);
   });
 });
