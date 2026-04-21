@@ -12,6 +12,7 @@ import {
   VO2MaxPointSchema,
   WorkoutDetailSchema,
   WorkoutSummarySchema,
+  WorkoutZoneBreakdownListSchema,
   ZonesRowSchema,
 } from "@vitals/core";
 import { z } from "zod";
@@ -98,6 +99,32 @@ describe("Hono server", () => {
   test("GET /workouts/:id/hr 404s when workout is missing", async () => {
     const res = await app.request("/workouts/does-not-exist/hr");
     expect(res.status).toBe(404);
+  });
+
+  test("GET /workouts/:id/zones returns the per-zone breakdown in Z1..Z5 order", async () => {
+    const res = await app.request(`/workouts/${WORKOUT_ID}/zones`);
+    expect(res.status).toBe(200);
+    const rows = WorkoutZoneBreakdownListSchema.parse(await res.json());
+    expect(rows.map((r) => r.zone)).toEqual(["Z1", "Z2", "Z3", "Z4", "Z5"]);
+    const byZone = Object.fromEntries(rows.map((r) => [r.zone, r]));
+    expect(byZone.Z1?.sample_count).toBe(2);
+    expect(byZone.Z2?.sample_count).toBe(2);
+    expect(byZone.Z3?.sample_count).toBe(2);
+    expect(byZone.Z2?.ratio).toBeCloseTo(2 / 6, 6);
+    const sum = rows.reduce((acc, r) => acc + r.ratio, 0);
+    expect(sum).toBeCloseTo(1, 6);
+  });
+
+  test("GET /workouts/:id/zones 404s when workout is missing", async () => {
+    const res = await app.request("/workouts/does-not-exist/zones");
+    expect(res.status).toBe(404);
+  });
+
+  test("GET /workouts/:id/zones returns [] for a workout with no HR samples", async () => {
+    const res = await app.request(`/workouts/${WORKOUT_ID_WALK}/zones`);
+    expect(res.status).toBe(200);
+    const rows = WorkoutZoneBreakdownListSchema.parse(await res.json());
+    expect(rows).toEqual([]);
   });
 
   test("GET /metrics/zones validates required from/to", async () => {

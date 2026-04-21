@@ -4,6 +4,7 @@ import {
   getWorkoutDetail,
   getWorkoutHR,
   getWorkoutSummary,
+  getWorkoutZoneBreakdown,
   listWorkouts,
 } from "@vitals/queries";
 import { Hono } from "hono";
@@ -91,6 +92,21 @@ export function workoutsRouter(db: Db): Hono {
 
     const points = await getWorkoutHR(db, parsed.data.id);
     return c.json(points);
+  });
+
+  app.get("/:id/zones", async (c) => {
+    const parsed = WorkoutIdParamsSchema.safeParse({ id: c.req.param("id") });
+    if (!parsed.success) {
+      return c.json({ error: "invalid_params", issues: parsed.error.issues }, 400);
+    }
+
+    const workout = await getWorkoutSummary(db, parsed.data.id);
+    if (workout === null) {
+      return c.json({ error: "not_found" }, 404);
+    }
+
+    const rows = await getWorkoutZoneBreakdown(db, parsed.data.id);
+    return c.json(rows);
   });
 
   return app;
