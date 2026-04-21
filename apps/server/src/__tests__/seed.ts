@@ -92,6 +92,11 @@ export async function seedAll(db: Db): Promise<void> {
       null,
     ]);
 
+    // HRV — two samples on day 1 (avg 65), one on day 2 (72)
+    await db.run("INSERT INTO hrv (ts, value) VALUES (?, ?)", ["2024-06-01 03:00:00", 60]);
+    await db.run("INSERT INTO hrv (ts, value) VALUES (?, ?)", ["2024-06-01 03:30:00", 70]);
+    await db.run("INSERT INTO hrv (ts, value) VALUES (?, ?)", ["2024-06-02 03:00:00", 72]);
+
     await db.exec("COMMIT");
   } catch (err) {
     await db.exec("ROLLBACK");

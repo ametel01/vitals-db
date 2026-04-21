@@ -1,6 +1,7 @@
 import type { Db } from "@vitals/db";
 import {
   type DateRange,
+  getHRVDaily,
   getLoadForRange,
   getRestingHRDaily,
   getSleepSummary,
@@ -80,6 +81,12 @@ export function metricsRouter(db: Db): Hono {
     const parsed = parseRange(c.req.query());
     if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
     return c.json(await getVO2MaxDaily(db, parsed));
+  });
+
+  app.get("/hrv", async (c) => {
+    const parsed = parseRange(c.req.query());
+    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
+    return c.json(await getHRVDaily(db, parsed));
   });
 
   return app;

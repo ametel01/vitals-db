@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   HRPointSchema,
+  HRVPointSchema,
   LoadRowSchema,
   RestingHRPointSchema,
   SleepSummarySchema,
@@ -180,5 +181,26 @@ describe("Hono server", () => {
     const body = z.array(VO2MaxPointSchema).parse(await res.json());
     expect(body.map((p) => p.day)).toEqual(["2024-06-01", "2024-06-02"]);
     expect(body[0]?.avg_vo2max).toBeCloseTo(48, 5);
+  });
+
+  test("GET /metrics/hrv returns daily averages", async () => {
+    const res = await app.request("/metrics/hrv?from=2024-06-01&to=2024-06-02");
+    expect(res.status).toBe(200);
+    const body = z.array(HRVPointSchema).parse(await res.json());
+    expect(body.map((p) => p.day)).toEqual(["2024-06-01", "2024-06-02"]);
+    expect(body[0]?.avg_hrv).toBeCloseTo(65, 5);
+    expect(body[1]?.avg_hrv).toBeCloseTo(72, 5);
+  });
+
+  test("GET /metrics/hrv rejects invalid date ranges", async () => {
+    const res = await app.request("/metrics/hrv?from=bad&to=2024-06-02");
+    expect(res.status).toBe(400);
+  });
+
+  test("GET /metrics/hrv returns [] for an empty window", async () => {
+    const res = await app.request("/metrics/hrv?from=2025-01-01&to=2025-01-08");
+    expect(res.status).toBe(200);
+    const body = z.array(HRVPointSchema).parse(await res.json());
+    expect(body).toEqual([]);
   });
 });
