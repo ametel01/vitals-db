@@ -72,3 +72,9 @@ export const VO2MaxPointSchema = z.object({
   avg_vo2max: PositiveNumber,
 });
 export type VO2MaxPoint = z.infer<typeof VO2MaxPointSchema>;
+
+export const HRVPointSchema = z.object({
+  day: IsoDate,
+  avg_hrv: PositiveNumber,
+});
+export type HRVPoint = z.infer<typeof HRVPointSchema>;

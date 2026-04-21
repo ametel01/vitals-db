@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   ActivityPointSchema,
   HRPointSchema,
+  HRVPointSchema,
   LoadRowSchema,
   RestingHRPointSchema,
   SleepSummarySchema,
@@ -111,5 +112,18 @@ describe("DTO round-trip parsing", () => {
   test("VO2MaxPoint", () => {
     const fixture = { day: "2024-06-01", avg_vo2max: 48.2 };
     expect(VO2MaxPointSchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("HRVPoint", () => {
+    const fixture = { day: "2024-06-01", avg_hrv: 64.5 };
+    expect(HRVPointSchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("HRVPoint rejects non-ISO day", () => {
+    expect(() => HRVPointSchema.parse({ day: "06/01/2024", avg_hrv: 60 })).toThrow();
+  });
+
+  test("HRVPoint rejects non-positive avg", () => {
+    expect(() => HRVPointSchema.parse({ day: "2024-06-01", avg_hrv: 0 })).toThrow();
   });
 });
