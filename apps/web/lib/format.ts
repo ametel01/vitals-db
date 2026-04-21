@@ -19,6 +19,24 @@ export function formatPercent(ratio: number, fractionDigits = 1): string {
   return `${(ratio * 100).toFixed(fractionDigits)}%`;
 }
 
+export function formatPercentValue(value: number, fractionDigits = 1): string {
+  return `${value.toFixed(fractionDigits)}%`;
+}
+
+export function formatPace(secondsPerKilometer: number | null): string {
+  if (
+    secondsPerKilometer === null ||
+    !Number.isFinite(secondsPerKilometer) ||
+    secondsPerKilometer <= 0
+  ) {
+    return "—";
+  }
+  const totalSeconds = Math.round(secondsPerKilometer);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")} /km`;
+}
+
 export function formatIsoDateTime(iso: string): string {
   const date = new Date(iso);
   return date.toLocaleString("en-US", {

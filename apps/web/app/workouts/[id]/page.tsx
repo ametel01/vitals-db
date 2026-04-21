@@ -1,13 +1,20 @@
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { LineChart } from "@/components/charts/LineChart";
 import { StackedBar } from "@/components/charts/StackedBar";
-import { getWorkoutDetail, getWorkoutHR, getWorkoutZonesBreakdown } from "@/lib/api";
+import {
+  getWorkoutDetail,
+  getWorkoutEfficiency,
+  getWorkoutHR,
+  getWorkoutZonesBreakdown,
+} from "@/lib/api";
 import {
   chartDataKey,
   formatDuration,
   formatIsoDateTime,
   formatNumber,
+  formatPace,
   formatPercent,
+  formatPercentValue,
 } from "@/lib/format";
 import type {
   DriftClassification,
@@ -28,8 +35,9 @@ export default async function WorkoutDetailPage({
   params,
 }: WorkoutDetailPageProps): Promise<React.ReactElement> {
   const { id } = await params;
-  const [detailResult, hrResult, zonesResult] = await Promise.all([
+  const [detailResult, efficiencyResult, hrResult, zonesResult] = await Promise.all([
     getWorkoutDetail(id),
+    getWorkoutEfficiency(id),
     getWorkoutHR(id),
     getWorkoutZonesBreakdown(id),
   ]);
@@ -56,14 +64,16 @@ export default async function WorkoutDetailPage({
         {formatIsoDateTime(detail.start_ts)} — {formatIsoDateTime(detail.end_ts)}
       </p>
 
-      <div className="grid cols-4" style={{ marginBottom: 20 }}>
+      <div className="grid cols-3" style={{ marginBottom: 20 }}>
         <StatCard label="Duration" value={formatDuration(detail.duration_sec)} />
         <StatCard
-          label="Z2 ratio"
+          label="Z2 share"
           value={detail.z2_ratio === null ? "—" : formatPercent(detail.z2_ratio, 1)}
           sub={`${HR_ZONES.Z2.min}–${HR_ZONES.Z2.max} bpm`}
         />
+        <EfficiencyPaceCard result={efficiencyResult} />
         <DriftCard detail={detail} />
+        <EfficiencyDecouplingCard result={efficiencyResult} />
         <StatCard
           label="Load"
           value={detail.load === null ? "—" : formatNumber(detail.load, 0)}
@@ -122,6 +132,51 @@ function DriftCard({ detail }: { detail: WorkoutDetail }): React.ReactElement {
       </div>
     </div>
   );
+}
+
+function EfficiencyPaceCard({
+  result,
+}: {
+  result: Awaited<ReturnType<typeof getWorkoutEfficiency>>;
+}): React.ReactElement {
+  if (!result.ok) {
+    return <StatCard label="Pace @ 120-130 bpm" value="—" sub="Efficiency route unavailable" />;
+  }
+
+  const pace = result.data.pace_at_hr;
+  return (
+    <StatCard
+      label="Pace @ 120-130 bpm"
+      value={formatPace(pace.pace_sec_per_km)}
+      sub={
+        pace.sample_count === 0
+          ? "No aligned HR + speed samples"
+          : `${pace.sample_count} matched samples`
+      }
+    />
+  );
+}
+
+function EfficiencyDecouplingCard({
+  result,
+}: {
+  result: Awaited<ReturnType<typeof getWorkoutEfficiency>>;
+}): React.ReactElement {
+  if (!result.ok) {
+    return <StatCard label="Decoupling" value="—" sub="Efficiency route unavailable" />;
+  }
+
+  const decoupling = result.data.decoupling;
+  const value =
+    decoupling.decoupling_pct === null ? "—" : formatPercentValue(decoupling.decoupling_pct, 1);
+  const sub =
+    decoupling.decoupling_pct === null
+      ? decoupling.window_duration_sec < 45 * 60
+        ? "Requires a 45-60 min run"
+        : "No aligned HR + speed samples"
+      : `First ${Math.round(decoupling.window_duration_sec / 60)} min`;
+
+  return <StatCard label="Decoupling" value={value} sub={sub} />;
 }
 
 function driftTagClass(classification: DriftClassification): string {

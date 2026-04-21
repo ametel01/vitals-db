@@ -67,6 +67,9 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
       </div>
 
       <h3 className="section-title">Performance</h3>
+      <div style={{ marginBottom: 12, fontSize: 13 }}>
+        <Link href="/performance">Open the dedicated performance page →</Link>
+      </div>
       <div className="grid cols-2" style={{ marginBottom: 20 }}>
         <SpeedCard result={speed} />
         <PowerCard result={power} />

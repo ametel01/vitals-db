@@ -15,6 +15,8 @@ import {
   PowerPointSchema,
   type RestingHRPoint,
   RestingHRPointSchema,
+  type RestingHRRollingPoint,
+  RestingHRRollingPointSchema,
   type SleepNightDetail,
   SleepNightDetailSchema,
   type SleepNightPoint,
@@ -33,6 +35,8 @@ import {
   WalkingHRPointSchema,
   type WorkoutDetail,
   WorkoutDetailSchema,
+  type WorkoutEfficiency,
+  WorkoutEfficiencySchema,
   type WorkoutSummary,
   WorkoutSummarySchema,
   WorkoutZoneBreakdownListSchema,
@@ -109,6 +113,7 @@ async function requestJson<T>(url: string, schema: z.ZodType<T>): Promise<FetchR
 const WorkoutListSchema = z.array(WorkoutSummarySchema);
 const HRPointListSchema = z.array(HRPointSchema);
 const RestingHRListSchema = z.array(RestingHRPointSchema);
+const RestingHRRollingListSchema = z.array(RestingHRRollingPointSchema);
 const LoadListSchema = z.array(LoadRowSchema);
 const VO2MaxListSchema = z.array(VO2MaxPointSchema);
 const HRVListSchema = z.array(HRVPointSchema);
@@ -146,12 +151,28 @@ export function getWorkoutZonesBreakdown(
   );
 }
 
+export function getWorkoutEfficiency(
+  id: string,
+  params: { hr_min?: number; hr_max?: number } = {},
+): Promise<FetchResult<WorkoutEfficiency>> {
+  return requestJson(
+    buildUrl(`workouts/${encodeURIComponent(id)}/efficiency`, params),
+    WorkoutEfficiencySchema,
+  );
+}
+
 export function getZones(range: DateRange): Promise<FetchResult<ZonesRow>> {
   return requestJson(buildUrl("metrics/zones", range), ZonesRowSchema);
 }
 
 export function getRestingHR(range: DateRange): Promise<FetchResult<RestingHRPoint[]>> {
   return requestJson(buildUrl("metrics/resting-hr", range), RestingHRListSchema);
+}
+
+export function getRestingHRRolling(
+  range: DateRange,
+): Promise<FetchResult<RestingHRRollingPoint[]>> {
+  return requestJson(buildUrl("metrics/resting-hr/rolling", range), RestingHRRollingListSchema);
 }
 
 export function getSleepSummary(range: DateRange): Promise<FetchResult<SleepSummary>> {

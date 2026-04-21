@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   chartDataKey,
   formatIsoDateTime,
+  formatPace,
+  formatPercentValue,
   formatSleepConsistencyMinutes,
   formatTimeOfDay,
   windowStartIso,
@@ -32,5 +34,14 @@ describe("web format helpers", () => {
   test("chartDataKey is stable for the same payload", () => {
     const payload = [{ day: "2024-06-01", value: 52 }];
     expect(chartDataKey("rhr", payload)).toBe(chartDataKey("rhr", payload));
+  });
+
+  test("formatPace renders mm:ss per kilometer", () => {
+    expect(formatPace(277.77777777777777)).toBe("4:38 /km");
+    expect(formatPace(null)).toBe("—");
+  });
+
+  test("formatPercentValue treats the input as an already-scaled percent", () => {
+    expect(formatPercentValue(6.6666667, 1)).toBe("6.7%");
   });
 });
