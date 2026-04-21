@@ -126,7 +126,8 @@ function SleepCard({
         {consistency === null ? "—" : formatSleepConsistencyMinutes(consistency)}
       </div>
       <div style={{ marginTop: 16, color: "var(--text-muted)", fontSize: 13 }}>
-        Per-night sleep breakdown ships in v0.2 alongside a `/metrics/sleep/nightly` endpoint.
+        Summary across the 30-day window. Efficiency is asleep hours over in-bed hours; consistency
+        σ is the standard deviation of bedtime, in minutes.
       </div>
     </div>
   );
