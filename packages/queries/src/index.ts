@@ -6,7 +6,7 @@ export {
   listWorkouts,
 } from "./workouts";
 export { getWorkoutHR } from "./workout_hr";
-export { getWorkoutZones, getZones } from "./zones";
+export { getWorkoutZoneBreakdown, getWorkoutZones, getZones } from "./zones";
 export { getWorkoutDrift, type WorkoutDrift } from "./drift";
 export { getSleepSummary } from "./sleep";
 export { getRestingHRDaily } from "./resting_hr";
