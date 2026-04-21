@@ -4,6 +4,44 @@ All notable changes to this project are documented here. This file follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] — 2026-04-21
+
+Frontend completion release per `local-docs/IMPLEMENTATION_PLAN_0.2.0.md`. Closes
+the two highest-value UI gaps identified in `local-docs/GAP_ANALYSIS.md` §4 by
+surfacing data the backend already ships. No new routes, no DTO shape changes,
+no query-layer changes.
+
+### Added — web (`apps/web`)
+
+- Dashboard VO2 max card driven by the existing `/metrics/vo2max` endpoint,
+  modeled on `RestingHRCard`: latest-day primary stat, 30-day average
+  secondary stat, 30-day `LineChart`, plus error and empty states. Uses the
+  same 30-day window as resting HR and sleep.
+- Workout-detail `Load` stat card rendering `WorkoutDetail.load` with
+  em-dash fallback for workouts without HR coverage. Value comes from the
+  unchanged `/workouts/:id` payload.
+
+### Changed — web (`apps/web`)
+
+- Dashboard top grid switched from `cols-2` to `cols-3` to seat resting HR,
+  sleep, and VO2 max on one row on desktop.
+- Workout-detail stat row switched from `cols-3` to `cols-4` to seat
+  Duration, Z2 ratio, HR drift, and Load.
+- `apps/web/app/globals.css` gains a `.grid.cols-4` rule with a 1200 px
+  breakpoint (4 → 2 columns) and the shared 900 px breakpoint (→ 1 column).
+
+### Changed — docs
+
+- `README.md` "Dashboard Views" now reflects the shipped `0.2.0` UI surface:
+  the dashboard includes VO2 max and workout detail includes Load.
+
+### Release gate
+
+- `bun run test` (155/155), `bun run typecheck`, `bun run build` all green.
+- No route additions, no DTO additions, no API response changes.
+
+[0.2.0]: https://github.com/alexmetelli/vitals-db/releases/tag/v0.2.0
+
 ## [0.1.1] — 2026-04-21
 
 Baseline hardening release per `local-docs/IMPLEMENTATION_PLAN_0.1.1.md`. No
