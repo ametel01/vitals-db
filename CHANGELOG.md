@@ -4,6 +4,77 @@ All notable changes to this project are documented here. This file follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] — 2026-04-21
+
+Frontend redesign slice. Rewrites the `apps/web` visual system end-to-end
+around a health-and-fitness palette and editorial typography, adds an
+always-visible sidebar shell, rethemes every chart, and annotates every
+dashboard tile with a hover/focus tooltip explaining what the metric tracks.
+No API routes, DTOs, query-layer behavior, or ingest logic changed — this
+release is scoped to `apps/web` plus a workspace version bump.
+
+### Changed — web (`apps/web`)
+
+- New design system in `app/globals.css`:
+  - Forest-dark base (`#0a0d0b`) with electric-lime signature (`#d8ff3d`)
+    plus coral, ice-blue, chlorophyll, amber, rose, and violet accents.
+  - Fraunces (italic display serif) + Figtree (body) + JetBrains Mono
+    (tabular stats), loaded from Google Fonts.
+  - Radial-glow vignettes and a film-grain overlay on the body background.
+  - Staggered card-rise entrance animation, fade-in on main content,
+    pulsing live dot, and lime-glow focus rings on inputs.
+- New sticky vertical sidebar shell in `app/layout.tsx`, driven by a new
+  client `components/SidebarNav.tsx` that uses `usePathname` to set
+  `aria-current="page"` on the active route. Custom inline SVG glyphs for
+  Overview / Performance / Sleep / Workouts, decorated with
+  `aria-hidden="true"`.
+- Every page opens with a monospace kicker + an oversized Fraunces headline
+  with an italic lime accent word (dashboard, performance, sleep, workouts,
+  workout detail).
+- Chart components retooled for the new palette and typography:
+  - `components/charts/LineChart.tsx` — themed tooltip surface, dashed
+    split lines, italic Fraunces axis name, JetBrains Mono axis labels,
+    round line caps, single-series gradient area fill, lime Z2 mark-band.
+  - `components/charts/StackedBar.tsx` — same typography theming plus
+    rounded-corner bar caps on the top and bottom stack segments.
+- All dashboard, performance, sleep, and workout-detail series colors
+  rethemed to the new palette (resting HR → coral, VO2 max → chlorophyll,
+  HRV → rose, steps → lime, walking HR → violet, speed → ice, power →
+  amber; HR zones Z1 → ice, Z2 → lime, Z3 → amber, Z4 → coral, Z5 → rose;
+  sleep stages core → ice, deep → violet, REM → rose, unspecified →
+  amber).
+
+### Added — web (`apps/web`)
+
+- `components/CardTitle.tsx` — reusable heading primitive that renders
+  `<h2>` with an optional circular `<button>` info badge. The button
+  carries the tip text as `aria-label` and contains a hidden
+  `role="tooltip"` bubble revealed via CSS on hover/focus-visible.
+- Pure-CSS info-tip bubble with a rotated arrow tail and dark lime-edged
+  surface; no client JavaScript required.
+- Tooltips wired onto every tile across four pages (25 tiles total):
+  - Dashboard — resting HR, sleep, VO2 max, HRV, steps, walking HR,
+    running speed, running power, weekly activity.
+  - Performance — rolling resting HR, KPI notes, recent runs.
+  - Sleep — nights, total asleep, average efficiency, stage coverage,
+    nightly trend, nights list, selected night, stage breakdown. The
+    existing `SummaryCard` helper gained an optional `tip` prop.
+  - Workout detail — duration, Z2 share, pace @ 120-130 bpm, HR drift,
+    decoupling, load, heart rate, zones distribution. The existing
+    `StatCard` helper gained an optional `tip` prop.
+
+### Release gate
+
+- `bun run check:ci`, `bun run typecheck`, `bun run test` (288/288), and
+  `bun run build` all green for the release candidate.
+- No API route, DTO, or query contract changed shape — all changes are
+  scoped to `apps/web` styling, layout, typography, and tile annotations.
+- `exactOptionalPropertyTypes` compliance preserved: `CardTitle`'s `tip`
+  prop is typed as `string | undefined` so call sites can forward a
+  possibly-undefined tip without conditional spread.
+
+[0.10.0]: https://github.com/alexmetelli/vitals-db/releases/tag/v0.10.0
+
 ## [0.9.0] — 2026-04-21
 
 Endurance-KPI slice per `local-docs/IMPLEMENTATION_PLAN_0.9.0.md`. Ships the
