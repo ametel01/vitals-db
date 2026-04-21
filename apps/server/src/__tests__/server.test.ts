@@ -25,12 +25,16 @@ describe("Hono server", () => {
 
   afterEach(() => fixture.cleanup());
 
-  test("GET /workouts returns Zod-valid summaries", async () => {
+  test("GET /workouts returns Zod-valid summaries in descending start_ts order", async () => {
     const res = await app.request("/workouts");
     expect(res.status).toBe(200);
     const body = await res.json();
     const parsed = z.array(WorkoutSummarySchema).parse(body);
     expect(parsed.map((w) => w.id)).toEqual([WORKOUT_ID_WALK, WORKOUT_ID]);
+    const starts = parsed.map((w) => Date.parse(w.start_ts));
+    for (let i = 1; i < starts.length; i++) {
+      expect(starts[i - 1]).toBeGreaterThanOrEqual(starts[i] ?? 0);
+    }
   });
 
   test("GET /workouts?type=Running filters", async () => {
@@ -61,12 +65,14 @@ describe("Hono server", () => {
     expect(body).toHaveLength(1);
   });
 
-  test("GET /workouts/:id returns detail", async () => {
+  test("GET /workouts/:id returns detail with drift, load, and z2_ratio", async () => {
     const res = await app.request(`/workouts/${WORKOUT_ID}`);
     expect(res.status).toBe(200);
     const detail = WorkoutDetailSchema.parse(await res.json());
     expect(detail.id).toBe(WORKOUT_ID);
     expect(detail.drift_classification).toBe("high");
+    expect(detail.drift_pct).not.toBeNull();
+    expect(detail.drift_pct).toBeCloseTo(((130 - 110) / 110) * 100, 3);
     expect(detail.z2_ratio).toBeCloseTo(2 / 6, 6);
     expect(detail.load).toBeCloseTo(432_000, 3);
   });
@@ -99,8 +105,35 @@ describe("Hono server", () => {
     expect(parsed.z2_ratio).toBeCloseTo(2 / 6, 6);
   });
 
-  test("GET /metrics rejects invalid date ranges before hitting DuckDB", async () => {
+  test("GET /metrics/zones returns null z2_ratio for an empty window", async () => {
+    const res = await app.request("/metrics/zones?from=2024-06-05&to=2024-06-05");
+    expect(res.status).toBe(200);
+    const parsed = ZonesRowSchema.parse(await res.json());
+    expect(parsed.z2_ratio).toBeNull();
+  });
+
+  test("GET /metrics/resting-hr rejects invalid date ranges before hitting DuckDB", async () => {
     const res = await app.request("/metrics/resting-hr?from=not-a-date&to=2024-06-02");
+    expect(res.status).toBe(400);
+  });
+
+  test("GET /metrics/zones rejects invalid date ranges", async () => {
+    const res = await app.request("/metrics/zones?from=2024-06-01&to=not-a-date");
+    expect(res.status).toBe(400);
+  });
+
+  test("GET /metrics/sleep rejects invalid date ranges", async () => {
+    const res = await app.request("/metrics/sleep?from=nope&to=2024-06-02");
+    expect(res.status).toBe(400);
+  });
+
+  test("GET /metrics/load rejects invalid date ranges", async () => {
+    const res = await app.request("/metrics/load?from=2024-06-01&to=nope");
+    expect(res.status).toBe(400);
+  });
+
+  test("GET /metrics/vo2max rejects invalid date ranges", async () => {
+    const res = await app.request("/metrics/vo2max?from=bad&to=2024-06-02");
     expect(res.status).toBe(400);
   });
 
@@ -122,13 +155,23 @@ describe("Hono server", () => {
     expect(body.efficiency).toBeCloseTo(7 / 8, 3);
   });
 
-  test("GET /metrics/load returns per-workout rows", async () => {
+  test("GET /metrics/load returns per-workout rows with workout_id, duration, avg_hr, load", async () => {
     const res = await app.request("/metrics/load?from=2024-06-01&to=2024-06-03");
     expect(res.status).toBe(200);
     const body = z.array(LoadRowSchema).parse(await res.json());
     expect(body).toHaveLength(2);
+
     const running = body.find((r) => r.workout_id === WORKOUT_ID);
+    expect(running).toBeDefined();
+    expect(running?.duration_sec).toBe(3600);
+    expect(running?.avg_hr).toBeCloseTo(120, 5);
     expect(running?.load).toBeCloseTo(432_000, 3);
+
+    const walking = body.find((r) => r.workout_id === WORKOUT_ID_WALK);
+    expect(walking).toBeDefined();
+    expect(walking?.duration_sec).toBe(1800);
+    expect(walking?.avg_hr).toBeNull();
+    expect(walking?.load).toBeNull();
   });
 
   test("GET /metrics/vo2max returns daily averages", async () => {
