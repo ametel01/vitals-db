@@ -4,6 +4,60 @@ All notable changes to this project are documented here. This file follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] — 2026-04-21
+
+Ingest-scaling slice. Apple Health exports re-send full history on every
+export, and the previous importer still had to stream the whole XML even on
+incremental updates. This release adds a pre-import crop pass so weekly imports
+only feed the recent supported window into the importer, which keeps repeated
+updates practical as the source export grows.
+
+### Added — ingest / CLI
+
+- New streaming XML cleanup helper in `packages/ingest/src/cleanup.ts`:
+  - rewrites a reduced Apple Health XML file before import
+  - keeps only supported `Record` and `Workout` nodes
+  - drops `HKWasUserEntered=1` samples during the crop pass
+  - drops nodes older than the last imported timestamp minus the existing
+    24-hour incremental safety buffer
+- New `health crop <in> [out]` CLI command:
+  - reads the current database ingest state
+  - writes `/path/to/export.cropped.xml` by default
+  - reports kept vs dropped node counts, including old / unsupported /
+    manual-entry breakdowns
+
+### Changed — ingest
+
+- `ingestFile` now performs the crop step automatically for incremental
+  imports before handing the reduced XML to the existing parser, mapper, and
+  dedup writer.
+- The importer still preserves the existing 24-hour lookback buffer and
+  `_ingest_seen` dedup semantics, but now avoids parsing the full historical
+  export on every weekly update.
+- Full rebuild / full import paths remain unchanged and still reprocess the
+  complete source file when `full: true` is requested.
+
+### Changed — docs / tests
+
+- `README.md` now documents the automatic incremental crop behavior and the
+  new `health crop` command.
+- New ingest test coverage pins the cropper behavior for:
+  - cutoff-based pruning
+  - unsupported-type removal
+  - manual-entry removal
+  - preserved parseability of the reduced XML
+
+### Release gate
+
+- `bun test packages/ingest/src/__tests__` and `bun run typecheck` run green
+  for the release candidate.
+- No API route, DTO, or DuckDB schema changed shape in this release.
+- The observable behavior change is scoped to the ingest pipeline and CLI:
+  incremental imports now pre-trim the source XML instead of streaming the
+  full export every time.
+
+[0.11.0]: https://github.com/alexmetelli/vitals-db/releases/tag/v0.11.0
+
 ## [0.10.0] — 2026-04-21
 
 Frontend redesign slice. Rewrites the `apps/web` visual system end-to-end
