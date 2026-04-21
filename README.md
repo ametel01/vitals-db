@@ -20,7 +20,7 @@ Today the implementation covers:
 - VO2 max daily averages
 - steps, distance, and energy daily totals
 - weekly workout activity served by the API
-- Z2 ratio and heart-rate drift for workouts
+- Z2 ratio, full Z1..Z5 zones distribution, and heart-rate drift for workouts
 
 ## Stack
 
@@ -134,7 +134,7 @@ The current UI has:
   30-day steps, and 12-week workout activity
 - `/workouts`: latest 100 workouts with type and date filters
 - `/workouts/:id`: workout duration, Z2 ratio, HR drift classification, load,
-  and HR chart
+  HR chart, and Z1..Z5 zones-distribution stacked bar
 
 ## API Surface
 
@@ -143,6 +143,7 @@ The server currently exposes:
 - `GET /workouts`
 - `GET /workouts/:id`
 - `GET /workouts/:id/hr`
+- `GET /workouts/:id/zones`
 - `GET /metrics/zones`
 - `GET /metrics/resting-hr`
 - `GET /metrics/sleep`

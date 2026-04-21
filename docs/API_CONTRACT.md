@@ -41,6 +41,18 @@ Path params:
 Response: `HRPoint[]` on 200. `404` with `{ error: "not_found" }` when the
 workout does not exist.
 
+### `GET /workouts/:id/zones`
+
+Path params:
+
+- `id` — workout id
+
+Response: `WorkoutZoneBreakdownRow[]` on 200, one row per zone in `Z1..Z5`
+order with `sample_count` and `ratio = sample_count / total_samples`. Returns
+`[]` when the workout has no HR samples. `404` with `{ error: "not_found" }`
+when the workout does not exist. Additive to `/metrics/zones`, which continues
+to return the scalar `z2_ratio`.
+
 ## Metrics
 
 Every route under `/metrics` requires both `from` and `to`. Invalid or missing
