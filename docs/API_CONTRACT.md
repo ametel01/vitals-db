@@ -98,6 +98,38 @@ segment-duration sums (same choice as `/metrics/sleep`). `efficiency` is null
 when the night has no `in_bed` coverage. Additive to `/metrics/sleep`, which
 continues to return the 30-day summary.
 
+### `GET /metrics/sleep/nights`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `SleepNightDetail[]`, one row per night for the dedicated sleep page.
+Each row includes `bedtime`, `wake_time`, asleep / in-bed / awake totals, and
+nullable `core_hours`, `deep_hours`, `rem_hours`, and `unspecified_hours`.
+Those stage totals are `null` for nights that were ingested before `0.8.0`
+without the additive `sleep.raw_state` backfill. Additive to both
+`/metrics/sleep` and `/metrics/sleep/nightly`.
+
+### `GET /metrics/sleep/segments`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `SleepSegment[]`, ordered by `start_ts`. Each row includes:
+
+- `night` — the bedtime date used to group overnight segments
+- normalized `state`
+- nullable `raw_state`
+- nullable derived `stage`
+- `duration_hours`
+
+This route is additive and is intended for timeline / drill-down views rather
+than the compact summary cards.
+
 ### `GET /metrics/load`
 
 Query params:

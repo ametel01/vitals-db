@@ -1,6 +1,6 @@
 # vitals-db
 
-`vitals-db` ingests Apple Health export XML into DuckDB and serves a small analytics dashboard on top of it.
+`vitals-db` ingests Apple Health export XML into DuckDB and serves a small analytics dashboard on top of it, including a dedicated sleep detail page.
 
 The repo has four main pieces:
 
@@ -17,6 +17,7 @@ Today the implementation covers:
 - heart rate variability daily averages
 - walking heart rate daily averages
 - sleep total hours, efficiency, and consistency summary plus nightly breakdown
+- dedicated `/sleep` page with nightly cards, stage totals, and segment timeline
 - simple workout load (`duration_sec * avg_hr`)
 - VO2 max daily averages
 - running speed and running power daily averages
@@ -50,6 +51,11 @@ The importer currently maps these Apple Health types into analytics tables:
 - `HKQuantityTypeIdentifierRunningSpeed`
 - `HKQuantityTypeIdentifierRunningPower`
 - `HKCategoryTypeIdentifierSleepAnalysis`
+
+Since `0.8.0`, sleep ingest preserves both:
+
+- normalized `sleep.state` (`asleep` / `in_bed` / `awake`) for the existing summary queries
+- additive `sleep.raw_state` for Apple sleep stages such as Core, Deep, REM, and Unspecified
 
 Import behavior in the current code:
 
@@ -98,6 +104,26 @@ bun run health rebuild
 - `serve` starts the API and runs migrations first
 - `rebuild` clears analytics tables and re-imports the last imported file in full
 
+### Rebuild After Upgrading To `0.8.0`
+
+If you already had a local database before `0.8.0`, the migration adds the
+nullable `sleep.raw_state` column but it cannot backfill raw sleep stages from
+rows that were already normalized and stored.
+
+If you want the new `/sleep` page to show REM / Core / Deep / Unspecified
+detail for historical data, run:
+
+```bash
+bun run health rebuild
+```
+
+Without a rebuild:
+
+- `GET /metrics/sleep` remains backward compatible
+- `GET /metrics/sleep/nightly` remains backward compatible
+- the new `/sleep` page still works, but older nights may only show normalized
+  segments and no stage totals
+
 ## Start The Dashboard
 
 Run the API in one terminal:
@@ -135,6 +161,8 @@ The current UI has:
 - `/`: 30-day resting HR, 30-day sleep summary, 30-day VO2 max, 30-day HRV,
   30-day steps, 30-day walking HR, a Performance section with 30-day running
   speed and running power, and 12-week workout activity
+- `/sleep`: nightly sleep list, asleep vs in-bed trend, selected-night segment
+  timeline, and stage totals when raw sleep stages are available
 - `/workouts`: latest 100 workouts with type and date filters
 - `/workouts/:id`: workout duration, Z2 ratio, HR drift classification, load,
   HR chart, and Z1..Z5 zones-distribution stacked bar
@@ -151,6 +179,8 @@ The server currently exposes:
 - `GET /metrics/resting-hr`
 - `GET /metrics/sleep`
 - `GET /metrics/sleep/nightly`
+- `GET /metrics/sleep/nights`
+- `GET /metrics/sleep/segments`
 - `GET /metrics/load`
 - `GET /metrics/vo2max`
 - `GET /metrics/hrv`
