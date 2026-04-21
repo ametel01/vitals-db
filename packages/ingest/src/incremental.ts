@@ -1,10 +1,13 @@
-import { resolve } from "node:path";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import type { Db } from "@vitals/db";
+import { cropHealthExport } from "./cleanup";
 import { type MappedInsert, mapNode } from "./mappers";
 import { parseHealthExport } from "./parser";
 import { type IngestStats, type WriterOptions, writeBatches } from "./writer";
 
-const BUFFER_MS = 24 * 60 * 60 * 1000;
+export const BUFFER_MS = 24 * 60 * 60 * 1000;
 const STATE_LAST_TS = "last_import_ts";
 const STATE_LAST_FILE = "last_import_file";
 
@@ -52,6 +55,10 @@ export function makeIncrementalFilter(lastTsMs: number | null): (endTsMs: number
   return (endTsMs) => endTsMs >= cutoff;
 }
 
+function makeCropCutoffMs(lastTsMs: number | null): number | null {
+  return lastTsMs === null ? null : lastTsMs - BUFFER_MS;
+}
+
 async function* mapStream(
   stream: ReadableStream<Uint8Array>,
   filter: (endTsMs: number) => boolean,
@@ -76,18 +83,34 @@ export async function ingestFile(
 ): Promise<IngestStats> {
   const lastTsMs = opts.full === true ? null : await getLastImportTs(db);
   const filter = makeIncrementalFilter(lastTsMs);
-
-  const stream = Bun.file(path).stream();
   const absolutePath = resolve(path);
+  const cropCutoffMs = makeCropCutoffMs(lastTsMs);
 
-  const writerOpts: WriterOptions =
-    opts.batchSize === undefined ? {} : { batchSize: opts.batchSize };
-  const stats = await writeBatches(db, mapStream(stream, filter), writerOpts);
+  let importPath = path;
+  let tempDir: string | null = null;
 
-  if (stats.maxEndTsMs !== null) {
-    const next = lastTsMs === null ? stats.maxEndTsMs : Math.max(lastTsMs, stats.maxEndTsMs);
-    await setLastImportTsMs(db, next);
+  if (cropCutoffMs !== null) {
+    tempDir = await mkdtemp(join(tmpdir(), "vitals-crop-"));
+    const croppedPath = join(tempDir, "import.xml");
+    await cropHealthExport(path, { cutoffMs: cropCutoffMs, outputPath: croppedPath });
+    importPath = croppedPath;
   }
-  await setLastImportFile(db, absolutePath);
-  return stats;
+
+  try {
+    const stream = Bun.file(importPath).stream();
+    const writerOpts: WriterOptions =
+      opts.batchSize === undefined ? {} : { batchSize: opts.batchSize };
+    const stats = await writeBatches(db, mapStream(stream, filter), writerOpts);
+
+    if (stats.maxEndTsMs !== null) {
+      const next = lastTsMs === null ? stats.maxEndTsMs : Math.max(lastTsMs, stats.maxEndTsMs);
+      await setLastImportTsMs(db, next);
+    }
+    await setLastImportFile(db, absolutePath);
+    return stats;
+  } finally {
+    if (tempDir !== null) {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  }
 }

@@ -1,4 +1,10 @@
 export {
+  type CropHealthExportOptions,
+  type CropResult,
+  type CropStats,
+  cropHealthExport,
+} from "./cleanup";
+export {
   type ParsedNode,
   type ParsedRecord,
   type ParsedWorkout,
@@ -24,6 +30,7 @@ export {
   writeBatches,
 } from "./writer";
 export {
+  BUFFER_MS,
   clearIngestState,
   getIngestState,
   getLastImportFile,
