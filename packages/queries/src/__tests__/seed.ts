@@ -122,6 +122,51 @@ export async function seedHRV(db: Db): Promise<void> {
   }
 }
 
+export async function seedSteps(db: Db): Promise<void> {
+  const rows: Array<[string, number]> = [
+    ["2024-06-01 08:00:00", 1200],
+    ["2024-06-01 12:00:00", 2300], // day total = 3500
+    ["2024-06-02 09:00:00", 4100], // day total = 4100
+    ["2024-06-03 07:30:00", 2500],
+    ["2024-06-03 19:00:00", 1800], // day total = 4300
+  ];
+  for (const [ts, count] of rows) {
+    await db.run("INSERT INTO steps (ts, count) VALUES (?, ?)", [ts, count]);
+  }
+}
+
+export async function seedDistance(db: Db): Promise<void> {
+  const rows: Array<[string, number]> = [
+    ["2024-06-01 08:00:00", 800.0],
+    ["2024-06-01 12:00:00", 1450.5], // day total = 2250.5
+    ["2024-06-02 09:00:00", 3100.25], // day total = 3100.25
+    ["2024-06-03 07:30:00", 500.0],
+    ["2024-06-03 19:00:00", 2000.0], // day total = 2500
+  ];
+  for (const [ts, meters] of rows) {
+    await db.run("INSERT INTO distance (ts, meters) VALUES (?, ?)", [ts, meters]);
+  }
+}
+
+export async function seedEnergy(db: Db): Promise<void> {
+  // Sparse: some rows carry only active_kcal, others only basal_kcal.
+  const rows: Array<[string, number | null, number | null]> = [
+    ["2024-06-01 08:00:00", 120.5, null],
+    ["2024-06-01 12:00:00", 80.0, null],
+    ["2024-06-01 23:00:00", null, 1600.0], // day: active = 200.5, basal = 1600
+    ["2024-06-02 09:00:00", 300.0, null],
+    ["2024-06-02 23:00:00", null, 1650.0], // day: active = 300, basal = 1650
+    ["2024-06-03 23:00:00", null, 1700.0], // day: active = 0, basal = 1700
+  ];
+  for (const [ts, active, basal] of rows) {
+    await db.run("INSERT INTO energy (ts, active_kcal, basal_kcal) VALUES (?, ?, ?)", [
+      ts,
+      active,
+      basal,
+    ]);
+  }
+}
+
 export async function seedExtraWorkouts(db: Db): Promise<void> {
   await db.run(
     "INSERT INTO workouts (id, type, start_ts, end_ts, duration_sec, source) VALUES (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)",
