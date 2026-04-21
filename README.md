@@ -128,9 +128,11 @@ PORT=9999 DB_PATH=./vitals.duckdb bun run health serve
 
 The current UI has:
 
-- `/`: 30-day resting HR, 30-day sleep summary, and 12-week workout activity
+- `/`: 30-day resting HR, 30-day sleep summary, 30-day VO2 max, and 12-week
+  workout activity
 - `/workouts`: latest 100 workouts with type and date filters
-- `/workouts/:id`: workout duration, Z2 ratio, HR drift classification, and HR chart
+- `/workouts/:id`: workout duration, Z2 ratio, HR drift classification, load,
+  and HR chart
 
 ## API Surface
 
