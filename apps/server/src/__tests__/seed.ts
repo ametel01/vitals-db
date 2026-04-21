@@ -69,14 +69,36 @@ export async function seedAll(db: Db): Promise<void> {
     await db.run("INSERT INTO resting_hr (ts, bpm) VALUES (?, ?)", ["2024-06-02 05:00:00", 56]);
 
     // Sleep
-    await db.run("INSERT INTO sleep (start_ts, end_ts, state) VALUES (?, ?, ?), (?, ?, ?)", [
-      "2024-05-31 22:30:00",
-      "2024-06-01 06:30:00",
-      "in_bed",
-      "2024-05-31 23:00:00",
-      "2024-06-01 06:00:00",
-      "asleep",
-    ]);
+    await db.run(
+      "INSERT INTO sleep (start_ts, end_ts, state, raw_state) VALUES " +
+        "(?, ?, ?, ?), (?, ?, ?, ?), (?, ?, ?, ?), (?, ?, ?, ?), (?, ?, ?, ?), (?, ?, ?, ?)",
+      [
+        "2024-05-31 22:30:00",
+        "2024-06-01 06:30:00",
+        "in_bed",
+        "HKCategoryValueSleepAnalysisInBed",
+        "2024-05-31 23:00:00",
+        "2024-06-01 02:00:00",
+        "asleep",
+        "HKCategoryValueSleepAnalysisAsleepCore",
+        "2024-06-01 02:00:00",
+        "2024-06-01 03:00:00",
+        "asleep",
+        "HKCategoryValueSleepAnalysisAsleepDeep",
+        "2024-06-01 03:00:00",
+        "2024-06-01 04:00:00",
+        "asleep",
+        "HKCategoryValueSleepAnalysisAsleepREM",
+        "2024-06-01 04:00:00",
+        "2024-06-01 06:00:00",
+        "asleep",
+        "HKCategoryValueSleepAnalysisAsleepCore",
+        "2024-06-01 06:00:00",
+        "2024-06-01 06:30:00",
+        "awake",
+        "HKCategoryValueSleepAnalysisAwake",
+      ],
+    );
 
     // VO2Max
     await db.run("INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)", [

@@ -8,6 +8,8 @@ import {
   getPowerDaily,
   getRestingHRDaily,
   getSleepNightly,
+  getSleepNights,
+  getSleepSegments,
   getSleepSummary,
   getSpeedDaily,
   getStepsDaily,
@@ -83,6 +85,18 @@ export function metricsRouter(db: Db): Hono {
     const parsed = parseRange(c.req.query());
     if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
     return c.json(await getSleepNightly(db, parsed));
+  });
+
+  app.get("/sleep/nights", async (c) => {
+    const parsed = parseRange(c.req.query());
+    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
+    return c.json(await getSleepNights(db, parsed));
+  });
+
+  app.get("/sleep/segments", async (c) => {
+    const parsed = parseRange(c.req.query());
+    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
+    return c.json(await getSleepSegments(db, parsed));
   });
 
   app.get("/load", async (c) => {

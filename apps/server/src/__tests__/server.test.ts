@@ -8,7 +8,9 @@ import {
   LoadRowSchema,
   PowerPointSchema,
   RestingHRPointSchema,
+  SleepNightDetailSchema,
   SleepNightPointSchema,
+  SleepSegmentSchema,
   SleepSummarySchema,
   SpeedPointSchema,
   StepsPointSchema,
@@ -189,6 +191,87 @@ describe("Hono server", () => {
     const body = SleepSummarySchema.parse(await res.json());
     expect(body.total_hours).toBeCloseTo(7, 3);
     expect(body.efficiency).toBeCloseTo(7 / 8, 3);
+    expect(Object.keys(body).sort()).toEqual(["consistency_stddev", "efficiency", "total_hours"]);
+  });
+
+  test("GET /metrics/sleep/nightly keeps the compact nightly summary shape", async () => {
+    const res = await app.request("/metrics/sleep/nightly?from=2024-05-31&to=2024-06-01");
+    expect(res.status).toBe(200);
+    const body = z.array(SleepNightPointSchema).parse(await res.json());
+    expect(body).toEqual([
+      {
+        day: "2024-05-31",
+        asleep_hours: 7,
+        in_bed_hours: 8,
+        efficiency: 7 / 8,
+      },
+    ]);
+    expect(Object.keys(body[0] ?? {}).sort()).toEqual([
+      "asleep_hours",
+      "day",
+      "efficiency",
+      "in_bed_hours",
+    ]);
+  });
+
+  test("GET /metrics/sleep/nights returns page-level nightly detail with stage totals", async () => {
+    const res = await app.request("/metrics/sleep/nights?from=2024-05-31&to=2024-06-01");
+    expect(res.status).toBe(200);
+    const body = z.array(SleepNightDetailSchema).parse(await res.json());
+    expect(body).toEqual([
+      {
+        day: "2024-05-31",
+        bedtime: "2024-05-31T22:30:00.000Z",
+        wake_time: "2024-06-01T06:30:00.000Z",
+        asleep_hours: 7,
+        in_bed_hours: 8,
+        awake_hours: 0.5,
+        efficiency: 7 / 8,
+        core_hours: 5,
+        deep_hours: 1,
+        rem_hours: 1,
+        unspecified_hours: 0,
+      },
+    ]);
+    expect(Object.keys(body[0] ?? {}).sort()).toEqual([
+      "asleep_hours",
+      "awake_hours",
+      "bedtime",
+      "core_hours",
+      "day",
+      "deep_hours",
+      "efficiency",
+      "in_bed_hours",
+      "rem_hours",
+      "unspecified_hours",
+      "wake_time",
+    ]);
+  });
+
+  test("GET /metrics/sleep/segments returns ordered timeline rows with raw stage detail", async () => {
+    const res = await app.request("/metrics/sleep/segments?from=2024-05-31&to=2024-06-01");
+    expect(res.status).toBe(200);
+    const body = z.array(SleepSegmentSchema).parse(await res.json());
+    expect(body).toHaveLength(6);
+    expect(body[0]).toEqual({
+      night: "2024-05-31",
+      start_ts: "2024-05-31T22:30:00.000Z",
+      end_ts: "2024-06-01T06:30:00.000Z",
+      state: "in_bed",
+      raw_state: "HKCategoryValueSleepAnalysisInBed",
+      stage: null,
+      duration_hours: 8,
+    });
+    expect(body[2]?.stage).toBe("deep");
+    expect(Object.keys(body[0] ?? {}).sort()).toEqual([
+      "duration_hours",
+      "end_ts",
+      "night",
+      "raw_state",
+      "stage",
+      "start_ts",
+      "state",
+    ]);
   });
 
   test("GET /metrics/load returns per-workout rows with workout_id, duration, avg_hr, load", async () => {
@@ -229,6 +312,16 @@ describe("Hono server", () => {
 
   test("GET /metrics/hrv rejects invalid date ranges", async () => {
     const res = await app.request("/metrics/hrv?from=bad&to=2024-06-02");
+    expect(res.status).toBe(400);
+  });
+
+  test("GET /metrics/sleep/nights rejects invalid date ranges", async () => {
+    const res = await app.request("/metrics/sleep/nights?from=bad&to=2024-06-02");
+    expect(res.status).toBe(400);
+  });
+
+  test("GET /metrics/sleep/segments rejects invalid date ranges", async () => {
+    const res = await app.request("/metrics/sleep/segments?from=2024-06-01&to=bad");
     expect(res.status).toBe(400);
   });
 
