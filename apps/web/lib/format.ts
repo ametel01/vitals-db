@@ -42,6 +42,15 @@ export function formatIsoDate(iso: string): string {
   });
 }
 
+export function formatTimeOfDay(iso: string): string {
+  const date = new Date(iso);
+  return date.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "UTC",
+  });
+}
+
 export function formatSleepConsistencyMinutes(seconds: number): string {
   return `${formatNumber(seconds / 60, 1)} min`;
 }

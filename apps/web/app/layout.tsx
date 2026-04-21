@@ -17,6 +17,7 @@ export default function RootLayout({ children }: { children: ReactNode }): React
             <h1>vitals-db</h1>
             <nav>
               <Link href="/">Dashboard</Link>
+              <Link href="/sleep">Sleep</Link>
               <Link href="/workouts">Workouts</Link>
             </nav>
           </header>

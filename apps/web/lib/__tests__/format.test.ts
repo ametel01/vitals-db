@@ -3,6 +3,7 @@ import {
   chartDataKey,
   formatIsoDateTime,
   formatSleepConsistencyMinutes,
+  formatTimeOfDay,
   windowStartIso,
 } from "../format";
 
@@ -15,6 +16,10 @@ describe("web format helpers", () => {
   test("formatSleepConsistencyMinutes converts seconds to minutes", () => {
     expect(formatSleepConsistencyMinutes(90)).toBe("1.5 min");
     expect(formatSleepConsistencyMinutes(1800)).toBe("30.0 min");
+  });
+
+  test("formatTimeOfDay renders UTC times for stable sleep labels", () => {
+    expect(formatTimeOfDay("2024-06-01T22:30:00.000Z")).toContain("10:30");
   });
 
   test("windowStartIso returns an inclusive UTC window start", () => {

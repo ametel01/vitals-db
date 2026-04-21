@@ -15,8 +15,12 @@ import {
   PowerPointSchema,
   type RestingHRPoint,
   RestingHRPointSchema,
+  type SleepNightDetail,
+  SleepNightDetailSchema,
   type SleepNightPoint,
   SleepNightPointSchema,
+  type SleepSegment,
+  SleepSegmentSchema,
   type SleepSummary,
   SleepSummarySchema,
   type SpeedPoint,
@@ -116,6 +120,8 @@ const WalkingHRListSchema = z.array(WalkingHRPointSchema);
 const SpeedListSchema = z.array(SpeedPointSchema);
 const PowerListSchema = z.array(PowerPointSchema);
 const SleepNightListSchema = z.array(SleepNightPointSchema);
+const SleepNightDetailListSchema = z.array(SleepNightDetailSchema);
+const SleepSegmentListSchema = z.array(SleepSegmentSchema);
 
 export function listWorkouts(
   params: ListWorkoutsParams = {},
@@ -194,6 +200,14 @@ export function getPower(range: DateRange): Promise<FetchResult<PowerPoint[]>> {
 
 export function getSleepNightly(range: DateRange): Promise<FetchResult<SleepNightPoint[]>> {
   return requestJson(buildUrl("metrics/sleep/nightly", range), SleepNightListSchema);
+}
+
+export function getSleepNights(range: DateRange): Promise<FetchResult<SleepNightDetail[]>> {
+  return requestJson(buildUrl("metrics/sleep/nights", range), SleepNightDetailListSchema);
+}
+
+export function getSleepSegments(range: DateRange): Promise<FetchResult<SleepSegment[]>> {
+  return requestJson(buildUrl("metrics/sleep/segments", range), SleepSegmentListSchema);
 }
 
 /**

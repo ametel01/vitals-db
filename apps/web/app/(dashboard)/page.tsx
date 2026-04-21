@@ -24,6 +24,7 @@ import {
   windowStartIso,
 } from "@/lib/format";
 import type { ActivityPoint } from "@vitals/core";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -162,6 +163,9 @@ function SleepCard({
       <div style={{ marginTop: 16, color: "var(--text-muted)", fontSize: 13 }}>
         Summary across the 30-day window. Efficiency is asleep hours over in-bed hours; consistency
         σ is the standard deviation of bedtime, in minutes.
+      </div>
+      <div style={{ marginTop: 12 }}>
+        <Link href="/sleep">Open sleep detail →</Link>
       </div>
     </div>
   );

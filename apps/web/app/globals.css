@@ -80,6 +80,10 @@ a:hover {
   text-decoration: none;
 }
 
+.app-header nav a[aria-current="page"] {
+  color: var(--accent);
+}
+
 .app-main {
   padding: 32px;
   max-width: 1200px;
@@ -276,4 +280,131 @@ a:hover {
 .tag.danger {
   color: var(--danger);
   border-color: rgba(248, 113, 113, 0.4);
+}
+
+.segmented-control {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.segmented-control a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 88px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.segmented-control a:hover {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.segmented-control a.active {
+  border-color: rgba(96, 165, 250, 0.6);
+  background: rgba(96, 165, 250, 0.12);
+  color: var(--accent);
+}
+
+.sleep-night-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 520px;
+  overflow: auto;
+}
+
+.sleep-night-link {
+  display: block;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.sleep-night-link:hover {
+  text-decoration: none;
+  border-color: rgba(96, 165, 250, 0.45);
+}
+
+.sleep-night-link.active {
+  border-color: rgba(96, 165, 250, 0.75);
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.sleep-night-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  font-weight: 600;
+}
+
+.sleep-night-meta {
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.sleep-note {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.sleep-timeline {
+  display: flex;
+  overflow: hidden;
+  min-height: 44px;
+  width: 100%;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.sleep-segment {
+  min-width: 8px;
+}
+
+.sleep-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin: 14px 0 10px;
+}
+
+.sleep-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.sleep-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.sleep-detail-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.sleep-detail-header p {
+  color: var(--text-muted);
+  font-size: 13px;
 }
