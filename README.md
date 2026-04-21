@@ -64,6 +64,7 @@ Import behavior in the current code:
 - timestamps are normalized to UTC before writing to DuckDB
 - imports are incremental by default
 - a 24-hour lookback buffer is applied around the last imported timestamp
+- incremental imports first crop the XML down to supported nodes inside that lookback window
 - `_ingest_seen` is used for deduplication across repeated imports
 - records with `HKWasUserEntered=1` are skipped
 - unsupported Apple Health record types are ignored
@@ -99,10 +100,12 @@ bun run health ingest fixtures/sample.xml
 Other supported CLI commands:
 
 ```bash
+bun run health crop /path/to/export.xml
 bun run health serve
 bun run health rebuild
 ```
 
+- `crop` writes a reduced XML file containing only supported nodes newer than the last import window; by default it writes `/path/to/export.cropped.xml`
 - `serve` starts the API and runs migrations first
 - `rebuild` clears analytics tables and re-imports the last imported file in full
 
