@@ -5,3 +5,4 @@ dist
 *.duckdb.wal
 .env*.local
 coverage
+export.xml
