@@ -6,10 +6,14 @@ import {
   HRPointSchema,
   HRVPointSchema,
   LoadRowSchema,
+  PowerPointSchema,
   RestingHRPointSchema,
+  SleepNightPointSchema,
   SleepSummarySchema,
+  SpeedPointSchema,
   StepsPointSchema,
   VO2MaxPointSchema,
+  WalkingHRPointSchema,
   WorkoutDetailSchema,
   WorkoutSummarySchema,
   WorkoutZoneBreakdownListSchema,
@@ -301,6 +305,97 @@ describe("Hono server", () => {
     const res = await app.request("/metrics/steps?from=2025-01-01&to=2025-01-08");
     expect(res.status).toBe(200);
     const body = z.array(StepsPointSchema).parse(await res.json());
+    expect(body).toEqual([]);
+  });
+
+  test("GET /metrics/walking-hr returns daily averages", async () => {
+    const res = await app.request("/metrics/walking-hr?from=2024-06-01&to=2024-06-02");
+    expect(res.status).toBe(200);
+    const body = z.array(WalkingHRPointSchema).parse(await res.json());
+    expect(body).toEqual([
+      { day: "2024-06-01", avg_walking_hr: 90 },
+      { day: "2024-06-02", avg_walking_hr: 95 },
+    ]);
+  });
+
+  test("GET /metrics/walking-hr rejects invalid date ranges", async () => {
+    const res = await app.request("/metrics/walking-hr?from=bad&to=2024-06-02");
+    expect(res.status).toBe(400);
+  });
+
+  test("GET /metrics/walking-hr returns [] for an empty window", async () => {
+    const res = await app.request("/metrics/walking-hr?from=2025-01-01&to=2025-01-08");
+    expect(res.status).toBe(200);
+    const body = z.array(WalkingHRPointSchema).parse(await res.json());
+    expect(body).toEqual([]);
+  });
+
+  test("GET /metrics/speed returns daily averages, ignoring null-speed rows", async () => {
+    const res = await app.request("/metrics/speed?from=2024-06-01&to=2024-06-02");
+    expect(res.status).toBe(200);
+    const body = z.array(SpeedPointSchema).parse(await res.json());
+    expect(body).toHaveLength(2);
+    expect(body[0]?.day).toBe("2024-06-01");
+    expect(body[0]?.avg_speed).toBeCloseTo(3.5, 5);
+    expect(body[1]?.day).toBe("2024-06-02");
+    expect(body[1]?.avg_speed).toBeCloseTo(3.6, 5);
+  });
+
+  test("GET /metrics/speed rejects invalid date ranges", async () => {
+    const res = await app.request("/metrics/speed?from=bad&to=2024-06-02");
+    expect(res.status).toBe(400);
+  });
+
+  test("GET /metrics/speed returns [] for an empty window", async () => {
+    const res = await app.request("/metrics/speed?from=2025-01-01&to=2025-01-08");
+    expect(res.status).toBe(200);
+    const body = z.array(SpeedPointSchema).parse(await res.json());
+    expect(body).toEqual([]);
+  });
+
+  test("GET /metrics/power returns daily averages, ignoring null-power rows", async () => {
+    const res = await app.request("/metrics/power?from=2024-06-01&to=2024-06-02");
+    expect(res.status).toBe(200);
+    const body = z.array(PowerPointSchema).parse(await res.json());
+    expect(body).toHaveLength(2);
+    expect(body[0]?.day).toBe("2024-06-01");
+    expect(body[0]?.avg_power).toBeCloseTo(220, 5);
+    expect(body[1]?.day).toBe("2024-06-02");
+    expect(body[1]?.avg_power).toBeCloseTo(260, 5);
+  });
+
+  test("GET /metrics/power rejects invalid date ranges", async () => {
+    const res = await app.request("/metrics/power?from=2024-06-01&to=bad");
+    expect(res.status).toBe(400);
+  });
+
+  test("GET /metrics/power returns [] for an empty window", async () => {
+    const res = await app.request("/metrics/power?from=2025-01-01&to=2025-01-08");
+    expect(res.status).toBe(200);
+    const body = z.array(PowerPointSchema).parse(await res.json());
+    expect(body).toEqual([]);
+  });
+
+  test("GET /metrics/sleep/nightly returns one row per night", async () => {
+    const res = await app.request("/metrics/sleep/nightly?from=2024-05-31&to=2024-06-01");
+    expect(res.status).toBe(200);
+    const body = z.array(SleepNightPointSchema).parse(await res.json());
+    expect(body).toHaveLength(1);
+    expect(body[0]?.day).toBe("2024-05-31");
+    expect(body[0]?.asleep_hours).toBeCloseTo(7, 3);
+    expect(body[0]?.in_bed_hours).toBeCloseTo(8, 3);
+    expect(body[0]?.efficiency).toBeCloseTo(7 / 8, 5);
+  });
+
+  test("GET /metrics/sleep/nightly rejects invalid date ranges", async () => {
+    const res = await app.request("/metrics/sleep/nightly?from=bad&to=2024-06-01");
+    expect(res.status).toBe(400);
+  });
+
+  test("GET /metrics/sleep/nightly returns [] for an empty window", async () => {
+    const res = await app.request("/metrics/sleep/nightly?from=2025-01-01&to=2025-01-08");
+    expect(res.status).toBe(200);
+    const body = z.array(SleepNightPointSchema).parse(await res.json());
     expect(body).toEqual([]);
   });
 });

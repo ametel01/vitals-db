@@ -92,6 +92,51 @@ export async function seedAll(db: Db): Promise<void> {
       null,
     ]);
 
+    // Running speed (m/s) — day 1 avg 3.5, day 2 avg 3.6
+    await db.run("INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)", [
+      "2024-06-01 08:00:00",
+      null,
+      3.0,
+      null,
+    ]);
+    await db.run("INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)", [
+      "2024-06-01 08:30:00",
+      null,
+      4.0,
+      null,
+    ]);
+    await db.run("INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)", [
+      "2024-06-02 08:00:00",
+      null,
+      3.6,
+      null,
+    ]);
+
+    // Running power (watts) — day 1 avg 220, day 2 avg 260
+    await db.run("INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)", [
+      "2024-06-01 09:00:00",
+      null,
+      null,
+      200.0,
+    ]);
+    await db.run("INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)", [
+      "2024-06-01 09:30:00",
+      null,
+      null,
+      240.0,
+    ]);
+    await db.run("INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)", [
+      "2024-06-02 09:00:00",
+      null,
+      null,
+      260.0,
+    ]);
+
+    // Walking HR — day 1 avg 90, day 2 avg 95
+    await db.run("INSERT INTO walking_hr (ts, bpm) VALUES (?, ?)", ["2024-06-01 10:00:00", 88]);
+    await db.run("INSERT INTO walking_hr (ts, bpm) VALUES (?, ?)", ["2024-06-01 14:00:00", 92]);
+    await db.run("INSERT INTO walking_hr (ts, bpm) VALUES (?, ?)", ["2024-06-02 10:00:00", 95]);
+
     // HRV — two samples on day 1 (avg 65), one on day 2 (72)
     await db.run("INSERT INTO hrv (ts, value) VALUES (?, ?)", ["2024-06-01 03:00:00", 60]);
     await db.run("INSERT INTO hrv (ts, value) VALUES (?, ?)", ["2024-06-01 03:30:00", 70]);
