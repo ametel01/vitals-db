@@ -4,6 +4,69 @@ All notable changes to this project are documented here. This file follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] — 2026-04-21
+
+Sleep-detail slice per `local-docs/IMPLEMENTATION_PLAN_0.8.0.md`. Ships a
+dedicated `/sleep` page, preserves raw Apple sleep stages additively in the
+database, and adds page-oriented nightly and segment routes without widening
+the existing `/metrics/sleep` or `/metrics/sleep/nightly` contracts.
+
+### Added — core / db / ingest
+
+- `sleep.raw_state` via additive migration `002_sleep_raw_state.sql`. Existing
+  normalized `sleep.state` remains unchanged and continues to back the compact
+  summary routes.
+- Core sleep model now exports raw sleep-state and stage-detail schemas plus
+  dedicated DTOs for page-oriented nightly rows and timeline segments.
+- Ingest now writes both normalized `state` and preserved `raw_state`, so
+  Apple `AsleepCore`, `AsleepDeep`, `AsleepREM`, and `AsleepUnspecified`
+  survive storage for later queries.
+
+### Added — queries / API
+
+- `GET /metrics/sleep/nights` — one row per night with bedtime, wake time,
+  asleep / in-bed / awake totals, efficiency, and nullable stage totals.
+- `GET /metrics/sleep/segments` — ordered timeline rows with normalized state,
+  nullable preserved `raw_state`, nullable derived `stage`, and `night`
+  grouping for overnight drill-down.
+- `getSleepSummary` and `getSleepNightly` now group overnight stage-segment
+  rows by a shifted night key so the legacy summary routes stay correct after
+  stage-preserving ingest.
+- Query and server tests pin multi-night grouping, cross-midnight behavior,
+  empty windows, pre-`0.8.0` null-stage fallback, and exact response keys on
+  the new routes.
+
+### Added — web
+
+- New `/sleep` page with:
+  - selectable window links
+  - asleep vs in-bed nightly trend chart
+  - nightly drill-down list
+  - selected-night segment timeline
+  - stage breakdown when raw stage detail exists
+- The dashboard sleep card remains compact and now links to `/sleep`.
+- Navigation now includes the dedicated Sleep page.
+
+### Changed — docs / release
+
+- `README.md` now documents the dedicated `/sleep` page, the additive sleep
+  detail routes, and the upgrade rule that existing databases need
+  `bun run health rebuild` to backfill historical raw sleep stages.
+- `docs/API_CONTRACT.md` documents `GET /metrics/sleep/nights` and
+  `GET /metrics/sleep/segments`.
+- `local-docs/GAP_ANALYSIS.md` records that the pre-`1.0.0` sleep-page and
+  stage-preservation gaps are resolved in `0.8.0`.
+
+### Release gate
+
+- `bun run test`, `bun run typecheck`, and `bun run build` run green for the
+  release candidate.
+- `/metrics/sleep` and `/metrics/sleep/nightly` remain backward compatible.
+- The new `/sleep` page degrades gracefully for pre-`0.8.0` rows until a
+  rebuild backfills `sleep.raw_state`.
+
+[0.8.0]: https://github.com/alexmetelli/vitals-db/releases/tag/v0.8.0
+
 ## [0.7.0] — 2026-04-21
 
 Deprecation-sweep and stabilization slice per
