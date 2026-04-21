@@ -23,6 +23,8 @@ import {
   WorkoutDetailSchema,
   type WorkoutSummary,
   WorkoutSummarySchema,
+  WorkoutZoneBreakdownListSchema,
+  type WorkoutZoneBreakdownRow,
   type ZonesRow,
   ZonesRowSchema,
 } from "@vitals/core";
@@ -115,6 +117,15 @@ export function getWorkoutDetail(id: string): Promise<FetchResult<WorkoutDetail>
 
 export function getWorkoutHR(id: string): Promise<FetchResult<HRPoint[]>> {
   return requestJson(buildUrl(`workouts/${encodeURIComponent(id)}/hr`, {}), HRPointListSchema);
+}
+
+export function getWorkoutZonesBreakdown(
+  id: string,
+): Promise<FetchResult<WorkoutZoneBreakdownRow[]>> {
+  return requestJson(
+    buildUrl(`workouts/${encodeURIComponent(id)}/zones`, {}),
+    WorkoutZoneBreakdownListSchema,
+  );
 }
 
 export function getZones(range: DateRange): Promise<FetchResult<ZonesRow>> {

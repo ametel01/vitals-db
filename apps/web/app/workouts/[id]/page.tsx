@@ -1,6 +1,7 @@
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { LineChart } from "@/components/charts/LineChart";
-import { getWorkoutDetail, getWorkoutHR } from "@/lib/api";
+import { StackedBar } from "@/components/charts/StackedBar";
+import { getWorkoutDetail, getWorkoutHR, getWorkoutZonesBreakdown } from "@/lib/api";
 import {
   chartDataKey,
   formatDuration,
@@ -8,8 +9,13 @@ import {
   formatNumber,
   formatPercent,
 } from "@/lib/format";
-import type { DriftClassification, HRPoint, WorkoutDetail } from "@vitals/core";
-import { HR_ZONES } from "@vitals/core";
+import type {
+  DriftClassification,
+  HRPoint,
+  WorkoutDetail,
+  WorkoutZoneBreakdownRow,
+} from "@vitals/core";
+import { HR_ZONES, HR_ZONE_ORDER } from "@vitals/core";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +28,11 @@ export default async function WorkoutDetailPage({
   params,
 }: WorkoutDetailPageProps): Promise<React.ReactElement> {
   const { id } = await params;
-  const [detailResult, hrResult] = await Promise.all([getWorkoutDetail(id), getWorkoutHR(id)]);
+  const [detailResult, hrResult, zonesResult] = await Promise.all([
+    getWorkoutDetail(id),
+    getWorkoutHR(id),
+    getWorkoutZonesBreakdown(id),
+  ]);
 
   if (!detailResult.ok && detailResult.status === 404) {
     notFound();
@@ -67,6 +77,15 @@ export default async function WorkoutDetailPage({
           <HRChart points={hrResult.data} />
         ) : (
           <ErrorBanner title="Could not load HR series" detail={hrResult.message} />
+        )}
+      </div>
+
+      <div className="card">
+        <h2>Zones distribution</h2>
+        {zonesResult.ok ? (
+          <ZonesBreakdownChart rows={zonesResult.data} />
+        ) : (
+          <ErrorBanner title="Could not load zones breakdown" detail={zonesResult.message} />
         )}
       </div>
     </div>
@@ -116,6 +135,45 @@ function driftTagClass(classification: DriftClassification): string {
     default:
       return "";
   }
+}
+
+const ZONE_COLORS: Record<(typeof HR_ZONE_ORDER)[number], string> = {
+  Z1: "#60a5fa",
+  Z2: "#34d399",
+  Z3: "#facc15",
+  Z4: "#fb923c",
+  Z5: "#f87171",
+};
+
+function ZonesBreakdownChart({
+  rows,
+}: {
+  rows: WorkoutZoneBreakdownRow[];
+}): React.ReactElement {
+  if (rows.length === 0) {
+    return <div className="empty-state">No heart-rate samples captured for this workout.</div>;
+  }
+
+  const byZone = new Map(rows.map((r) => [r.zone, r] as const));
+  const series = HR_ZONE_ORDER.map((zone) => {
+    const row = byZone.get(zone);
+    const bounds = HR_ZONES[zone];
+    return {
+      name: `${zone} (${bounds.min}–${bounds.max} bpm)`,
+      color: ZONE_COLORS[zone],
+      data: [Number(((row?.ratio ?? 0) * 100).toFixed(2))],
+    };
+  });
+
+  return (
+    <StackedBar
+      key={chartDataKey("workout-zones", series)}
+      categories={["Workout"]}
+      series={series}
+      yAxisLabel="% of samples"
+      height={240}
+    />
+  );
 }
 
 function HRChart({ points }: { points: HRPoint[] }): React.ReactElement {
