@@ -57,6 +57,16 @@ export type WorkoutZoneBreakdownRow = z.infer<typeof WorkoutZoneBreakdownRowSche
 export const WorkoutZoneBreakdownListSchema = z.array(WorkoutZoneBreakdownRowSchema);
 export type WorkoutZoneBreakdownList = z.infer<typeof WorkoutZoneBreakdownListSchema>;
 
+export const ZoneTimeDistributionRowSchema = z.object({
+  zone: HRZoneNameSchema,
+  duration_sec: NonNegativeNumber,
+  ratio: Ratio,
+});
+export type ZoneTimeDistributionRow = z.infer<typeof ZoneTimeDistributionRowSchema>;
+
+export const ZoneTimeDistributionListSchema = z.array(ZoneTimeDistributionRowSchema);
+export type ZoneTimeDistributionList = z.infer<typeof ZoneTimeDistributionListSchema>;
+
 export const RestingHRPointSchema = z.object({
   day: IsoDate,
   avg_rhr: PositiveNumber,
@@ -158,6 +168,51 @@ export const PowerPointSchema = z.object({
   avg_power: NonNegativeNumber,
 });
 export type PowerPoint = z.infer<typeof PowerPointSchema>;
+
+export const RunningDynamicsPointSchema = z.object({
+  day: IsoDate,
+  avg_vertical_oscillation_cm: NonNegativeNumber.nullable(),
+  avg_ground_contact_time_ms: NonNegativeNumber.nullable(),
+  avg_stride_length_m: NonNegativeNumber.nullable(),
+});
+export type RunningDynamicsPoint = z.infer<typeof RunningDynamicsPointSchema>;
+
+export const WorkoutStatSchema = z.object({
+  workout_id: z.string(),
+  type: z.string(),
+  start_ts: IsoDateTime,
+  end_ts: IsoDateTime,
+  average: z.number().finite().nullable(),
+  minimum: z.number().finite().nullable(),
+  maximum: z.number().finite().nullable(),
+  sum: z.number().finite().nullable(),
+  unit: z.string().nullable(),
+});
+export type WorkoutStat = z.infer<typeof WorkoutStatSchema>;
+
+export const WorkoutEventSchema = z.object({
+  workout_id: z.string(),
+  type: z.string(),
+  ts: IsoDateTime,
+  duration_sec: NonNegativeNumber.nullable(),
+});
+export type WorkoutEvent = z.infer<typeof WorkoutEventSchema>;
+
+export const WorkoutMetadataSchema = z.object({
+  workout_id: z.string(),
+  key: z.string(),
+  value: z.string(),
+});
+export type WorkoutMetadata = z.infer<typeof WorkoutMetadataSchema>;
+
+export const WorkoutRouteSchema = z.object({
+  workout_id: z.string(),
+  start_ts: IsoDateTime,
+  end_ts: IsoDateTime,
+  source: z.string().nullable(),
+  path: z.string().nullable(),
+});
+export type WorkoutRoute = z.infer<typeof WorkoutRouteSchema>;
 
 export const WorkoutPaceAtHRSchema = z.object({
   hr_min: PositiveNumber,

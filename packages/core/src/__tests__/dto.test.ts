@@ -24,6 +24,8 @@ import {
   WorkoutSummarySchema,
   WorkoutZoneBreakdownListSchema,
   WorkoutZoneBreakdownRowSchema,
+  ZoneTimeDistributionListSchema,
+  ZoneTimeDistributionRowSchema,
   ZonesRowSchema,
 } from "../dto";
 
@@ -115,6 +117,12 @@ describe("DTO round-trip parsing", () => {
 
   test("WorkoutZoneBreakdownList accepts the empty list (no HR samples case)", () => {
     expect(WorkoutZoneBreakdownListSchema.parse([])).toEqual([]);
+  });
+
+  test("ZoneTimeDistributionRow round-trips time-in-zone values", () => {
+    const fixture = { zone: "Z2" as const, duration_sec: 1800, ratio: 0.5 };
+    expect(ZoneTimeDistributionRowSchema.parse(fixture)).toEqual(fixture);
+    expect(ZoneTimeDistributionListSchema.parse([fixture])).toEqual([fixture]);
   });
 
   test("RestingHRPoint", () => {

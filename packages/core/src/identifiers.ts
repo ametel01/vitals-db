@@ -12,6 +12,9 @@ export const HK_QUANTITY_IDENTIFIERS = [
   "HKQuantityTypeIdentifierVO2Max",
   "HKQuantityTypeIdentifierRunningSpeed",
   "HKQuantityTypeIdentifierRunningPower",
+  "HKQuantityTypeIdentifierRunningVerticalOscillation",
+  "HKQuantityTypeIdentifierRunningGroundContactTime",
+  "HKQuantityTypeIdentifierRunningStrideLength",
 ] as const;
 
 export const HK_CATEGORY_IDENTIFIERS = ["HKCategoryTypeIdentifierSleepAnalysis"] as const;
