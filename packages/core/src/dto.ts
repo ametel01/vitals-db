@@ -214,6 +214,27 @@ export const WorkoutRouteSchema = z.object({
 });
 export type WorkoutRoute = z.infer<typeof WorkoutRouteSchema>;
 
+export const WorkoutContextLabelSchema = z.enum([
+  "outdoor_route",
+  "outdoor_no_route",
+  "indoor",
+  "unknown",
+]);
+export type WorkoutContextLabel = z.infer<typeof WorkoutContextLabelSchema>;
+
+export const WorkoutContextSummarySchema = z.object({
+  workout_id: z.string(),
+  context_label: WorkoutContextLabelSchema,
+  route_count: NonNegativeInt,
+  stat_count: NonNegativeInt,
+  pause_count: NonNegativeInt,
+  segment_count: NonNegativeInt,
+  metadata_count: NonNegativeInt,
+  has_weather: z.boolean(),
+  has_elevation: z.boolean(),
+});
+export type WorkoutContextSummary = z.infer<typeof WorkoutContextSummarySchema>;
+
 export const WorkoutPaceAtHRSchema = z.object({
   hr_min: PositiveNumber,
   hr_max: PositiveNumber,

@@ -18,6 +18,7 @@ import {
   StepsPointSchema,
   VO2MaxPointSchema,
   WalkingHRPointSchema,
+  WorkoutContextSummarySchema,
   WorkoutDecouplingSchema,
   WorkoutDetailSchema,
   WorkoutEfficiencySchema,
@@ -394,6 +395,25 @@ describe("DTO round-trip parsing", () => {
     expect(WorkoutSampleQualitySchema.parse(fixture)).toEqual(fixture);
     expect(() => WorkoutSampleQualitySchema.parse({ ...fixture, issues: ["bad_data"] })).toThrow();
     expect(() => WorkoutSampleQualitySchema.parse({ ...fixture, hr_samples: -1 })).toThrow();
+  });
+
+  test("WorkoutContextSummary", () => {
+    const fixture = {
+      workout_id: "wk-running-2024-06-01",
+      context_label: "outdoor_route" as const,
+      route_count: 1,
+      stat_count: 2,
+      pause_count: 1,
+      segment_count: 3,
+      metadata_count: 2,
+      has_weather: true,
+      has_elevation: false,
+    };
+    expect(WorkoutContextSummarySchema.parse(fixture)).toEqual(fixture);
+    expect(() =>
+      WorkoutContextSummarySchema.parse({ ...fixture, context_label: "road" }),
+    ).toThrow();
+    expect(() => WorkoutContextSummarySchema.parse({ ...fixture, route_count: -1 })).toThrow();
   });
 
   test("SleepNightPoint", () => {

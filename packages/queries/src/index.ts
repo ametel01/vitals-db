@@ -41,6 +41,7 @@ export { getLoadForRange, getWorkoutLoad } from "./load";
 export { getWorkoutEfficiency, type WorkoutEfficiencyParams } from "./efficiency";
 export { getWorkoutSampleQuality } from "./sample_quality";
 export {
+  getWorkoutContextSummary,
   getWorkoutEvents,
   getWorkoutMetadata,
   getWorkoutRoutes,
