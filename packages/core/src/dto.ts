@@ -244,6 +244,31 @@ export type CompositeConfidence = z.infer<typeof CompositeConfidenceSchema>;
 export const CompositeSampleQualitySchema = z.enum(["high", "mixed", "poor"]);
 export type CompositeSampleQuality = z.infer<typeof CompositeSampleQualitySchema>;
 
+export const WorkoutSampleQualityIssueSchema = z.enum([
+  "too_short",
+  "missing_hr",
+  "missing_speed",
+  "missing_power",
+  "alignment_gap",
+  "missing_route",
+  "missing_context",
+]);
+export type WorkoutSampleQualityIssue = z.infer<typeof WorkoutSampleQualityIssueSchema>;
+
+export const WorkoutSampleQualitySchema = z.object({
+  workout_id: z.string(),
+  sample_quality: CompositeSampleQualitySchema,
+  issues: z.array(WorkoutSampleQualityIssueSchema),
+  duration_sec: NonNegativeNumber,
+  hr_samples: NonNegativeInt,
+  speed_samples: NonNegativeInt,
+  power_samples: NonNegativeInt,
+  aligned_speed_hr_samples: NonNegativeInt,
+  route_count: NonNegativeInt,
+  context_count: NonNegativeInt,
+});
+export type WorkoutSampleQuality = z.infer<typeof WorkoutSampleQualitySchema>;
+
 export const CompositeClaimStrengthSchema = z.enum([
   "suggests",
   "likely",

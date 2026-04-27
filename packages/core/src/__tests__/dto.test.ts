@@ -22,6 +22,8 @@ import {
   WorkoutDetailSchema,
   WorkoutEfficiencySchema,
   WorkoutPaceAtHRSchema,
+  type WorkoutSampleQualityIssue,
+  WorkoutSampleQualitySchema,
   WorkoutSummarySchema,
   WorkoutZoneBreakdownListSchema,
   WorkoutZoneBreakdownRowSchema,
@@ -358,6 +360,40 @@ describe("DTO round-trip parsing", () => {
       }),
     ).toThrow();
     expect(() => CompositeResultSchema.parse({ ...base, claim_strength: "diagnoses" })).toThrow();
+  });
+
+  test("WorkoutSampleQuality", () => {
+    const fixture = {
+      workout_id: "wk-running-2024-06-01",
+      sample_quality: "mixed" as const,
+      issues: ["missing_power", "missing_route"] satisfies WorkoutSampleQualityIssue[],
+      duration_sec: 3600,
+      hr_samples: 12,
+      speed_samples: 12,
+      power_samples: 0,
+      aligned_speed_hr_samples: 12,
+      route_count: 0,
+      context_count: 2,
+    };
+    expect(WorkoutSampleQualitySchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("WorkoutSampleQuality rejects unknown issues and negative counts", () => {
+    const fixture = {
+      workout_id: "wk-running-2024-06-01",
+      sample_quality: "poor" as const,
+      issues: ["missing_hr"] satisfies WorkoutSampleQualityIssue[],
+      duration_sec: 3600,
+      hr_samples: 0,
+      speed_samples: 12,
+      power_samples: 12,
+      aligned_speed_hr_samples: 0,
+      route_count: 1,
+      context_count: 1,
+    };
+    expect(WorkoutSampleQualitySchema.parse(fixture)).toEqual(fixture);
+    expect(() => WorkoutSampleQualitySchema.parse({ ...fixture, issues: ["bad_data"] })).toThrow();
+    expect(() => WorkoutSampleQualitySchema.parse({ ...fixture, hr_samples: -1 })).toThrow();
   });
 
   test("SleepNightPoint", () => {
