@@ -8,6 +8,7 @@ export {
   type TrendDirection,
   type TrendOptions,
 } from "./composite_windows";
+export { getConsistencyIndex } from "./consistency_index";
 export {
   getWorkoutDetail,
   getWorkoutSummary,
