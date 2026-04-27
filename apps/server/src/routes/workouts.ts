@@ -3,7 +3,11 @@ import {
   type ListWorkoutsParams,
   getWorkoutDetail,
   getWorkoutEfficiency,
+  getWorkoutEvents,
   getWorkoutHR,
+  getWorkoutMetadata,
+  getWorkoutRoutes,
+  getWorkoutStats,
   getWorkoutSummary,
   getWorkoutZoneBreakdown,
   listWorkouts,
@@ -147,6 +151,50 @@ export function workoutsRouter(db: Db): Hono {
       ...efficiencyParams,
     });
     return c.json(efficiency);
+  });
+
+  app.get("/:id/stats", async (c) => {
+    const parsed = WorkoutIdParamsSchema.safeParse({ id: c.req.param("id") });
+    if (!parsed.success) {
+      return c.json({ error: "invalid_params", issues: parsed.error.issues }, 400);
+    }
+
+    const workout = await getWorkoutSummary(db, parsed.data.id);
+    if (workout === null) return c.json({ error: "not_found" }, 404);
+    return c.json(await getWorkoutStats(db, parsed.data.id));
+  });
+
+  app.get("/:id/events", async (c) => {
+    const parsed = WorkoutIdParamsSchema.safeParse({ id: c.req.param("id") });
+    if (!parsed.success) {
+      return c.json({ error: "invalid_params", issues: parsed.error.issues }, 400);
+    }
+
+    const workout = await getWorkoutSummary(db, parsed.data.id);
+    if (workout === null) return c.json({ error: "not_found" }, 404);
+    return c.json(await getWorkoutEvents(db, parsed.data.id));
+  });
+
+  app.get("/:id/metadata", async (c) => {
+    const parsed = WorkoutIdParamsSchema.safeParse({ id: c.req.param("id") });
+    if (!parsed.success) {
+      return c.json({ error: "invalid_params", issues: parsed.error.issues }, 400);
+    }
+
+    const workout = await getWorkoutSummary(db, parsed.data.id);
+    if (workout === null) return c.json({ error: "not_found" }, 404);
+    return c.json(await getWorkoutMetadata(db, parsed.data.id));
+  });
+
+  app.get("/:id/routes", async (c) => {
+    const parsed = WorkoutIdParamsSchema.safeParse({ id: c.req.param("id") });
+    if (!parsed.success) {
+      return c.json({ error: "invalid_params", issues: parsed.error.issues }, 400);
+    }
+
+    const workout = await getWorkoutSummary(db, parsed.data.id);
+    if (workout === null) return c.json({ error: "not_found" }, 404);
+    return c.json(await getWorkoutRoutes(db, parsed.data.id));
   });
 
   return app;

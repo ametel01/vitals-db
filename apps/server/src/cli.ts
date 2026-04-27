@@ -31,6 +31,10 @@ const ANALYTICS_TABLES = [
   "energy",
   "sleep",
   "performance",
+  "workout_stats",
+  "workout_events",
+  "workout_metadata",
+  "workout_routes",
 ] as const;
 
 async function runIngest(path: string): Promise<void> {

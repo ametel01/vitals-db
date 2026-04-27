@@ -69,6 +69,40 @@ export async function seedAll(db: Db): Promise<void> {
       ],
     );
 
+    await db.run(
+      "INSERT INTO workout_stats (workout_id, type, start_ts, end_ts, average, minimum, maximum, sum, unit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        WORKOUT_ID,
+        "HKQuantityTypeIdentifierRunningPower",
+        "2024-06-01 08:00:00",
+        "2024-06-01 09:00:00",
+        220,
+        180,
+        260,
+        null,
+        "W",
+      ],
+    );
+    await db.run(
+      "INSERT INTO workout_events (workout_id, type, ts, duration_sec) VALUES (?, ?, ?, ?)",
+      [WORKOUT_ID, "HKWorkoutEventTypePause", "2024-06-01 08:30:00", null],
+    );
+    await db.run("INSERT INTO workout_metadata (workout_id, key, value) VALUES (?, ?, ?)", [
+      WORKOUT_ID,
+      "HKIndoorWorkout",
+      "0",
+    ]);
+    await db.run(
+      "INSERT INTO workout_routes (workout_id, start_ts, end_ts, source, path) VALUES (?, ?, ?, ?, ?)",
+      [
+        WORKOUT_ID,
+        "2024-06-01 08:00:00",
+        "2024-06-01 09:00:00",
+        "Apple Watch",
+        "/workout-routes/route.gpx",
+      ],
+    );
+
     // HR samples within running workout: first-half avg 110, second-half avg 130
     const hrRows: Array<[string, number]> = [
       ["2024-06-01 08:05:00", 100],
@@ -273,6 +307,11 @@ export async function seedAll(db: Db): Promise<void> {
       null,
       260.0,
     ]);
+
+    await db.run(
+      "INSERT INTO performance (ts, vo2max, speed, power, vertical_oscillation_cm, ground_contact_time_ms, stride_length_m) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      ["2024-06-01 08:10:00", null, null, null, 10.2, 300, 0.92],
+    );
 
     // Walking HR — day 1 avg 90, day 2 avg 95
     await db.run("INSERT INTO walking_hr (ts, bpm) VALUES (?, ?)", ["2024-06-01 10:00:00", 88]);

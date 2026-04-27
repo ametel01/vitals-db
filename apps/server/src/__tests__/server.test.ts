@@ -9,6 +9,7 @@ import {
   PowerPointSchema,
   RestingHRPointSchema,
   RestingHRRollingPointSchema,
+  RunningDynamicsPointSchema,
   SleepNightDetailSchema,
   SleepNightPointSchema,
   SleepSegmentSchema,
@@ -19,8 +20,13 @@ import {
   WalkingHRPointSchema,
   WorkoutDetailSchema,
   WorkoutEfficiencySchema,
+  WorkoutEventSchema,
+  WorkoutMetadataSchema,
+  WorkoutRouteSchema,
+  WorkoutStatSchema,
   WorkoutSummarySchema,
   WorkoutZoneBreakdownListSchema,
+  ZoneTimeDistributionListSchema,
   ZonesRowSchema,
 } from "@vitals/core";
 import { z } from "zod";
@@ -211,6 +217,38 @@ describe("Hono server", () => {
     expect(res.status).toBe(404);
   });
 
+  test("GET /workouts/:id/stats returns workout-level Apple statistics", async () => {
+    const res = await app.request(`/workouts/${WORKOUT_ID}/stats`);
+    expect(res.status).toBe(200);
+    const body = z.array(WorkoutStatSchema).parse(await res.json());
+    expect(body.some((row) => row.type === "HKQuantityTypeIdentifierRunningPower")).toBe(true);
+  });
+
+  test("GET /workouts/:id/events returns pause and segment context", async () => {
+    const res = await app.request(`/workouts/${WORKOUT_ID}/events`);
+    expect(res.status).toBe(200);
+    const body = z.array(WorkoutEventSchema).parse(await res.json());
+    expect(body.map((row) => row.type)).toContain("HKWorkoutEventTypePause");
+  });
+
+  test("GET /workouts/:id/metadata returns workout metadata", async () => {
+    const res = await app.request(`/workouts/${WORKOUT_ID}/metadata`);
+    expect(res.status).toBe(200);
+    const body = z.array(WorkoutMetadataSchema).parse(await res.json());
+    expect(body).toContainEqual({
+      workout_id: WORKOUT_ID,
+      key: "HKIndoorWorkout",
+      value: "0",
+    });
+  });
+
+  test("GET /workouts/:id/routes returns route file references", async () => {
+    const res = await app.request(`/workouts/${WORKOUT_ID}/routes`);
+    expect(res.status).toBe(200);
+    const body = z.array(WorkoutRouteSchema).parse(await res.json());
+    expect(body[0]?.path).toBe("/workout-routes/route.gpx");
+  });
+
   test("GET /metrics/zones validates required from/to", async () => {
     const missing = await app.request("/metrics/zones");
     expect(missing.status).toBe(400);
@@ -226,6 +264,14 @@ describe("Hono server", () => {
     expect(res.status).toBe(200);
     const parsed = ZonesRowSchema.parse(await res.json());
     expect(parsed.z2_ratio).toBeNull();
+  });
+
+  test("GET /metrics/zones/time returns workout time spent per HR zone", async () => {
+    const res = await app.request("/metrics/zones/time?from=2024-06-01&to=2024-06-01");
+    expect(res.status).toBe(200);
+    const body = ZoneTimeDistributionListSchema.parse(await res.json());
+    expect(body.map((row) => row.zone)).toEqual(["Z1", "Z2", "Z3", "Z4", "Z5"]);
+    expect(body.find((row) => row.zone === "Z2")?.duration_sec).toBeGreaterThan(0);
   });
 
   test("GET /metrics/resting-hr rejects invalid date ranges before hitting DuckDB", async () => {
@@ -517,6 +563,20 @@ describe("Hono server", () => {
     expect(res.status).toBe(200);
     const body = z.array(WalkingHRPointSchema).parse(await res.json());
     expect(body).toEqual([]);
+  });
+
+  test("GET /metrics/running-dynamics returns daily running mechanics", async () => {
+    const res = await app.request("/metrics/running-dynamics?from=2024-06-01&to=2024-06-02");
+    expect(res.status).toBe(200);
+    const body = z.array(RunningDynamicsPointSchema).parse(await res.json());
+    expect(body).toEqual([
+      {
+        day: "2024-06-01",
+        avg_vertical_oscillation_cm: 10.2,
+        avg_ground_contact_time_ms: 300,
+        avg_stride_length_m: 0.92,
+      },
+    ]);
   });
 
   test("GET /metrics/speed returns daily averages, ignoring null-speed rows", async () => {
