@@ -199,6 +199,25 @@ export async function seedSpeedAndPower(db: Db): Promise<void> {
       power,
     ]);
   }
+  await db.run(
+    "INSERT INTO performance (ts, vo2max, speed, power, vertical_oscillation_cm, ground_contact_time_ms, stride_length_m) VALUES (?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?)",
+    [
+      "2024-06-01 10:00:00",
+      null,
+      null,
+      null,
+      10.0,
+      300,
+      0.9,
+      "2024-06-01 10:05:00",
+      null,
+      null,
+      null,
+      11.0,
+      310,
+      1.0,
+    ],
+  );
 }
 
 export async function seedWorkoutEfficiencyFixtures(db: Db): Promise<void> {

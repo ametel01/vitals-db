@@ -6,7 +6,12 @@ export {
   listWorkouts,
 } from "./workouts";
 export { getWorkoutHR } from "./workout_hr";
-export { getWorkoutZoneBreakdown, getWorkoutZones, getZones } from "./zones";
+export {
+  getWorkoutZoneBreakdown,
+  getWorkoutZones,
+  getZones,
+  getZoneTimeDistribution,
+} from "./zones";
 export { getWorkoutDrift, type WorkoutDrift } from "./drift";
 export { getSleepSummary } from "./sleep";
 export { getSleepNightly } from "./sleep_nightly";
@@ -20,8 +25,15 @@ export { getHRVDaily } from "./hrv";
 export { getWalkingHRDaily } from "./walking_hr";
 export { getSpeedDaily } from "./speed";
 export { getPowerDaily } from "./power";
+export { getRunningDynamicsDaily } from "./running_dynamics";
 export { getStepsDaily } from "./steps";
 export { getDistanceDaily } from "./distance";
 export { getEnergyDaily } from "./energy";
 export { getLoadForRange, getWorkoutLoad } from "./load";
 export { getWorkoutEfficiency, type WorkoutEfficiencyParams } from "./efficiency";
+export {
+  getWorkoutEvents,
+  getWorkoutMetadata,
+  getWorkoutRoutes,
+  getWorkoutStats,
+} from "./workout_context";

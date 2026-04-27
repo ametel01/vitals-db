@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { Db } from "@vitals/db";
-import { getWorkoutZoneBreakdown, getWorkoutZones, getZones } from "../zones";
+import {
+  getWorkoutZoneBreakdown,
+  getWorkoutZones,
+  getZoneTimeDistribution,
+  getZones,
+} from "../zones";
 import { type Fixture, WORKOUT_ID, makeFixtureDb, seedWorkoutWithHR } from "./seed";
 
 describe("zones queries", () => {
@@ -67,6 +72,23 @@ describe("zones queries", () => {
 
   test("getWorkoutZoneBreakdown returns [] for unknown workout", async () => {
     const rows = await getWorkoutZoneBreakdown(db, "does-not-exist");
+    expect(rows).toEqual([]);
+  });
+
+  test("getZoneTimeDistribution estimates time spent per zone inside workouts", async () => {
+    const rows = await getZoneTimeDistribution(db, { from: "2024-06-01", to: "2024-06-01" });
+    expect(rows.map((r) => r.zone)).toEqual(["Z1", "Z2", "Z3", "Z4", "Z5"]);
+    const byZone = Object.fromEntries(rows.map((row) => [row.zone, row]));
+    expect(byZone.Z1?.duration_sec).toBe(240);
+    expect(byZone.Z2?.duration_sec).toBe(240);
+    expect(byZone.Z3?.duration_sec).toBe(240);
+    expect(byZone.Z4?.duration_sec).toBe(0);
+    expect(byZone.Z5?.duration_sec).toBe(0);
+    expect(byZone.Z1?.ratio).toBeCloseTo(1 / 3, 6);
+  });
+
+  test("getZoneTimeDistribution returns [] when no workout HR intervals exist", async () => {
+    const rows = await getZoneTimeDistribution(db, { from: "2025-01-01", to: "2025-01-01" });
     expect(rows).toEqual([]);
   });
 });
