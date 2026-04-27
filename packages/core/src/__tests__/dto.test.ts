@@ -10,6 +10,7 @@ import {
   PowerPointSchema,
   RestingHRPointSchema,
   RestingHRRollingPointSchema,
+  RunFatigueFlagSchema,
   SleepNightDetailSchema,
   SleepNightPointSchema,
   SleepSegmentSchema,
@@ -395,6 +396,33 @@ describe("DTO round-trip parsing", () => {
     expect(WorkoutSampleQualitySchema.parse(fixture)).toEqual(fixture);
     expect(() => WorkoutSampleQualitySchema.parse({ ...fixture, issues: ["bad_data"] })).toThrow();
     expect(() => WorkoutSampleQualitySchema.parse({ ...fixture, hr_samples: -1 })).toThrow();
+  });
+
+  test("RunFatigueFlag", () => {
+    const fixture = {
+      workout_id: "wk-running-2024-06-01",
+      start_ts: "2024-06-01T08:00:00.000Z",
+      diagnosis: "cardiac_drift" as const,
+      result: {
+        answer: "Run likely shows cardiac drift",
+        evidence: [
+          {
+            label: "HR drift",
+            value: "8.0%",
+            detail: "Heart rate rose across the workout.",
+          },
+        ],
+        action: {
+          kind: "run_easier" as const,
+          recommendation: "Keep the next easy run controlled.",
+        },
+        confidence: "medium" as const,
+        sample_quality: "mixed" as const,
+        claim_strength: "suggests" as const,
+      },
+    };
+    expect(RunFatigueFlagSchema.parse(fixture)).toEqual(fixture);
+    expect(() => RunFatigueFlagSchema.parse({ ...fixture, diagnosis: "injury" })).toThrow();
   });
 
   test("WorkoutContextSummary", () => {

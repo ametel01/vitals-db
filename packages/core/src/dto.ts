@@ -290,6 +290,15 @@ export const WorkoutSampleQualitySchema = z.object({
 });
 export type WorkoutSampleQuality = z.infer<typeof WorkoutSampleQualitySchema>;
 
+export const RunFatigueDiagnosisSchema = z.enum([
+  "clean_aerobic",
+  "cardiac_drift",
+  "under_recovered",
+  "pacing_fade",
+  "poor_sample_quality",
+]);
+export type RunFatigueDiagnosis = z.infer<typeof RunFatigueDiagnosisSchema>;
+
 export const CompositeClaimStrengthSchema = z.enum([
   "suggests",
   "likely",
@@ -331,6 +340,14 @@ export const CompositeResultSchema = z.object({
   claim_strength: CompositeClaimStrengthSchema,
 });
 export type CompositeResult = z.infer<typeof CompositeResultSchema>;
+
+export const RunFatigueFlagSchema = z.object({
+  workout_id: z.string(),
+  start_ts: IsoDateTime,
+  diagnosis: RunFatigueDiagnosisSchema,
+  result: CompositeResultSchema,
+});
+export type RunFatigueFlag = z.infer<typeof RunFatigueFlagSchema>;
 
 export const StepsPointSchema = z.object({
   day: IsoDate,
