@@ -37,6 +37,7 @@ export { getSpeedDaily } from "./speed";
 export { getPowerDaily } from "./power";
 export { getReadinessScore } from "./readiness";
 export { getRecoveryDebt } from "./recovery_debt";
+export { getRunEconomyScore } from "./run_economy";
 export { getRunFatigueFlag, listRunFatigueFlags } from "./run_fatigue";
 export { getRunningDynamicsDaily } from "./running_dynamics";
 export { getTrainingStrainVsRecovery } from "./training_strain";
