@@ -17,7 +17,11 @@ export type AnalyticsTable =
   | "energy"
   | "performance"
   | "sleep"
-  | "workouts";
+  | "workouts"
+  | "workout_stats"
+  | "workout_events"
+  | "workout_metadata"
+  | "workout_routes";
 
 export type RowValue = string | number | null;
 
@@ -138,6 +142,35 @@ function convertSpeedToMetersPerSecond(value: number, unit: string | null): numb
     default:
       return null;
   }
+}
+
+function convertLengthToMeters(value: number, unit: string | null): number | null {
+  switch (normalizeUnit(unit)) {
+    case null:
+    case "m":
+    case "meter":
+    case "meters":
+      return value;
+    case "cm":
+    case "centimeter":
+    case "centimeters":
+      return value / 100;
+    case "mm":
+    case "millimeter":
+    case "millimeters":
+      return value / 1000;
+    case "km":
+    case "kilometer":
+    case "kilometers":
+      return value * 1000;
+    default:
+      return null;
+  }
+}
+
+function convertDurationToSeconds(value: number, unit: string | null): number | null {
+  const factor = durationUnitToSeconds(unit);
+  return factor === null ? null : value * factor;
 }
 
 function makeMapped(
@@ -301,7 +334,7 @@ export function mapRecord(rec: ParsedRecord): MappedInsert | null {
       if (v === null) return null;
       return makeMapped(
         "performance",
-        [startTs, v, null, null],
+        [startTs, v, null, null, null, null, null],
         rec.type,
         rawValue,
         startTs,
@@ -317,7 +350,7 @@ export function mapRecord(rec: ParsedRecord): MappedInsert | null {
       if (v === null) return null;
       return makeMapped(
         "performance",
-        [startTs, null, v, null],
+        [startTs, null, v, null, null, null, null],
         rec.type,
         rawValue,
         startTs,
@@ -332,7 +365,56 @@ export function mapRecord(rec: ParsedRecord): MappedInsert | null {
       if (v === null) return null;
       return makeMapped(
         "performance",
-        [startTs, null, null, v],
+        [startTs, null, null, v, null, null, null],
+        rec.type,
+        rawValue,
+        startTs,
+        endTs,
+        startTsMs,
+        endTsMs,
+        source,
+      );
+    },
+    HKQuantityTypeIdentifierRunningVerticalOscillation: () => {
+      const raw = parseFiniteNumber(rec.value);
+      const meters = raw === null ? null : convertLengthToMeters(raw, rec.unit);
+      if (meters === null) return null;
+      return makeMapped(
+        "performance",
+        [startTs, null, null, null, meters * 100, null, null],
+        rec.type,
+        rawValue,
+        startTs,
+        endTs,
+        startTsMs,
+        endTsMs,
+        source,
+      );
+    },
+    HKQuantityTypeIdentifierRunningGroundContactTime: () => {
+      const raw = parseFiniteNumber(rec.value);
+      if (raw === null) return null;
+      const normalizedUnit = normalizeUnit(rec.unit);
+      const ms = normalizedUnit === "s" || normalizedUnit === "sec" ? raw * 1000 : raw;
+      return makeMapped(
+        "performance",
+        [startTs, null, null, null, null, ms, null],
+        rec.type,
+        rawValue,
+        startTs,
+        endTs,
+        startTsMs,
+        endTsMs,
+        source,
+      );
+    },
+    HKQuantityTypeIdentifierRunningStrideLength: () => {
+      const raw = parseFiniteNumber(rec.value);
+      const meters = raw === null ? null : convertLengthToMeters(raw, rec.unit);
+      if (meters === null) return null;
+      return makeMapped(
+        "performance",
+        [startTs, null, null, null, null, null, meters],
         rec.type,
         rawValue,
         startTs,
@@ -411,6 +493,144 @@ export function mapWorkout(w: ParsedWorkout): MappedInsert {
   );
 }
 
+function workoutIdForParsedWorkout(w: ParsedWorkout): {
+  id: string;
+  startTs: string;
+  endTs: string;
+  startTsMs: number;
+  endTsMs: number;
+  source: string | null;
+} {
+  const startTsMs = hkDateToMs(w.startDate);
+  const endTsMs = hkDateToMs(w.endDate);
+  const startTs = formatDuckTs(startTsMs);
+  const endTs = formatDuckTs(endTsMs);
+  return {
+    id: workoutIdOf(w.workoutActivityType, startTs, endTs),
+    startTs,
+    endTs,
+    startTsMs,
+    endTsMs,
+    source: w.sourceName,
+  };
+}
+
+function mapOptionalNumber(raw: string | null): number | null {
+  return parseFiniteNumber(raw);
+}
+
+export function mapWorkoutStats(w: ParsedWorkout): MappedInsert[] {
+  const workout = workoutIdForParsedWorkout(w);
+  return w.statistics.map((stat) => {
+    const statStartTsMs = hkDateToMs(stat.startDate);
+    const statEndTsMs = hkDateToMs(stat.endDate);
+    const statStartTs = formatDuckTs(statStartTsMs);
+    const statEndTs = formatDuckTs(statEndTsMs);
+    const values: RowValue[] = [
+      workout.id,
+      stat.type,
+      statStartTs,
+      statEndTs,
+      mapOptionalNumber(stat.average),
+      mapOptionalNumber(stat.minimum),
+      mapOptionalNumber(stat.maximum),
+      mapOptionalNumber(stat.sum),
+      stat.unit,
+    ];
+    return makeMapped(
+      "workout_stats",
+      values,
+      stat.type,
+      values.slice(1).join("|"),
+      statStartTs,
+      statEndTs,
+      statStartTsMs,
+      statEndTsMs,
+      workout.source,
+    );
+  });
+}
+
+export function mapWorkoutEvents(w: ParsedWorkout): MappedInsert[] {
+  const workout = workoutIdForParsedWorkout(w);
+  return w.events.map((event) => {
+    const tsMs = hkDateToMs(event.date);
+    const ts = formatDuckTs(tsMs);
+    const rawDuration = parseFiniteNumber(event.duration);
+    const durationSec =
+      rawDuration === null ? null : convertDurationToSeconds(rawDuration, event.durationUnit);
+    const values: RowValue[] = [workout.id, event.type, ts, durationSec];
+    return makeMapped(
+      "workout_events",
+      values,
+      event.type,
+      values.slice(1).join("|"),
+      ts,
+      ts,
+      tsMs,
+      tsMs,
+      workout.source,
+    );
+  });
+}
+
+export function mapWorkoutMetadata(w: ParsedWorkout): MappedInsert[] {
+  const workout = workoutIdForParsedWorkout(w);
+  return w.metadata.map((entry) =>
+    makeMapped(
+      "workout_metadata",
+      [workout.id, entry.key, entry.value],
+      "WorkoutMetadata",
+      `${workout.id}|${entry.key}|${entry.value}`,
+      workout.startTs,
+      workout.endTs,
+      workout.startTsMs,
+      workout.endTsMs,
+      workout.source,
+    ),
+  );
+}
+
+export function mapWorkoutRoutes(w: ParsedWorkout): MappedInsert[] {
+  const workout = workoutIdForParsedWorkout(w);
+  return w.routes.map((route) => {
+    const startTsMs = hkDateToMs(route.startDate);
+    const endTsMs = hkDateToMs(route.endDate);
+    const startTs = formatDuckTs(startTsMs);
+    const endTs = formatDuckTs(endTsMs);
+    const values: RowValue[] = [workout.id, startTs, endTs, route.sourceName, route.path];
+    return makeMapped(
+      "workout_routes",
+      values,
+      "WorkoutRoute",
+      values.join("|"),
+      startTs,
+      endTs,
+      startTsMs,
+      endTsMs,
+      workout.source,
+    );
+  });
+}
+
+export function mapWorkoutRows(w: ParsedWorkout): MappedInsert[] {
+  return [
+    mapWorkout(w),
+    ...mapWorkoutStats(w),
+    ...mapWorkoutEvents(w),
+    ...mapWorkoutMetadata(w),
+    ...mapWorkoutRoutes(w),
+  ];
+}
+
 export function mapNode(node: ParsedRecord | ParsedWorkout): MappedInsert | null {
   return node.kind === "record" ? mapRecord(node) : mapWorkout(node);
+}
+
+export function mapNodeRows(node: ParsedRecord | ParsedWorkout): MappedInsert[] {
+  if (node.kind === "record") {
+    const mapped = mapRecord(node);
+    return mapped === null ? [] : [mapped];
+  }
+  return mapWorkoutRows(node);
 }

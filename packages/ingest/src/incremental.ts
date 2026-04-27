@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import type { Db } from "@vitals/db";
 import { cropHealthExport } from "./cleanup";
-import { type MappedInsert, mapNode } from "./mappers";
+import { type MappedInsert, mapNodeRows } from "./mappers";
 import { parseHealthExport } from "./parser";
 import { type IngestStats, type WriterOptions, writeBatches } from "./writer";
 
@@ -64,10 +64,10 @@ async function* mapStream(
   filter: (endTsMs: number) => boolean,
 ): AsyncIterable<MappedInsert> {
   for await (const node of parseHealthExport(stream)) {
-    const mapped = mapNode(node);
-    if (mapped === null) continue;
-    if (!filter(mapped.endTsMs)) continue;
-    yield mapped;
+    for (const mapped of mapNodeRows(node)) {
+      if (!filter(mapped.endTsMs)) continue;
+      yield mapped;
+    }
   }
 }
 

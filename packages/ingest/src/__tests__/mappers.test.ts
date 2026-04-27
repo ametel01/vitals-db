@@ -1,5 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { formatDuckTs, hkDateToMs, mapRecord, mapWorkout, parseHKDate } from "../mappers";
+import {
+  formatDuckTs,
+  hkDateToMs,
+  mapNodeRows,
+  mapRecord,
+  mapWorkout,
+  mapWorkoutRows,
+  parseHKDate,
+} from "../mappers";
 import type { ParsedRecord, ParsedWorkout } from "../parser";
 
 function record(
@@ -112,18 +120,18 @@ describe("mapRecord", () => {
   test("VO2Max → performance (sparse, vo2max column)", () => {
     const m = mapRecord(record("HKQuantityTypeIdentifierVO2Max", "48.2"));
     expect(m?.table).toBe("performance");
-    expect(m?.values).toEqual(["2024-06-01 08:00:00.000", 48.2, null, null]);
+    expect(m?.values).toEqual(["2024-06-01 08:00:00.000", 48.2, null, null, null, null, null]);
   });
 
   test("RunningSpeed → performance (sparse, speed column)", () => {
     const m = mapRecord(record("HKQuantityTypeIdentifierRunningSpeed", "3.2", { unit: "m/s" }));
     expect(m?.table).toBe("performance");
-    expect(m?.values).toEqual(["2024-06-01 08:00:00.000", null, 3.2, null]);
+    expect(m?.values).toEqual(["2024-06-01 08:00:00.000", null, 3.2, null, null, null, null]);
   });
 
   test("RunningSpeed converts km/h to m/s", () => {
     const m = mapRecord(record("HKQuantityTypeIdentifierRunningSpeed", "10.8", { unit: "km/hr" }));
-    expect(m?.values).toEqual(["2024-06-01 08:00:00.000", null, 3, null]);
+    expect(m?.values).toEqual(["2024-06-01 08:00:00.000", null, 3, null, null, null, null]);
   });
 
   test("unknown distance unit yields null mapping", () => {
@@ -136,7 +144,30 @@ describe("mapRecord", () => {
   test("RunningPower → performance (sparse, power column)", () => {
     const m = mapRecord(record("HKQuantityTypeIdentifierRunningPower", "210"));
     expect(m?.table).toBe("performance");
-    expect(m?.values).toEqual(["2024-06-01 08:00:00.000", null, null, 210]);
+    expect(m?.values).toEqual(["2024-06-01 08:00:00.000", null, null, 210, null, null, null]);
+  });
+
+  test("running dynamics map into performance columns", () => {
+    const vertical = mapRecord(
+      record("HKQuantityTypeIdentifierRunningVerticalOscillation", "10.2", { unit: "cm" }),
+    );
+    const ground = mapRecord(
+      record("HKQuantityTypeIdentifierRunningGroundContactTime", "300", { unit: "ms" }),
+    );
+    const stride = mapRecord(
+      record("HKQuantityTypeIdentifierRunningStrideLength", "0.92", { unit: "m" }),
+    );
+    expect(vertical?.values).toEqual([
+      "2024-06-01 08:00:00.000",
+      null,
+      null,
+      null,
+      10.2,
+      null,
+      null,
+    ]);
+    expect(ground?.values).toEqual(["2024-06-01 08:00:00.000", null, null, null, null, 300, null]);
+    expect(stride?.values).toEqual(["2024-06-01 08:00:00.000", null, null, null, null, null, 0.92]);
   });
 
   test("SleepAnalysis → sleep row with normalized state", () => {
@@ -187,6 +218,10 @@ describe("mapWorkout", () => {
     duration: "30",
     durationUnit: "min",
     sourceName: "Apple Watch",
+    statistics: [],
+    events: [],
+    metadata: [],
+    routes: [],
   };
 
   test("produces workouts row with canonical type and duration in seconds", () => {
@@ -219,6 +254,71 @@ describe("mapWorkout", () => {
     const idB = b.values[0];
     expect(typeof idA).toBe("string");
     expect(idA).toBe(idB ?? null);
+  });
+
+  test("maps workout child context rows", () => {
+    const rows = mapWorkoutRows({
+      ...baseWorkout,
+      statistics: [
+        {
+          type: "HKQuantityTypeIdentifierRunningPower",
+          startDate: "2024-06-01 08:00:00 +0000",
+          endDate: "2024-06-01 08:30:00 +0000",
+          average: "210",
+          minimum: "180",
+          maximum: "240",
+          sum: null,
+          unit: "W",
+        },
+      ],
+      events: [
+        {
+          type: "HKWorkoutEventTypeSegment",
+          date: "2024-06-01 08:00:00 +0000",
+          duration: "5",
+          durationUnit: "min",
+        },
+      ],
+      metadata: [{ key: "HKIndoorWorkout", value: "0" }],
+      routes: [
+        {
+          startDate: "2024-06-01 08:00:00 +0000",
+          endDate: "2024-06-01 08:30:00 +0000",
+          sourceName: "Apple Watch",
+          path: "/workout-routes/route.gpx",
+        },
+      ],
+    });
+    expect(rows.map((row) => row.table)).toEqual([
+      "workouts",
+      "workout_stats",
+      "workout_events",
+      "workout_metadata",
+      "workout_routes",
+    ]);
+    expect(rows[1]?.values.slice(1)).toEqual([
+      "HKQuantityTypeIdentifierRunningPower",
+      "2024-06-01 08:00:00.000",
+      "2024-06-01 08:30:00.000",
+      210,
+      180,
+      240,
+      null,
+      "W",
+    ]);
+    expect(rows[2]?.values.slice(1)).toEqual([
+      "HKWorkoutEventTypeSegment",
+      "2024-06-01 08:00:00.000",
+      300,
+    ]);
+  });
+});
+
+describe("mapNodeRows", () => {
+  test("record nodes map to a one-row array", () => {
+    const rows = mapNodeRows(record("HKQuantityTypeIdentifierRunningStrideLength", "0.9"));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.table).toBe("performance");
   });
 });
 

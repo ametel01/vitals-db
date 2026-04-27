@@ -11,11 +11,24 @@ const TABLE_INSERTS: Record<AnalyticsTable, string> = {
   steps: "INSERT INTO steps (ts, count) VALUES (?, ?)",
   distance: "INSERT INTO distance (ts, meters) VALUES (?, ?)",
   energy: "INSERT INTO energy (ts, active_kcal, basal_kcal) VALUES (?, ?, ?)",
-  performance: "INSERT INTO performance (ts, vo2max, speed, power) VALUES (?, ?, ?, ?)",
+  performance:
+    "INSERT INTO performance " +
+    "(ts, vo2max, speed, power, vertical_oscillation_cm, ground_contact_time_ms, stride_length_m) " +
+    "VALUES (?, ?, ?, ?, ?, ?, ?)",
   sleep: "INSERT INTO sleep (start_ts, end_ts, state, raw_state) VALUES (?, ?, ?, ?)",
   workouts:
     "INSERT INTO workouts (id, type, start_ts, end_ts, duration_sec, source) " +
     "VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING RETURNING id",
+  workout_stats:
+    "INSERT INTO workout_stats " +
+    "(workout_id, type, start_ts, end_ts, average, minimum, maximum, sum, unit) " +
+    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  workout_events:
+    "INSERT INTO workout_events (workout_id, type, ts, duration_sec) VALUES (?, ?, ?, ?)",
+  workout_metadata: "INSERT INTO workout_metadata (workout_id, key, value) VALUES (?, ?, ?)",
+  workout_routes:
+    "INSERT INTO workout_routes (workout_id, start_ts, end_ts, source, path) " +
+    "VALUES (?, ?, ?, ?, ?)",
 };
 
 const SEEN_INSERT_SQL =
@@ -46,6 +59,10 @@ function emptyInsertedCounts(): InsertedCounts {
     performance: 0,
     sleep: 0,
     workouts: 0,
+    workout_stats: 0,
+    workout_events: 0,
+    workout_metadata: 0,
+    workout_routes: 0,
   };
 }
 

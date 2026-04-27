@@ -27,7 +27,12 @@ const FIXTURE_XML = `<?xml version="1.0" encoding="UTF-8"?>
     <MetadataEntry key="HKWasUserEntered" value="1"/>
   </Record>
   <Workout workoutActivityType="HKWorkoutActivityTypeRunning" duration="30" durationUnit="min" sourceName="Apple Watch" startDate="2024-06-01 08:00:00 +0000" endDate="2024-06-01 08:30:00 +0000">
+    <MetadataEntry key="HKIndoorWorkout" value="0"/>
     <WorkoutEvent type="HKWorkoutEventTypePause" date="2024-06-01 08:10:00 +0000"/>
+    <WorkoutStatistics type="HKQuantityTypeIdentifierRunningPower" startDate="2024-06-01 08:00:00 +0000" endDate="2024-06-01 08:30:00 +0000" average="210" minimum="180" maximum="240" unit="W"/>
+    <WorkoutRoute sourceName="Apple Watch" startDate="2024-06-01 08:00:00 +0000" endDate="2024-06-01 08:30:00 +0000">
+      <FileReference path="/workout-routes/route.gpx"/>
+    </WorkoutRoute>
   </Workout>
 </HealthData>
 `;
@@ -81,6 +86,10 @@ describe("ingestFile integration", () => {
     expect(stats.inserted.performance).toBe(3);
     expect(stats.inserted.sleep).toBe(2);
     expect(stats.inserted.workouts).toBe(1);
+    expect(stats.inserted.workout_stats).toBe(1);
+    expect(stats.inserted.workout_events).toBe(1);
+    expect(stats.inserted.workout_metadata).toBe(1);
+    expect(stats.inserted.workout_routes).toBe(1);
     expect(stats.skipped).toBe(1);
   });
 
@@ -98,6 +107,10 @@ describe("ingestFile integration", () => {
       ["performance", 3],
       ["sleep", 2],
       ["workouts", 1],
+      ["workout_stats", 1],
+      ["workout_events", 1],
+      ["workout_metadata", 1],
+      ["workout_routes", 1],
     ] as const;
     for (const [table, expected] of tables) {
       const row = await db.get<{ n: number }>(`SELECT COUNT(*)::INTEGER AS n FROM ${table}`);

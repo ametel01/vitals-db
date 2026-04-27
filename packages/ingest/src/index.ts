@@ -6,8 +6,12 @@ export {
 } from "./cleanup";
 export {
   type ParsedNode,
+  type ParsedMetadataEntry,
   type ParsedRecord,
   type ParsedWorkout,
+  type ParsedWorkoutEvent,
+  type ParsedWorkoutRoute,
+  type ParsedWorkoutStatistic,
   parseHealthExport,
   parseHealthExportString,
 } from "./parser";
@@ -18,8 +22,14 @@ export {
   formatDuckTs,
   hkDateToMs,
   mapNode,
+  mapNodeRows,
   mapRecord,
   mapWorkout,
+  mapWorkoutEvents,
+  mapWorkoutMetadata,
+  mapWorkoutRoutes,
+  mapWorkoutRows,
+  mapWorkoutStats,
   parseHKDate,
 } from "./mappers";
 export {

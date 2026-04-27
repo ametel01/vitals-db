@@ -78,6 +78,17 @@ describe("parser", () => {
         duration: "30",
         durationUnit: "min",
         sourceName: "Apple Watch",
+        statistics: [],
+        events: [
+          {
+            type: "HKWorkoutEventTypePause",
+            date: "2024-06-01 08:10:00 +0000",
+            duration: null,
+            durationUnit: null,
+          },
+        ],
+        metadata: [],
+        routes: [],
       },
     ]);
   });
@@ -90,6 +101,54 @@ describe("parser", () => {
         `startDate="2024-06-01 09:00:00 +0000" endDate="2024-06-01 09:30:00 +0000"/>`,
     );
     expect(await collect(xml)).toEqual([]);
+  });
+
+  test("captures workout statistics, metadata, events, and routes", async () => {
+    const xml = WRAPPER(
+      `<Workout workoutActivityType="HKWorkoutActivityTypeRunning" duration="30" durationUnit="min" ` +
+        `sourceName="Apple Watch" startDate="2024-06-01 08:00:00 +0000" endDate="2024-06-01 08:30:00 +0000">` +
+        `<MetadataEntry key="HKIndoorWorkout" value="0"/>` +
+        `<WorkoutEvent type="HKWorkoutEventTypeSegment" date="2024-06-01 08:00:00 +0000" duration="5" durationUnit="min"/>` +
+        `<WorkoutStatistics type="HKQuantityTypeIdentifierRunningPower" startDate="2024-06-01 08:00:00 +0000" endDate="2024-06-01 08:30:00 +0000" average="210" minimum="180" maximum="240" unit="W"/>` +
+        `<WorkoutRoute sourceName="Apple Watch" startDate="2024-06-01 08:00:00 +0000" endDate="2024-06-01 08:30:00 +0000">` +
+        `<FileReference path="/workout-routes/route.gpx"/>` +
+        "</WorkoutRoute>" +
+        "</Workout>",
+    );
+    const out = await collect(xml);
+    expect(out).toHaveLength(1);
+    const workout = out[0];
+    expect(workout?.kind).toBe("workout");
+    if (workout?.kind !== "workout") return;
+    expect(workout.metadata).toEqual([{ key: "HKIndoorWorkout", value: "0" }]);
+    expect(workout.events).toEqual([
+      {
+        type: "HKWorkoutEventTypeSegment",
+        date: "2024-06-01 08:00:00 +0000",
+        duration: "5",
+        durationUnit: "min",
+      },
+    ]);
+    expect(workout.statistics).toEqual([
+      {
+        type: "HKQuantityTypeIdentifierRunningPower",
+        startDate: "2024-06-01 08:00:00 +0000",
+        endDate: "2024-06-01 08:30:00 +0000",
+        average: "210",
+        minimum: "180",
+        maximum: "240",
+        sum: null,
+        unit: "W",
+      },
+    ]);
+    expect(workout.routes).toEqual([
+      {
+        sourceName: "Apple Watch",
+        startDate: "2024-06-01 08:00:00 +0000",
+        endDate: "2024-06-01 08:30:00 +0000",
+        path: "/workout-routes/route.gpx",
+      },
+    ]);
   });
 
   test("emits Sleep Category records", async () => {
