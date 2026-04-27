@@ -40,7 +40,7 @@ export async function getTrainingStrainVsRecovery(
   );
 
   return CompositeResultSchema.parse({
-    answer: `Training stress is ${state}`,
+    answer: `Training stress signals suggest ${state}`,
     evidence: [
       {
         label: "Acute:chronic load",

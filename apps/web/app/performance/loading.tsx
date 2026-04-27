@@ -25,7 +25,7 @@ export default function Loading(): React.ReactElement {
           </div>
         </div>
         <div className="composite-card-grid">
-          {["Fitness direction", "Easy-run quality", "Recovery state", "Workout diagnoses"].map(
+          {["Fitness direction", "Easy-run quality", "Recovery state", "Workout flags"].map(
             (title) => (
               <article className="composite-card is-mixed" key={title}>
                 <div className="composite-card-topline">

@@ -128,11 +128,11 @@ function buildResult(input: {
 
 function diagnosisAnswer(diagnosis: RunFatigueDiagnosis): string {
   const labels: Record<RunFatigueDiagnosis, string> = {
-    clean_aerobic: "Run likely stayed clean aerobic",
-    cardiac_drift: "Run likely shows cardiac drift",
-    under_recovered: "Run likely started under-recovered",
-    pacing_fade: "Run likely shows pacing fade",
-    poor_sample_quality: "Run has poor sample quality",
+    clean_aerobic: "Run signal suggests clean aerobic execution",
+    cardiac_drift: "Run signal suggests cardiac drift",
+    under_recovered: "Run signal suggests under-recovered execution",
+    pacing_fade: "Run signal suggests pacing fade",
+    poor_sample_quality: "Run signal is limited by poor sample quality",
   };
   return labels[diagnosis];
 }

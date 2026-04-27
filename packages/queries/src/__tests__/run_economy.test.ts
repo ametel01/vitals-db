@@ -39,7 +39,7 @@ describe("getRunEconomyScore", () => {
     const result = await getRunEconomyScore(db, { from: "2024-06-02", to: "2024-06-08" });
 
     expect(result).toMatchObject({
-      answer: "Run economy change is driven by fitness",
+      answer: "Run economy signals point to fitness",
       action: { kind: "maintain" },
       confidence: "high",
     });
@@ -70,7 +70,7 @@ describe("getRunEconomyScore", () => {
     const result = await getRunEconomyScore(db, { from: "2024-06-02", to: "2024-06-08" });
 
     expect(result).toMatchObject({
-      answer: "Run economy change is driven by mechanics",
+      answer: "Run economy signals point to mechanics",
       action: { kind: "watch" },
     });
   });

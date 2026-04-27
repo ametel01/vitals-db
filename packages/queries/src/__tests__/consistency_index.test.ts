@@ -34,9 +34,10 @@ describe("getConsistencyIndex", () => {
     const result = await getConsistencyIndex(db, { from: "2024-06-08", to: "2024-06-14" });
 
     expect(result).toMatchObject({
-      answer: "Consistency is strong; direction is insufficient_data",
+      answer: "Consistency signals suggest strong; direction is insufficient_data",
       action: { kind: "maintain" },
-      confidence: "high",
+      confidence: "medium",
+      sample_quality: "mixed",
     });
   });
 
@@ -60,7 +61,7 @@ describe("getConsistencyIndex", () => {
     const result = await getConsistencyIndex(db, { from: "2024-06-08", to: "2024-06-14" });
 
     expect(result).toMatchObject({
-      answer: "Consistency is inconsistent; direction is insufficient_data",
+      answer: "Consistency signals suggest inconsistent; direction is insufficient_data",
       action: { kind: "maintain" },
     });
   });

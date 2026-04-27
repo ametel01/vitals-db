@@ -28,6 +28,45 @@ export async function getRecoveryDebt(db: Db, range: DateRange): Promise<Composi
   const rhrDelta = delta(currentRhr, baselineRhr);
   const hrvDelta = delta(currentHrv, baselineHrv);
   const loadRatio = weeklyLoadRatio(acuteLoad, chronicLoad);
+  const hasCurrentSignal = sleep.total_hours > 0 || currentRhr !== null || currentHrv !== null;
+  const hasLoadSignal = acuteLoad !== null || chronicLoad !== null;
+  const sampleQuality = recoveryDebtSampleQuality(
+    hasCurrentSignal,
+    hasLoadSignal,
+    baselineRhr,
+    baselineHrv,
+  );
+
+  if (sampleQuality === "poor") {
+    return CompositeResultSchema.parse({
+      answer: "Recovery debt needs more recent sleep or recovery data",
+      evidence: [
+        {
+          label: "Sleep deficit",
+          value: null,
+          detail: "No recent sleep rows are available for the seven-day debt window.",
+        },
+        {
+          label: "Recovery markers",
+          value: null,
+          detail: "Resting HR and HRV are missing from the recent recovery window.",
+        },
+        {
+          label: "Training load",
+          value: null,
+          detail: "No usable recent load rows are available for recovery-debt context.",
+        },
+      ],
+      action: {
+        kind: "retest",
+        recommendation: "Collect recent sleep, resting HR, HRV, and workout load before acting.",
+      },
+      confidence: "low",
+      sample_quality: "poor",
+      claim_strength: "worth_watching",
+    });
+  }
+
   const debtScore =
     sleepDebtHours +
     Math.max(0, rhrDelta ?? 0) / 2 +
@@ -35,10 +74,9 @@ export async function getRecoveryDebt(db: Db, range: DateRange): Promise<Composi
     Math.max(0, (loadRatio ?? 1) - 1) * 4;
   const fatigueSignals = countFatigueSignals(sleepDebtHours, rhrDelta, hrvDelta, loadRatio);
   const state = classifyDebt(debtScore, fatigueSignals);
-  const sampleQuality = recoveryDebtSampleQuality(currentRhr, baselineRhr, currentHrv, baselineHrv);
 
   return CompositeResultSchema.parse({
-    answer: `Recovery debt is ${state}`,
+    answer: `Recovery debt signals suggest ${state}`,
     evidence: [
       {
         label: "Debt score",
@@ -121,13 +159,13 @@ function actionForDebt(state: string): CompositeResult["action"] {
 }
 
 function recoveryDebtSampleQuality(
-  currentRhr: number | null,
+  hasCurrentSignal: boolean,
+  hasLoadSignal: boolean,
   baselineRhr: number | null,
-  currentHrv: number | null,
   baselineHrv: number | null,
 ): CompositeResult["sample_quality"] {
-  if (currentRhr === null && currentHrv === null) return "poor";
-  if (baselineRhr === null || baselineHrv === null) return "mixed";
+  if (!hasCurrentSignal && !hasLoadSignal) return "poor";
+  if (baselineRhr === null || baselineHrv === null || !hasLoadSignal) return "mixed";
   return "high";
 }
 

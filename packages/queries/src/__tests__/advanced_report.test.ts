@@ -24,12 +24,12 @@ describe("getAdvancedCompositeReport", () => {
       "workout_diagnoses",
     ]);
     expect(report.next_week_recommendation).toMatchObject({
-      kind: "add_sleep",
+      kind: "retest",
     });
     expect(report.next_week_recommendation.recommendation.startsWith("Next week:")).toBe(true);
   });
 
-  test("summarizes the strongest workout diagnosis in the workout section", async () => {
+  test("summarizes the strongest workout flag in the workout section", async () => {
     await seedRun(db, {
       id: "clean-run",
       day: "2024-06-10",
@@ -51,11 +51,11 @@ describe("getAdvancedCompositeReport", () => {
     const workouts = report.sections.find((section) => section.key === "workout_diagnoses");
 
     expect(workouts?.result).toMatchObject({
-      answer: "Run likely shows cardiac drift",
+      answer: "Run signal suggests cardiac drift",
       action: { kind: "run_easier" },
     });
     expect(workouts?.result.evidence[0]).toMatchObject({
-      label: "Strongest diagnosis",
+      label: "Strongest flag",
       value: "cardiac drift",
     });
   });

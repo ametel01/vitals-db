@@ -390,7 +390,7 @@ describe("DTO round-trip parsing", () => {
         { key: "fitness_direction" as const, title: "Fitness direction", result },
         { key: "easy_run_quality" as const, title: "Easy-run quality", result },
         { key: "recovery_state" as const, title: "Recovery state", result },
-        { key: "workout_diagnoses" as const, title: "Workout diagnoses", result },
+        { key: "workout_diagnoses" as const, title: "Workout flags", result },
       ],
       next_week_recommendation: {
         kind: "maintain" as const,
@@ -446,7 +446,7 @@ describe("DTO round-trip parsing", () => {
       start_ts: "2024-06-01T08:00:00.000Z",
       diagnosis: "cardiac_drift" as const,
       result: {
-        answer: "Run likely shows cardiac drift",
+        answer: "Run signal suggests cardiac drift",
         evidence: [
           {
             label: "HR drift",

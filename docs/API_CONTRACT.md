@@ -283,8 +283,9 @@ Query params:
 
 Response: `AdvancedCompositeReport`, with four ordered sections:
 `fitness_direction`, `easy_run_quality`, `recovery_state`, and
-`workout_diagnoses`. The top-level `next_week_recommendation` is the most
-conservative action selected from the strongest section results.
+`workout_diagnoses` (rendered as workout flags). The top-level
+`next_week_recommendation` is the most conservative action selected from the
+strongest section results.
 
 ### `GET /metrics/composites/aerobic-efficiency`
 

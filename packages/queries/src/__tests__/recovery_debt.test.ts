@@ -28,7 +28,7 @@ describe("getRecoveryDebt", () => {
     const result = await getRecoveryDebt(db, { from: "2024-06-24", to: "2024-06-30" });
 
     expect(result).toMatchObject({
-      answer: "Recovery debt is short-term dip",
+      answer: "Recovery debt signals suggest short-term dip",
       action: { kind: "add_sleep" },
       confidence: "high",
     });
@@ -48,7 +48,7 @@ describe("getRecoveryDebt", () => {
     const result = await getRecoveryDebt(db, { from: "2024-06-24", to: "2024-06-30" });
 
     expect(result).toMatchObject({
-      answer: "Recovery debt is accumulating",
+      answer: "Recovery debt signals suggest accumulating",
       action: { kind: "reduce_intensity" },
       confidence: "high",
     });

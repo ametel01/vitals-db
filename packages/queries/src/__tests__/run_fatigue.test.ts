@@ -39,7 +39,7 @@ describe("run fatigue flags", () => {
       workout_id: "drift-run",
       diagnosis: "cardiac_drift",
       result: {
-        answer: "Run likely shows cardiac drift",
+        answer: "Run signal suggests cardiac drift",
         action: { kind: "run_easier" },
         sample_quality: "high",
       },

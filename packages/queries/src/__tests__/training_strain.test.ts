@@ -30,7 +30,7 @@ describe("getTrainingStrainVsRecovery", () => {
     });
 
     expect(result).toMatchObject({
-      answer: "Training stress is productive",
+      answer: "Training stress signals suggest productive",
       action: { kind: "push" },
       confidence: "high",
       sample_quality: "high",
@@ -57,7 +57,7 @@ describe("getTrainingStrainVsRecovery", () => {
     });
 
     expect(result).toMatchObject({
-      answer: "Training stress is excessive",
+      answer: "Training stress signals suggest excessive",
       action: { kind: "reduce_intensity" },
       confidence: "high",
     });

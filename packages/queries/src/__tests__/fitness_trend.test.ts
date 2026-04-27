@@ -31,7 +31,7 @@ describe("getFitnessTrend", () => {
     const result = await getFitnessTrend(db, { from: "2024-06-02", to: "2024-06-08" });
 
     expect(result).toMatchObject({
-      answer: "Fitness trend is Improving; VO2 Max is supported by workout efficiency",
+      answer: "Fitness trend suggests Improving; VO2 Max is supported by workout efficiency",
       action: { kind: "maintain" },
       confidence: "medium",
       sample_quality: "mixed",
@@ -55,7 +55,7 @@ describe("getFitnessTrend", () => {
     const result = await getFitnessTrend(db, { from: "2024-06-02", to: "2024-06-08" });
 
     expect(result).toMatchObject({
-      answer: "Fitness trend is Declining; VO2 Max looks isolated from workout efficiency",
+      answer: "Fitness trend suggests Declining; VO2 Max looks isolated from workout efficiency",
       action: { kind: "run_easier" },
     });
   });

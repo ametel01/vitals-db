@@ -43,7 +43,7 @@ export async function getReadinessScore(db: Db, range: DateRange): Promise<Compo
   const sampleQuality = readinessSampleQuality(currentRhr, baselineRhr, currentHrv, baselineHrv);
 
   return CompositeResultSchema.parse({
-    answer: `Readiness is ${state}`,
+    answer: `Readiness signals suggest ${state}`,
     evidence: [
       {
         label: "Resting HR",

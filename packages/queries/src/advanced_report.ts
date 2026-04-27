@@ -54,7 +54,7 @@ export async function getAdvancedCompositeReport(
       "Recovery state",
       strongestResult([readiness, recoveryDebt, trainingStrain]),
     ),
-    section("workout_diagnoses", "Workout diagnoses", summarizeWorkoutDiagnoses(fatigueFlags)),
+    section("workout_diagnoses", "Workout flags", summarizeWorkoutDiagnoses(fatigueFlags)),
   ];
 
   return AdvancedCompositeReportSchema.parse({
@@ -84,18 +84,18 @@ function strongestResult(results: CompositeResult[]): CompositeResult {
 function summarizeWorkoutDiagnoses(flags: RunFatigueFlag[]): CompositeResult {
   if (flags.length === 0) {
     return CompositeResultSchema.parse({
-      answer: "No workout diagnoses are available",
+      answer: "No workout flags are available",
       evidence: [
         {
-          label: "Diagnosed runs",
+          label: "Flagged runs",
           value: 0,
-          detail: "No running workouts in the report window had enough context for diagnosis.",
+          detail: "No running workouts in the report window had enough context for a fatigue flag.",
         },
       ],
       action: {
         kind: "retest",
         recommendation:
-          "Collect a well-sampled steady run before treating workout diagnoses as signal.",
+          "Collect a well-sampled steady run before treating workout flags as signal.",
       },
       confidence: "low",
       sample_quality: "poor",
@@ -109,7 +109,7 @@ function summarizeWorkoutDiagnoses(flags: RunFatigueFlag[]): CompositeResult {
     return resultRank(right.result) - resultRank(left.result);
   })[0];
   if (strongest === undefined) {
-    throw new Error("At least one workout diagnosis is required");
+    throw new Error("At least one workout flag is required");
   }
   const counts = diagnosisCounts(flags);
 
@@ -117,19 +117,19 @@ function summarizeWorkoutDiagnoses(flags: RunFatigueFlag[]): CompositeResult {
     answer: strongest.result.answer,
     evidence: [
       {
-        label: "Strongest diagnosis",
+        label: "Strongest flag",
         value: strongest.diagnosis.replaceAll("_", " "),
-        detail: `Workout ${strongest.workout_id} on ${strongest.start_ts.slice(0, 10)} carried the strongest diagnosis.`,
+        detail: `Workout ${strongest.workout_id} on ${strongest.start_ts.slice(0, 10)} carried the strongest fatigue flag.`,
       },
       {
-        label: "Diagnosed runs",
+        label: "Flagged runs",
         value: flags.length,
-        detail: "Number of running workouts checked in the report window.",
+        detail: "Number of running workouts with fatigue flags in the report window.",
       },
       {
-        label: "Diagnosis mix",
+        label: "Flag mix",
         value: counts,
-        detail: "Counts by diagnosis across the report window.",
+        detail: "Counts by fatigue flag across the report window.",
       },
       strongest.result.evidence[0],
     ],

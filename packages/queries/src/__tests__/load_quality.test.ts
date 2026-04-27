@@ -25,7 +25,7 @@ describe("getLoadQuality", () => {
     const result = await getLoadQuality(db, { from: "2024-06-24", to: "2024-06-30" });
 
     expect(result).toMatchObject({
-      answer: "Load quality is productive aerobic",
+      answer: "Load quality signals suggest productive aerobic",
       action: { kind: "maintain" },
       confidence: "high",
       sample_quality: "high",
@@ -43,7 +43,7 @@ describe("getLoadQuality", () => {
     const result = await getLoadQuality(db, { from: "2024-06-24", to: "2024-06-30" });
 
     expect(result).toMatchObject({
-      answer: "Load quality is junk intensity",
+      answer: "Load quality signals suggest junk intensity",
       action: { kind: "run_easier" },
     });
   });
@@ -59,7 +59,7 @@ describe("getLoadQuality", () => {
     const result = await getLoadQuality(db, { from: "2024-06-24", to: "2024-06-30" });
 
     expect(result).toMatchObject({
-      answer: "Load quality is high-strain low-quality",
+      answer: "Load quality signals suggest high-strain low-quality",
       action: { kind: "reduce_intensity" },
     });
   });

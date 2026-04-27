@@ -42,7 +42,7 @@ export async function getLoadQuality(db: Db, range: DateRange): Promise<Composit
   const sampleQuality = loadSampleQuality(inputs);
 
   return CompositeResultSchema.parse({
-    answer: `Load quality is ${quality}`,
+    answer: `Load quality signals suggest ${quality}`,
     evidence: [
       {
         label: "Acute:chronic load",

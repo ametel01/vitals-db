@@ -64,7 +64,7 @@ export async function getFitnessTrend(db: Db, range: DateRange): Promise<Composi
   );
 
   return CompositeResultSchema.parse({
-    answer: `Fitness trend is ${trend}; VO2 Max ${vo2Support}`,
+    answer: `Fitness trend suggests ${trend}; VO2 Max ${vo2Support}`,
     evidence: [
       {
         label: "VO2 Max",

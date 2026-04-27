@@ -31,16 +31,22 @@ export async function getRunEconomyScore(db: Db, range: DateRange): Promise<Comp
     higherIsBetter: true,
   });
   const mechanicsTrend = classifyTrend(currentPenalty, baselinePenalty, { higherIsBetter: false });
-  const driver = economyDriver(
-    speedPerWattTrend.direction,
-    speedPerBpmTrend.direction,
-    mechanicsTrend.direction,
-    currentPenalty - baselinePenalty,
-  );
-  const sampleQuality = current.avgSpeed === null || current.avgHr === null ? "poor" : "high";
+  const sampleQuality = economySampleQuality(current, baseline);
+  const driver =
+    sampleQuality === "poor"
+      ? "insufficient data"
+      : economyDriver(
+          speedPerWattTrend.direction,
+          speedPerBpmTrend.direction,
+          mechanicsTrend.direction,
+          currentPenalty - baselinePenalty,
+        );
 
   return CompositeResultSchema.parse({
-    answer: `Run economy change is driven by ${driver}`,
+    answer:
+      driver === "insufficient data"
+        ? "Run economy needs more comparable run data"
+        : `Run economy signals point to ${driver}`,
     evidence: [
       {
         label: "Speed per watt",
@@ -71,9 +77,9 @@ export async function getRunEconomyScore(db: Db, range: DateRange): Promise<Comp
       },
     ],
     action: actionForDriver(driver),
-    confidence: sampleQuality === "high" ? "high" : "low",
+    confidence: sampleQuality === "high" ? "high" : sampleQuality === "mixed" ? "medium" : "low",
     sample_quality: sampleQuality,
-    claim_strength: "suggests",
+    claim_strength: sampleQuality === "poor" ? "worth_watching" : "suggests",
   });
 }
 
@@ -143,6 +149,12 @@ function economyDriver(
 }
 
 function actionForDriver(driver: string): CompositeResult["action"] {
+  if (driver === "insufficient data") {
+    return {
+      kind: "retest",
+      recommendation: "Collect comparable runs with speed, HR, power, and mechanics samples.",
+    };
+  }
   if (driver === "mechanics") {
     return {
       kind: "watch",
@@ -159,6 +171,22 @@ function actionForDriver(driver: string): CompositeResult["action"] {
     kind: "maintain",
     recommendation: "Keep comparing similar running conditions before changing training.",
   };
+}
+
+function economySampleQuality(
+  current: EconomyAverages,
+  baseline: EconomyAverages,
+): CompositeResult["sample_quality"] {
+  if (current.avgSpeed === null || current.avgHr === null) return "poor";
+  if (
+    baseline.avgSpeed === null ||
+    baseline.avgHr === null ||
+    current.avgPower === null ||
+    baseline.avgPower === null
+  ) {
+    return "mixed";
+  }
+  return "high";
 }
 
 function ratio(numerator: number | null, denominator: number | null): number | null {

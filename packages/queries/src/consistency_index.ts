@@ -28,10 +28,10 @@ export async function getConsistencyIndex(db: Db, range: DateRange): Promise<Com
     flatPercentThreshold: 0.05,
   });
   const state = consistencyState(currentScore);
-  const sampleQuality = current.avgSteps === null && current.workoutCount === 0 ? "poor" : "high";
+  const sampleQuality = consistencySampleQuality(current, baseline);
 
   return CompositeResultSchema.parse({
-    answer: `Consistency is ${state}; direction is ${trend.direction}`,
+    answer: `Consistency signals suggest ${state}; direction is ${trend.direction}`,
     evidence: [
       {
         label: "Consistency score",
@@ -55,10 +55,19 @@ export async function getConsistencyIndex(db: Db, range: DateRange): Promise<Com
       },
     ],
     action: actionForConsistency(state),
-    confidence: sampleQuality === "high" ? "high" : "low",
+    confidence: sampleQuality === "high" ? "high" : sampleQuality === "mixed" ? "medium" : "low",
     sample_quality: sampleQuality,
     claim_strength: "suggests",
   });
+}
+
+function consistencySampleQuality(
+  current: ConsistencyInputs,
+  baseline: ConsistencyInputs,
+): CompositeResult["sample_quality"] {
+  if (current.avgSteps === null && current.workoutCount === 0) return "poor";
+  if (baseline.avgSteps === null && baseline.workoutCount === 0) return "mixed";
+  return "high";
 }
 
 async function getConsistencyInputs(db: Db, range: DateRange): Promise<ConsistencyInputs> {

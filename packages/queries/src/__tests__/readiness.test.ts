@@ -29,7 +29,7 @@ describe("getReadinessScore", () => {
     const result = await getReadinessScore(db, { from: "2024-06-04", to: "2024-06-04" });
 
     expect(result).toMatchObject({
-      answer: "Readiness is Strained",
+      answer: "Readiness signals suggest Strained",
       action: { kind: "reduce_intensity" },
       confidence: "high",
       sample_quality: "high",
@@ -57,7 +57,7 @@ describe("getReadinessScore", () => {
     const result = await getReadinessScore(db, { from: "2024-06-04", to: "2024-06-04" });
 
     expect(result).toMatchObject({
-      answer: "Readiness is Fresh",
+      answer: "Readiness signals suggest Fresh",
       action: { kind: "push" },
       confidence: "high",
     });
