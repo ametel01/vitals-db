@@ -268,6 +268,112 @@ Response: `EnergyPoint[]`, day-bucketed totals of `active_kcal` and `basal_kcal`
 from the `energy` table. Each column is aggregated independently so sparse rows
 (active-only or basal-only samples) do not null out the daily total.
 
+## Composite Analytics
+
+Every route under `/metrics/composites` requires both `from` and `to`, with the
+same date parsing and `400 { error: "invalid_query", issues: ZodIssue[] }`
+behavior as the raw `/metrics` routes.
+
+### `GET /metrics/composites/report`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `AdvancedCompositeReport`, with four ordered sections:
+`fitness_direction`, `easy_run_quality`, `recovery_state`, and
+`workout_diagnoses`. The top-level `next_week_recommendation` is the most
+conservative action selected from the strongest section results.
+
+### `GET /metrics/composites/aerobic-efficiency`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `CompositeResult` from fixed-HR pace, decoupling, Z2 share, and
+resting-HR evidence.
+
+### `GET /metrics/composites/readiness`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `CompositeResult` from resting HR, HRV, sleep, and training-load
+evidence.
+
+### `GET /metrics/composites/training-strain`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `CompositeResult` comparing recent load against recovery markers.
+
+### `GET /metrics/composites/run-fatigue`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `RunFatigueFlag[]`, ordered by descending workout `start_ts`.
+
+### `GET /metrics/composites/fitness-trend`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `CompositeResult` combining VO2 Max, fixed-HR pace, power, and
+resting-HR trend evidence.
+
+### `GET /metrics/composites/load-quality`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `CompositeResult` combining acute:chronic load, Z2 share, run
+decoupling, and run consistency.
+
+### `GET /metrics/composites/recovery-debt`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `CompositeResult` from seven-day sleep debt, recovery markers, and
+training-load evidence.
+
+### `GET /metrics/composites/consistency-index`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `CompositeResult` summarizing consistency across activity, sleep,
+resting HR, and HRV.
+
+### `GET /metrics/composites/run-economy`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `CompositeResult` attributing run economy changes to fitness,
+mechanics, output, or mixed economy evidence.
+
 ## Error shape
 
 - `400 { error: "invalid_query", issues: ZodIssue[] }` — invalid query params

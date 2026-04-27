@@ -1,13 +1,21 @@
 import type { Db } from "@vitals/db";
 import {
   type DateRange,
+  getAdvancedCompositeReport,
+  getAerobicEfficiencyTrend,
+  getConsistencyIndex,
   getDistanceDaily,
   getEnergyDaily,
+  getFitnessTrend,
   getHRVDaily,
   getLoadForRange,
+  getLoadQuality,
   getPowerDaily,
+  getReadinessScore,
+  getRecoveryDebt,
   getRestingHRDaily,
   getRestingHRRolling7d,
+  getRunEconomyScore,
   getRunningDynamicsDaily,
   getSleepNightly,
   getSleepNights,
@@ -15,11 +23,13 @@ import {
   getSleepSummary,
   getSpeedDaily,
   getStepsDaily,
+  getTrainingStrainVsRecovery,
   getVO2MaxDaily,
   getWalkingHRDaily,
   getWeeklyActivity,
   getZoneTimeDistribution,
   getZones,
+  listRunFatigueFlags,
 } from "@vitals/queries";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -178,6 +188,66 @@ export function metricsRouter(db: Db): Hono {
     const parsed = parseRange(c.req.query());
     if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
     return c.json(await getEnergyDaily(db, parsed));
+  });
+
+  app.get("/composites/report", async (c) => {
+    const parsed = parseRange(c.req.query());
+    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
+    return c.json(await getAdvancedCompositeReport(db, parsed));
+  });
+
+  app.get("/composites/aerobic-efficiency", async (c) => {
+    const parsed = parseRange(c.req.query());
+    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
+    return c.json(await getAerobicEfficiencyTrend(db, parsed));
+  });
+
+  app.get("/composites/readiness", async (c) => {
+    const parsed = parseRange(c.req.query());
+    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
+    return c.json(await getReadinessScore(db, parsed));
+  });
+
+  app.get("/composites/training-strain", async (c) => {
+    const parsed = parseRange(c.req.query());
+    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
+    return c.json(await getTrainingStrainVsRecovery(db, parsed));
+  });
+
+  app.get("/composites/run-fatigue", async (c) => {
+    const parsed = parseRange(c.req.query());
+    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
+    return c.json(await listRunFatigueFlags(db, parsed));
+  });
+
+  app.get("/composites/fitness-trend", async (c) => {
+    const parsed = parseRange(c.req.query());
+    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
+    return c.json(await getFitnessTrend(db, parsed));
+  });
+
+  app.get("/composites/load-quality", async (c) => {
+    const parsed = parseRange(c.req.query());
+    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
+    return c.json(await getLoadQuality(db, parsed));
+  });
+
+  app.get("/composites/recovery-debt", async (c) => {
+    const parsed = parseRange(c.req.query());
+    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
+    return c.json(await getRecoveryDebt(db, parsed));
+  });
+
+  app.get("/composites/consistency-index", async (c) => {
+    const parsed = parseRange(c.req.query());
+    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
+    return c.json(await getConsistencyIndex(db, parsed));
+  });
+
+  app.get("/composites/run-economy", async (c) => {
+    const parsed = parseRange(c.req.query());
+    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
+    return c.json(await getRunEconomyScore(db, parsed));
   });
 
   return app;

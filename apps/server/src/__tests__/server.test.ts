@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   ActivityPointSchema,
+  AdvancedCompositeReportSchema,
+  CompositeResultSchema,
   DistancePointSchema,
   EnergyPointSchema,
   HRPointSchema,
@@ -9,6 +11,7 @@ import {
   PowerPointSchema,
   RestingHRPointSchema,
   RestingHRRollingPointSchema,
+  RunFatigueFlagSchema,
   RunningDynamicsPointSchema,
   SleepNightDetailSchema,
   SleepNightPointSchema,
@@ -534,6 +537,50 @@ describe("Hono server", () => {
   test("GET /metrics/energy rejects invalid date ranges", async () => {
     const res = await app.request("/metrics/energy?from=nope&to=2024-06-02");
     expect(res.status).toBe(400);
+  });
+
+  test("GET /metrics/composites/report returns the advanced report", async () => {
+    const res = await app.request("/metrics/composites/report?from=2024-06-01&to=2024-06-06");
+    expect(res.status).toBe(200);
+    const body = AdvancedCompositeReportSchema.parse(await res.json());
+    expect(body.sections.map((section) => section.key)).toEqual([
+      "fitness_direction",
+      "easy_run_quality",
+      "recovery_state",
+      "workout_diagnoses",
+    ]);
+    expect(body.next_week_recommendation.recommendation.startsWith("Next week:")).toBe(true);
+  });
+
+  test("GET /metrics/composites report rejects invalid date ranges", async () => {
+    const res = await app.request("/metrics/composites/report?from=bad&to=2024-06-06");
+    expect(res.status).toBe(400);
+  });
+
+  test("GET /metrics/composites metric endpoints return composite results", async () => {
+    const paths = [
+      "aerobic-efficiency",
+      "readiness",
+      "training-strain",
+      "fitness-trend",
+      "load-quality",
+      "recovery-debt",
+      "consistency-index",
+      "run-economy",
+    ];
+
+    for (const path of paths) {
+      const res = await app.request(`/metrics/composites/${path}?from=2024-06-01&to=2024-06-06`);
+      expect(res.status).toBe(200);
+      CompositeResultSchema.parse(await res.json());
+    }
+  });
+
+  test("GET /metrics/composites/run-fatigue returns fatigue flags", async () => {
+    const res = await app.request("/metrics/composites/run-fatigue?from=2024-06-01&to=2024-06-06");
+    expect(res.status).toBe(200);
+    const body = z.array(RunFatigueFlagSchema).parse(await res.json());
+    expect(body.length).toBeGreaterThan(0);
   });
 
   test("GET /metrics/steps returns [] for an empty window", async () => {
