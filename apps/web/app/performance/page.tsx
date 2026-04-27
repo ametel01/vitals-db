@@ -5,6 +5,7 @@ import { StackedBar } from "@/components/charts/StackedBar";
 import {
   type FetchResult,
   getActivity,
+  getAdvancedCompositeReport,
   getDistance,
   getEnergy,
   getHRV,
@@ -34,7 +35,14 @@ import {
   todayIso,
   windowStartIso,
 } from "@/lib/format";
-import type { LoadRow, RestingHRRollingPoint, WorkoutStat, WorkoutSummary } from "@vitals/core";
+import type {
+  AdvancedCompositeReportSection,
+  CompositeResult,
+  LoadRow,
+  RestingHRRollingPoint,
+  WorkoutStat,
+  WorkoutSummary,
+} from "@vitals/core";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -63,6 +71,7 @@ export default async function PerformancePage(): Promise<React.ReactElement> {
   const shortFrom = windowStartIso(SHORT_WINDOW_DAYS);
 
   const [
+    reportResult,
     rollingResult,
     vo2Result,
     hrvResult,
@@ -76,6 +85,7 @@ export default async function PerformancePage(): Promise<React.ReactElement> {
     zoneTimeResult,
     workoutsResult,
   ] = await Promise.all([
+    getAdvancedCompositeReport({ from: shortFrom, to }),
     getRestingHRRolling({ from: rhrFrom, to }),
     getVO2Max({ from: performanceFrom, to }),
     getHRV({ from: performanceFrom, to }),
@@ -121,6 +131,8 @@ export default async function PerformancePage(): Promise<React.ReactElement> {
         Trend reporting across aerobic fitness, recovery, run economy, power, training load,
         activity volume, workout statistics, route context, and sample-based endurance KPIs.
       </p>
+
+      <CompositeReportPanel result={reportResult} />
 
       <div className="grid cols-4" style={{ marginBottom: 18 }}>
         <MetricCard
@@ -285,6 +297,110 @@ export default async function PerformancePage(): Promise<React.ReactElement> {
         )}
       </div>
     </div>
+  );
+}
+
+function CompositeReportPanel({
+  result,
+}: {
+  result: Awaited<ReturnType<typeof getAdvancedCompositeReport>>;
+}): React.ReactElement {
+  if (!result.ok) {
+    return (
+      <div className="card composite-report-error">
+        <CardTitle
+          title="Performance report"
+          tip="Composite answers from the paid analytics report before the raw chart views."
+        />
+        <ErrorBanner title="Could not load performance report" detail={result.message} />
+      </div>
+    );
+  }
+
+  const { sections, next_week_recommendation } = result.data;
+  const poorSections = sections.filter((section) => section.result.sample_quality === "poor");
+
+  return (
+    <section className="composite-report" aria-labelledby="performance-report-title">
+      <div className="composite-report-head">
+        <div>
+          <div className="kicker">
+            <span>Report answers</span>
+            <span>·</span>
+            <span>{SHORT_WINDOW_DAYS}-day window</span>
+          </div>
+          <h3 id="performance-report-title" className="section-title compact">
+            What changed, and what to do next
+          </h3>
+        </div>
+        <div className={`report-action ${actionTone(next_week_recommendation.kind)}`}>
+          <span>{actionLabel(next_week_recommendation.kind)}</span>
+          <strong>{next_week_recommendation.recommendation}</strong>
+        </div>
+      </div>
+
+      {poorSections.length === sections.length ? (
+        <div className="empty-state composite-empty">
+          The report needs better recent samples before it can answer the performance questions.
+        </div>
+      ) : null}
+
+      <div className="composite-card-grid">
+        {sections.map((section) => (
+          <CompositeSectionCard key={section.key} section={section} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function CompositeSectionCard({
+  section,
+}: {
+  section: AdvancedCompositeReportSection;
+}): React.ReactElement {
+  const { result } = section;
+  return (
+    <article className={`composite-card ${qualityTone(result)}`}>
+      <div className="composite-card-topline">
+        <span>{section.title}</span>
+        <span className={`tag ${tagTone(result.confidence)}`}>{result.confidence}</span>
+      </div>
+      <h4>{result.answer}</h4>
+      <div className="tag-list composite-tags">
+        <span className={`tag ${sampleTone(result.sample_quality)}`}>
+          {sampleLabel(result.sample_quality)}
+        </span>
+        <span className="tag">{result.claim_strength.replace("_", " ")}</span>
+      </div>
+      <CompositeEvidence result={result} />
+      <div className="composite-action">
+        <span>{actionLabel(result.action.kind)}</span>
+        <strong>{result.action.recommendation}</strong>
+      </div>
+    </article>
+  );
+}
+
+function CompositeEvidence({ result }: { result: CompositeResult }): React.ReactElement {
+  const evidence = result.evidence.slice(0, 2);
+  if (result.sample_quality === "poor") {
+    return (
+      <div className="composite-sample-note">
+        Poor sample quality: this answer should stay provisional.
+      </div>
+    );
+  }
+
+  return (
+    <dl className="composite-evidence">
+      {evidence.map((item) => (
+        <div key={item.label}>
+          <dt>{item.label}</dt>
+          <dd>{item.value === null ? "—" : item.value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -722,6 +838,50 @@ function isSeries(series: LineSeries | null): series is LineSeries {
 
 function hasRows<T>(result: FetchResult<T[]>): boolean {
   return result.ok && result.data.length > 0;
+}
+
+function actionLabel(kind: CompositeResult["action"]["kind"]): string {
+  const labels: Record<CompositeResult["action"]["kind"], string> = {
+    push: "Push",
+    maintain: "Maintain",
+    reduce_intensity: "Reduce intensity",
+    add_sleep: "Add sleep",
+    run_easier: "Run easier",
+    retest: "Retest",
+    watch: "Watch",
+  };
+  return labels[kind];
+}
+
+function actionTone(kind: CompositeResult["action"]["kind"]): string {
+  if (kind === "reduce_intensity" || kind === "run_easier") return "danger";
+  if (kind === "add_sleep" || kind === "retest" || kind === "watch") return "warning";
+  if (kind === "push") return "success";
+  return "";
+}
+
+function qualityTone(result: CompositeResult): string {
+  if (result.sample_quality === "poor") return "is-poor";
+  if (result.confidence === "low" || result.sample_quality === "mixed") return "is-mixed";
+  return "is-strong";
+}
+
+function tagTone(confidence: CompositeResult["confidence"]): string {
+  if (confidence === "high") return "success";
+  if (confidence === "medium") return "warning";
+  return "danger";
+}
+
+function sampleTone(sampleQuality: CompositeResult["sample_quality"]): string {
+  if (sampleQuality === "high") return "success";
+  if (sampleQuality === "mixed") return "warning";
+  return "danger";
+}
+
+function sampleLabel(sampleQuality: CompositeResult["sample_quality"]): string {
+  if (sampleQuality === "high") return "high sample";
+  if (sampleQuality === "mixed") return "mixed sample";
+  return "poor sample";
 }
 
 function sumLoad(rows: LoadRow[]): number {

@@ -1,6 +1,8 @@
 import {
   type ActivityPoint,
   ActivityPointSchema,
+  type AdvancedCompositeReport,
+  AdvancedCompositeReportSchema,
   type DistancePoint,
   DistancePointSchema,
   type EnergyPoint,
@@ -145,6 +147,12 @@ const WorkoutStatListSchema = z.array(WorkoutStatSchema);
 const WorkoutEventListSchema = z.array(WorkoutEventSchema);
 const WorkoutMetadataListSchema = z.array(WorkoutMetadataSchema);
 const WorkoutRouteListSchema = z.array(WorkoutRouteSchema);
+
+export function getAdvancedCompositeReport(
+  range: DateRange,
+): Promise<FetchResult<AdvancedCompositeReport>> {
+  return requestJson(buildUrl("metrics/composites/report", range), AdvancedCompositeReportSchema);
+}
 
 export function listWorkouts(
   params: ListWorkoutsParams = {},
