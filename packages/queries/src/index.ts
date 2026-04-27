@@ -43,6 +43,7 @@ export { getDistanceDaily } from "./distance";
 export { getEnergyDaily } from "./energy";
 export { getLoadForRange, getWorkoutLoad } from "./load";
 export { getWorkoutEfficiency, type WorkoutEfficiencyParams } from "./efficiency";
+export { getFitnessTrend } from "./fitness_trend";
 export { getWorkoutSampleQuality } from "./sample_quality";
 export {
   getWorkoutContextSummary,
