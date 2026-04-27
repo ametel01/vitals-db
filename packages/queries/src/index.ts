@@ -36,6 +36,7 @@ export { getSpeedDaily } from "./speed";
 export { getPowerDaily } from "./power";
 export { getReadinessScore } from "./readiness";
 export { getRunningDynamicsDaily } from "./running_dynamics";
+export { getTrainingStrainVsRecovery } from "./training_strain";
 export { getStepsDaily } from "./steps";
 export { getDistanceDaily } from "./distance";
 export { getEnergyDaily } from "./energy";
