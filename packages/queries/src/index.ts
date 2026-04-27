@@ -1,5 +1,13 @@
 export type { DateRange } from "./dates";
 export {
+  buildCompositeWindows,
+  classifyTrend,
+  type CompositeWindows,
+  type TrendClassification,
+  type TrendDirection,
+  type TrendOptions,
+} from "./composite_windows";
+export {
   getWorkoutDetail,
   getWorkoutSummary,
   type ListWorkoutsParams,
