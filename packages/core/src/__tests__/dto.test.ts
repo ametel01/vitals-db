@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   ActivityPointSchema,
+  CompositeResultSchema,
   DistancePointSchema,
   EnergyPointSchema,
   HRPointSchema,
@@ -296,6 +297,67 @@ describe("DTO round-trip parsing", () => {
       },
     };
     expect(WorkoutEfficiencySchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("CompositeResult", () => {
+    const fixture = {
+      answer: "Aerobic efficiency likely improved",
+      evidence: [
+        {
+          label: "Fixed-HR pace",
+          value: "5:20/km",
+          detail: "Pace at 120-130 bpm improved against baseline.",
+        },
+        {
+          label: "Sample quality",
+          value: 0.92,
+          detail: "Most runs had aligned HR and speed samples.",
+        },
+      ],
+      action: {
+        kind: "maintain" as const,
+        recommendation: "Keep easy runs easy next week.",
+      },
+      confidence: "medium" as const,
+      sample_quality: "mixed" as const,
+      claim_strength: "likely" as const,
+    };
+    expect(CompositeResultSchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("CompositeResult pins conservative evidence and action shape", () => {
+    const base = {
+      answer: "Readiness suggests an easier day",
+      evidence: [
+        {
+          label: "HRV",
+          value: "below baseline",
+          detail: "HRV is lower than the comparison window.",
+        },
+      ],
+      action: {
+        kind: "run_easier" as const,
+        recommendation: "Keep intensity low today.",
+      },
+      confidence: "low" as const,
+      sample_quality: "poor" as const,
+      claim_strength: "suggests" as const,
+    };
+    expect(CompositeResultSchema.parse(base)).toEqual(base);
+    expect(() => CompositeResultSchema.parse({ ...base, evidence: [] })).toThrow();
+    expect(() =>
+      CompositeResultSchema.parse({
+        ...base,
+        evidence: [
+          ...base.evidence,
+          ...base.evidence,
+          ...base.evidence,
+          ...base.evidence,
+          ...base.evidence,
+        ],
+      }),
+    ).toThrow();
+    expect(() => CompositeResultSchema.parse({ ...base, claim_strength: "diagnoses" })).toThrow();
   });
 
   test("SleepNightPoint", () => {

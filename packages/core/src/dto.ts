@@ -238,6 +238,54 @@ export const WorkoutEfficiencySchema = z.object({
 });
 export type WorkoutEfficiency = z.infer<typeof WorkoutEfficiencySchema>;
 
+export const CompositeConfidenceSchema = z.enum(["high", "medium", "low"]);
+export type CompositeConfidence = z.infer<typeof CompositeConfidenceSchema>;
+
+export const CompositeSampleQualitySchema = z.enum(["high", "mixed", "poor"]);
+export type CompositeSampleQuality = z.infer<typeof CompositeSampleQualitySchema>;
+
+export const CompositeClaimStrengthSchema = z.enum([
+  "suggests",
+  "likely",
+  "worth_watching",
+  "measured",
+]);
+export type CompositeClaimStrength = z.infer<typeof CompositeClaimStrengthSchema>;
+
+export const CompositeActionKindSchema = z.enum([
+  "push",
+  "maintain",
+  "reduce_intensity",
+  "add_sleep",
+  "run_easier",
+  "retest",
+  "watch",
+]);
+export type CompositeActionKind = z.infer<typeof CompositeActionKindSchema>;
+
+export const CompositeEvidenceSchema = z.object({
+  label: z.string().min(1),
+  value: z.union([z.string().min(1), z.number().finite()]).nullable(),
+  detail: z.string().min(1),
+});
+export type CompositeEvidence = z.infer<typeof CompositeEvidenceSchema>;
+
+export const CompositeActionSchema = z.object({
+  kind: CompositeActionKindSchema,
+  recommendation: z.string().min(1),
+});
+export type CompositeAction = z.infer<typeof CompositeActionSchema>;
+
+export const CompositeResultSchema = z.object({
+  answer: z.string().min(1),
+  evidence: z.array(CompositeEvidenceSchema).min(1).max(4),
+  action: CompositeActionSchema,
+  confidence: CompositeConfidenceSchema,
+  sample_quality: CompositeSampleQualitySchema,
+  claim_strength: CompositeClaimStrengthSchema,
+});
+export type CompositeResult = z.infer<typeof CompositeResultSchema>;
+
 export const StepsPointSchema = z.object({
   day: IsoDate,
   total_steps: NonNegativeNumber,
