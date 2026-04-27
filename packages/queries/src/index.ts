@@ -34,6 +34,7 @@ export { getHRVDaily } from "./hrv";
 export { getWalkingHRDaily } from "./walking_hr";
 export { getSpeedDaily } from "./speed";
 export { getPowerDaily } from "./power";
+export { getReadinessScore } from "./readiness";
 export { getRunningDynamicsDaily } from "./running_dynamics";
 export { getStepsDaily } from "./steps";
 export { getDistanceDaily } from "./distance";
