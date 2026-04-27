@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   ActivityPointSchema,
+  AdvancedCompositeReportSchema,
   CompositeResultSchema,
   DistancePointSchema,
   EnergyPointSchema,
@@ -362,6 +363,47 @@ describe("DTO round-trip parsing", () => {
       }),
     ).toThrow();
     expect(() => CompositeResultSchema.parse({ ...base, claim_strength: "diagnoses" })).toThrow();
+  });
+
+  test("AdvancedCompositeReport groups the paid report sections", () => {
+    const result = {
+      answer: "Fitness is improving",
+      evidence: [
+        {
+          label: "VO2 Max",
+          value: "+2.0",
+          detail: "VO2 Max improved against baseline.",
+        },
+      ],
+      action: {
+        kind: "maintain" as const,
+        recommendation: "Keep the current aerobic workload.",
+      },
+      confidence: "medium" as const,
+      sample_quality: "mixed" as const,
+      claim_strength: "suggests" as const,
+    };
+    const fixture = {
+      from: "2024-06-01",
+      to: "2024-06-07",
+      sections: [
+        { key: "fitness_direction" as const, title: "Fitness direction", result },
+        { key: "easy_run_quality" as const, title: "Easy-run quality", result },
+        { key: "recovery_state" as const, title: "Recovery state", result },
+        { key: "workout_diagnoses" as const, title: "Workout diagnoses", result },
+      ],
+      next_week_recommendation: {
+        kind: "maintain" as const,
+        recommendation: "Keep the current aerobic workload.",
+      },
+    };
+    expect(AdvancedCompositeReportSchema.parse(fixture)).toEqual(fixture);
+    expect(() =>
+      AdvancedCompositeReportSchema.parse({
+        ...fixture,
+        sections: fixture.sections.slice(0, 3),
+      }),
+    ).toThrow();
   });
 
   test("WorkoutSampleQuality", () => {

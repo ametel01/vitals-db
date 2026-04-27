@@ -341,6 +341,31 @@ export const CompositeResultSchema = z.object({
 });
 export type CompositeResult = z.infer<typeof CompositeResultSchema>;
 
+export const AdvancedCompositeReportSectionKeySchema = z.enum([
+  "fitness_direction",
+  "easy_run_quality",
+  "recovery_state",
+  "workout_diagnoses",
+]);
+export type AdvancedCompositeReportSectionKey = z.infer<
+  typeof AdvancedCompositeReportSectionKeySchema
+>;
+
+export const AdvancedCompositeReportSectionSchema = z.object({
+  key: AdvancedCompositeReportSectionKeySchema,
+  title: z.string().min(1),
+  result: CompositeResultSchema,
+});
+export type AdvancedCompositeReportSection = z.infer<typeof AdvancedCompositeReportSectionSchema>;
+
+export const AdvancedCompositeReportSchema = z.object({
+  from: IsoDate,
+  to: IsoDate,
+  sections: z.array(AdvancedCompositeReportSectionSchema).length(4),
+  next_week_recommendation: CompositeActionSchema,
+});
+export type AdvancedCompositeReport = z.infer<typeof AdvancedCompositeReportSchema>;
+
 export const RunFatigueFlagSchema = z.object({
   workout_id: z.string(),
   start_ts: IsoDateTime,

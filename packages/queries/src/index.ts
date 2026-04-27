@@ -1,4 +1,5 @@
 export type { DateRange } from "./dates";
+export { getAdvancedCompositeReport } from "./advanced_report";
 export { getAerobicEfficiencyTrend } from "./aerobic_efficiency_trend";
 export {
   buildCompositeWindows,
