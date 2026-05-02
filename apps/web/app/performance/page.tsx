@@ -165,6 +165,8 @@ export default async function PerformancePage(): Promise<React.ReactElement> {
         <RestingHRTrendCard result={rollingResult} />
       </div>
 
+      <RunDurabilitySummary rows={runRows} />
+
       <div className="grid cols-2" style={{ marginBottom: 18 }}>
         <ChartCard
           title="Readiness trend"
@@ -235,8 +237,9 @@ export default async function PerformancePage(): Promise<React.ReactElement> {
         </ChartCard>
       </div>
 
-      <div className="grid cols-3" style={{ marginBottom: 18 }}>
+      <div className="grid cols-4" style={{ marginBottom: 18 }}>
         <RunKpiChart rows={runRows} metric="pace" />
+        <RunKpiChart rows={runRows} metric="drift" />
         <RunKpiChart rows={runRows} metric="decoupling" />
         <RunKpiChart rows={runRows} metric="z2" />
       </div>
@@ -514,12 +517,38 @@ function ChartCard({
   );
 }
 
+function RunDurabilitySummary({ rows }: { rows: PerformanceRunRow[] }): React.ReactElement {
+  const drift = summarizeRunMetric(rows, (row) =>
+    row.detail.ok ? row.detail.data.drift_pct : null,
+  );
+  const decoupling = summarizeRunMetric(rows, (row) =>
+    row.efficiency.ok ? row.efficiency.data.decoupling.decoupling_pct : null,
+  );
+
+  return (
+    <div className="grid cols-2" style={{ marginBottom: 18 }}>
+      <MetricCard
+        title="Avg HR drift"
+        value={drift.avg === null ? "—" : formatPercentValue(drift.avg, 1)}
+        sub={formatRunMetricCoverage(drift.count)}
+        tip="Average first-half to second-half heart-rate drift across recent running workouts."
+      />
+      <MetricCard
+        title="Avg decoupling"
+        value={decoupling.avg === null ? "—" : formatPercentValue(decoupling.avg, 1)}
+        sub={formatRunMetricCoverage(decoupling.count)}
+        tip="Average pace-per-heartbeat decoupling across recent runs with aligned HR and speed samples."
+      />
+    </div>
+  );
+}
+
 function RunKpiChart({
   rows,
   metric,
 }: {
   rows: PerformanceRunRow[];
-  metric: "pace" | "decoupling" | "z2";
+  metric: "pace" | "drift" | "decoupling" | "z2";
 }): React.ReactElement {
   const config = {
     pace: {
@@ -531,9 +560,17 @@ function RunKpiChart({
       value: (row: PerformanceRunRow) =>
         row.efficiency.ok ? row.efficiency.data.pace_at_hr.pace_sec_per_km : null,
     },
+    drift: {
+      title: "HR drift by run",
+      tip: "First-half to second-half heart-rate drift for each recent running workout.",
+      name: "HR drift",
+      color: "#BFA6FF",
+      yAxis: "%",
+      value: (row: PerformanceRunRow) => (row.detail.ok ? row.detail.data.drift_pct : null),
+    },
     decoupling: {
       title: "First-hour decoupling",
-      tip: "Percent drop in speed-per-heartbeat efficiency between the first and second half of the first 45-60 minutes.",
+      tip: "Percent change in pace-per-heartbeat between the first and second half of the first 45-60 minutes.",
       name: "Decoupling",
       color: "#FF6B4A",
       yAxis: "%",
@@ -706,6 +743,7 @@ function RecentRunsTable({ rows }: { rows: PerformanceRunRow[] }): React.ReactEl
           <th>Avg HR</th>
           <th>Avg Power</th>
           <th>Pace @ 120-130</th>
+          <th>HR drift</th>
           <th>Decoupling</th>
           <th>Z2</th>
           <th>Context</th>
@@ -716,6 +754,10 @@ function RecentRunsTable({ rows }: { rows: PerformanceRunRow[] }): React.ReactEl
         {rows.map((row) => {
           const { workout, detail, efficiency } = row;
           const pace = efficiency.ok ? formatPace(efficiency.data.pace_at_hr.pace_sec_per_km) : "—";
+          const drift =
+            detail.ok && detail.data.drift_pct !== null
+              ? formatPercentValue(detail.data.drift_pct, 1)
+              : "—";
           const decoupling =
             efficiency.ok && efficiency.data.decoupling.decoupling_pct !== null
               ? formatPercentValue(efficiency.data.decoupling.decoupling_pct, 1)
@@ -733,6 +775,7 @@ function RecentRunsTable({ rows }: { rows: PerformanceRunRow[] }): React.ReactEl
               <td>{formatWorkoutStat(row, "HKQuantityTypeIdentifierHeartRate", "average")}</td>
               <td>{formatWorkoutStat(row, "HKQuantityTypeIdentifierRunningPower", "average")}</td>
               <td>{pace}</td>
+              <td>{drift}</td>
               <td>{decoupling}</td>
               <td>{z2}</td>
               <td>
@@ -886,6 +929,26 @@ function sampleLabel(sampleQuality: CompositeResult["sample_quality"]): string {
 
 function sumLoad(rows: LoadRow[]): number {
   return rows.reduce((sum, row) => sum + (row.load ?? 0), 0);
+}
+
+function summarizeRunMetric(
+  rows: PerformanceRunRow[],
+  value: (row: PerformanceRunRow) => number | null,
+): { avg: number | null; count: number } {
+  const values = rows
+    .map(value)
+    .filter((metric): metric is number => metric !== null && Number.isFinite(metric));
+  if (values.length === 0) return { avg: null, count: 0 };
+  return {
+    avg: values.reduce((sum, metric) => sum + metric, 0) / values.length,
+    count: values.length,
+  };
+}
+
+function formatRunMetricCoverage(count: number): string {
+  if (count === 0) return "No qualifying runs";
+  if (count === 1) return "1 qualifying run";
+  return `${count} qualifying runs`;
 }
 
 function summarizeRestingHR(rows: RestingHRRollingPoint[]): {
