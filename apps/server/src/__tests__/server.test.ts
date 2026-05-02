@@ -167,13 +167,17 @@ describe("Hono server", () => {
     const res = await app.request(`/workouts/${WORKOUT_ID_EFFICIENCY}/efficiency`);
     expect(res.status).toBe(200);
     const body = WorkoutEfficiencySchema.parse(await res.json());
+    const firstHalfPacePerHr = (1000 / 3.6 + 1000 / 3.8 + 1000 / 3.7) / 3 / ((118 + 122 + 126) / 3);
+    const secondHalfPacePerHr =
+      (1000 / 3.5 + 1000 / 3.4 + 1000 / 3.3) / 3 / ((128 + 130 + 132) / 3);
+
     expect(body.pace_at_hr.sample_count).toBe(4);
     expect(body.pace_at_hr.avg_speed_mps).toBeCloseTo(3.6, 6);
     expect(body.pace_at_hr.pace_sec_per_km).toBeCloseTo(1000 / 3.6, 6);
     expect(body.decoupling.window_duration_sec).toBe(3600);
     expect(body.decoupling.sample_count).toBe(6);
     expect(body.decoupling.decoupling_pct).toBeCloseTo(
-      ((3.7 / 122 - 3.4 / 130) / (3.7 / 122)) * 100,
+      ((secondHalfPacePerHr - firstHalfPacePerHr) / firstHalfPacePerHr) * 100,
       6,
     );
   });

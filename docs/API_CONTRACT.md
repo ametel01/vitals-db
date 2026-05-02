@@ -68,7 +68,8 @@ Response: `WorkoutEfficiency` on 200 with:
 
 - `pace_at_hr` — aligned-sample fixed-HR pace for the requested band
 - `decoupling` — fixed-duration aerobic-efficiency metric over the first
-  `45–60` minutes only
+  `45–60` minutes only, computed as the percent change in `pace / HR`
+  between the second and first half
 
 Nullability rules:
 

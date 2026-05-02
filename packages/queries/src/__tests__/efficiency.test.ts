@@ -36,13 +36,17 @@ describe("getWorkoutEfficiency", () => {
 
   test("computes fixed-duration decoupling over the first workout hour", async () => {
     const efficiency = await getWorkoutEfficiency(db, WORKOUT_EFFICIENCY_ID);
+    const firstHalfPacePerHr = (1000 / 3.6 + 1000 / 3.8 + 1000 / 3.7) / 3 / ((118 + 122 + 126) / 3);
+    const secondHalfPacePerHr =
+      (1000 / 3.5 + 1000 / 3.4 + 1000 / 3.3) / 3 / ((128 + 130 + 132) / 3);
+
     expect(efficiency).not.toBeNull();
     expect(efficiency?.decoupling.window_duration_sec).toBe(3600);
     expect(efficiency?.decoupling.sample_count).toBe(6);
-    expect(efficiency?.decoupling.first_half_efficiency).toBeCloseTo(3.7 / 122, 6);
-    expect(efficiency?.decoupling.second_half_efficiency).toBeCloseTo(3.4 / 130, 6);
+    expect(efficiency?.decoupling.first_half_efficiency).toBeCloseTo(firstHalfPacePerHr, 6);
+    expect(efficiency?.decoupling.second_half_efficiency).toBeCloseTo(secondHalfPacePerHr, 6);
     expect(efficiency?.decoupling.decoupling_pct).toBeCloseTo(
-      ((3.7 / 122 - 3.4 / 130) / (3.7 / 122)) * 100,
+      ((secondHalfPacePerHr - firstHalfPacePerHr) / firstHalfPacePerHr) * 100,
       6,
     );
   });

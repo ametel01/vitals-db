@@ -63,6 +63,10 @@ function average(values: number[]): number | null {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
+function paceSecPerKm(speedMps: number): number {
+  return 1000 / speedMps;
+}
+
 function buildPaceAtHR(samples: AlignedSampleRow[], hrMin: number, hrMax: number): WorkoutPaceAtHR {
   const matched = samples.filter(
     (sample) => sample.bpm >= hrMin && sample.bpm <= hrMax && sample.speed > 0,
@@ -104,23 +108,23 @@ function buildDecoupling(
   const firstHalf = windowSamples.filter((sample) => sample.ts.getTime() < midpointMs);
   const secondHalf = windowSamples.filter((sample) => sample.ts.getTime() >= midpointMs);
 
-  const firstAvgSpeed = average(firstHalf.map((sample) => sample.speed));
   const firstAvgHr = average(firstHalf.map((sample) => sample.bpm));
-  const secondAvgSpeed = average(secondHalf.map((sample) => sample.speed));
+  const firstAvgPace = average(firstHalf.map((sample) => paceSecPerKm(sample.speed)));
   const secondAvgHr = average(secondHalf.map((sample) => sample.bpm));
+  const secondAvgPace = average(secondHalf.map((sample) => paceSecPerKm(sample.speed)));
 
   const firstEfficiency =
-    firstAvgSpeed === null || firstAvgHr === null || firstAvgHr <= 0
+    firstAvgPace === null || firstAvgHr === null || firstAvgHr <= 0
       ? null
-      : firstAvgSpeed / firstAvgHr;
+      : firstAvgPace / firstAvgHr;
   const secondEfficiency =
-    secondAvgSpeed === null || secondAvgHr === null || secondAvgHr <= 0
+    secondAvgPace === null || secondAvgHr === null || secondAvgHr <= 0
       ? null
-      : secondAvgSpeed / secondAvgHr;
+      : secondAvgPace / secondAvgHr;
   const decouplingPct =
     firstEfficiency === null || secondEfficiency === null || firstEfficiency === 0
       ? null
-      : ((firstEfficiency - secondEfficiency) / firstEfficiency) * 100;
+      : ((secondEfficiency - firstEfficiency) / firstEfficiency) * 100;
 
   return WorkoutDecouplingSchema.parse({
     window_duration_sec: windowDurationSec,
@@ -133,9 +137,9 @@ function buildDecoupling(
 
 // 0.9.0 adds a dedicated efficiency view rather than widening WorkoutDetail.
 // Pace-at-HR only uses aligned workout-level speed + HR samples; missing
-// alignments yield null KPIs rather than false zeroes. Decoupling is computed
-// over the first 45-60 minutes only, preserving the older whole-workout drift
-// query as a separate metric with unchanged semantics.
+// alignments yield null KPIs rather than false zeroes. Decoupling compares
+// pace-per-heartbeat ratios over the first 45-60 minutes only, preserving the
+// older whole-workout drift query as a separate metric with unchanged semantics.
 export async function getWorkoutEfficiency(
   db: Db,
   workoutId: string,
