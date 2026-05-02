@@ -5,4 +5,5 @@ dist
 *.duckdb.wal
 .env*.local
 coverage
-export.xml
+export.*
+.DS_Store
