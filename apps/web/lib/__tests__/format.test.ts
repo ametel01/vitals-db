@@ -43,5 +43,6 @@ describe("web format helpers", () => {
 
   test("formatPercentValue treats the input as an already-scaled percent", () => {
     expect(formatPercentValue(6.6666667, 1)).toBe("6.7%");
+    expect(formatPercentValue(-0.00001, 1)).toBe("0.0%");
   });
 });

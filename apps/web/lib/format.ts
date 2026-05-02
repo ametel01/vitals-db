@@ -20,7 +20,8 @@ export function formatPercent(ratio: number, fractionDigits = 1): string {
 }
 
 export function formatPercentValue(value: number, fractionDigits = 1): string {
-  return `${value.toFixed(fractionDigits)}%`;
+  const rounded = Number(value.toFixed(fractionDigits));
+  return `${rounded.toFixed(fractionDigits)}%`;
 }
 
 export function formatPace(secondsPerKilometer: number | null): string {
