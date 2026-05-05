@@ -20,6 +20,7 @@ export { getWorkoutHR } from "./workout_hr";
 export {
   getWorkoutZoneBreakdown,
   getWorkoutZones,
+  getWeeklyZ2Minutes,
   getZones,
   getZoneTimeDistribution,
 } from "./zones";
@@ -33,10 +34,13 @@ export { getRestingHRRolling7d } from "./resting_hr_rolling";
 export { getWeeklyActivity } from "./activity";
 export { getVO2MaxDaily } from "./vo2max";
 export { getHRVDaily } from "./hrv";
+export { getHRAtPaceTrend, getAverageHRAtPace, type HRAtPaceParams } from "./hr_at_pace";
 export { getWalkingHRDaily } from "./walking_hr";
 export { getSpeedDaily } from "./speed";
 export { getPowerDaily } from "./power";
 export { getReadinessScore } from "./readiness";
+export { getRecoveryFlag } from "./recovery_flag";
+export { getWorkoutRecoveryTimes } from "./recovery_time";
 export { getRecoveryDebt } from "./recovery_debt";
 export { getRunEconomyScore } from "./run_economy";
 export { getRunFatigueFlag, listRunFatigueFlags } from "./run_fatigue";
@@ -47,6 +51,7 @@ export { getDistanceDaily } from "./distance";
 export { getEnergyDaily } from "./energy";
 export { getLoadForRange, getWorkoutLoad } from "./load";
 export { getLoadQuality } from "./load_quality";
+export { getMetricWindowComparisons } from "./metric_windows";
 export { getWorkoutEfficiency, type WorkoutEfficiencyParams } from "./efficiency";
 export { getFitnessTrend } from "./fitness_trend";
 export { getWorkoutSampleQuality } from "./sample_quality";

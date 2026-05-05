@@ -1,6 +1,8 @@
 import {
   HR_ZONES,
   HR_ZONE_ORDER,
+  type WeeklyZ2MinutesRow,
+  WeeklyZ2MinutesRowSchema,
   type WorkoutZoneBreakdownRow,
   WorkoutZoneBreakdownRowSchema,
   type ZoneTimeDistributionRow,
@@ -9,7 +11,7 @@ import {
   ZonesRowSchema,
 } from "@vitals/core";
 import type { Db } from "@vitals/db";
-import { type DateRange, normalizeRangeEnd, normalizeRangeStart } from "./dates";
+import { type DateRange, normalizeRangeEnd, normalizeRangeStart, toIsoDate } from "./dates";
 
 const MAX_ZONE_INTERVAL_SEC = 120;
 
@@ -151,6 +153,75 @@ export async function getZoneTimeDistribution(
       zone,
       duration_sec: durationSec,
       ratio: durationSec / total,
+    });
+  });
+}
+
+type WeeklyZ2Row = {
+  week: Date;
+  z2_duration_sec: number | null;
+  total_duration_sec: number | null;
+};
+
+function weeklyZ2MinutesSql(upperOperator: "<" | "<="): string {
+  return `WITH scoped AS (
+            SELECT
+              w.id AS workout_id,
+              DATE_TRUNC('week', w.start_ts)::DATE AS week,
+              w.end_ts AS workout_end_ts,
+              hr.ts,
+              hr.bpm,
+              LEAD(hr.ts) OVER (
+                PARTITION BY w.id
+                ORDER BY hr.ts
+              ) AS next_ts
+            FROM workouts w
+            JOIN heart_rate hr
+              ON hr.ts BETWEEN w.start_ts AND w.end_ts
+            WHERE w.start_ts >= ? AND w.start_ts ${upperOperator} ?
+          ),
+          intervals AS (
+            SELECT
+              week,
+              bpm,
+              GREATEST(
+                0,
+                LEAST(
+                  EXTRACT(EPOCH FROM COALESCE(next_ts, workout_end_ts)) - EXTRACT(EPOCH FROM ts),
+                  ?
+                )
+              ) AS duration_sec
+            FROM scoped
+          )
+          SELECT
+            week,
+            COALESCE(
+              SUM(CASE WHEN bpm BETWEEN ${HR_ZONES.Z2.min} AND ${HR_ZONES.Z2.max}
+                       THEN duration_sec ELSE 0 END),
+              0
+            )::DOUBLE AS z2_duration_sec,
+            COALESCE(SUM(duration_sec), 0)::DOUBLE AS total_duration_sec
+          FROM intervals
+          GROUP BY week
+          ORDER BY week`;
+}
+
+export async function getWeeklyZ2Minutes(db: Db, range: DateRange): Promise<WeeklyZ2MinutesRow[]> {
+  const upper = normalizeRangeEnd(range.to);
+  const rows = await db.all<WeeklyZ2Row>(weeklyZ2MinutesSql(upper.operator), [
+    normalizeRangeStart(range.from),
+    upper.value,
+    MAX_ZONE_INTERVAL_SEC,
+  ]);
+
+  return rows.map((row) => {
+    const totalDurationSec = row.total_duration_sec ?? 0;
+    const z2DurationSec = row.z2_duration_sec ?? 0;
+    return WeeklyZ2MinutesRowSchema.parse({
+      week: toIsoDate(row.week),
+      z2_duration_sec: z2DurationSec,
+      total_duration_sec: totalDurationSec,
+      z2_ratio: totalDurationSec > 0 ? z2DurationSec / totalDurationSec : null,
     });
   });
 }

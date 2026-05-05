@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { Db } from "@vitals/db";
 import {
+  getWeeklyZ2Minutes,
   getWorkoutZoneBreakdown,
   getWorkoutZones,
   getZoneTimeDistribution,
@@ -90,5 +91,17 @@ describe("zones queries", () => {
   test("getZoneTimeDistribution returns [] when no workout HR intervals exist", async () => {
     const rows = await getZoneTimeDistribution(db, { from: "2025-01-01", to: "2025-01-01" });
     expect(rows).toEqual([]);
+  });
+
+  test("getWeeklyZ2Minutes buckets estimated Z2 minutes by ISO week", async () => {
+    const rows = await getWeeklyZ2Minutes(db, { from: "2024-06-01", to: "2024-06-01" });
+    expect(rows).toEqual([
+      {
+        week: "2024-05-27",
+        z2_duration_sec: 240,
+        total_duration_sec: 720,
+        z2_ratio: 1 / 3,
+      },
+    ]);
   });
 });
