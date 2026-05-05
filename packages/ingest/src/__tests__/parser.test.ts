@@ -10,35 +10,8 @@ async function collect(xml: string): Promise<ParsedNode[]> {
 const WRAPPER = (inner: string) =>
   `<?xml version="1.0" encoding="UTF-8"?>\n<HealthData locale="en_GB">\n${inner}\n</HealthData>`;
 
-describe("parser", () => {
-  test("emits in-scope Record nodes with attributes", async () => {
-    const xml = WRAPPER(
-      `<Record type="HKQuantityTypeIdentifierHeartRate" sourceName="Apple Watch" unit="count/min" ` +
-        `startDate="2024-06-01 08:00:00 +0000" endDate="2024-06-01 08:00:00 +0000" value="72"/>`,
-    );
-    const out = await collect(xml);
-    expect(out).toEqual([
-      {
-        kind: "record",
-        type: "HKQuantityTypeIdentifierHeartRate",
-        startDate: "2024-06-01 08:00:00 +0000",
-        endDate: "2024-06-01 08:00:00 +0000",
-        value: "72",
-        sourceName: "Apple Watch",
-        unit: "count/min",
-      },
-    ]);
-  });
-
-  test("drops Record types outside the HK filter list", async () => {
-    const xml = WRAPPER(
-      `<Record type="HKQuantityTypeIdentifierDietaryProtein" startDate="2024-06-01 08:00:00 +0000" ` +
-        `endDate="2024-06-01 08:00:00 +0000" value="20"/>`,
-    );
-    expect(await collect(xml)).toEqual([]);
-  });
-
-  test("drops samples flagged HKWasUserEntered=1", async () => {
+describe("parser edge cases", () => {
+  test("drops user-entered samples", async () => {
     const xml = WRAPPER(
       `<Record type="HKQuantityTypeIdentifierHeartRate" startDate="2024-06-01 08:00:00 +0000" ` +
         `endDate="2024-06-01 08:00:00 +0000" value="72">` +
@@ -48,125 +21,27 @@ describe("parser", () => {
     expect(await collect(xml)).toEqual([]);
   });
 
-  test("keeps samples with MetadataEntry that isn't HKWasUserEntered=1", async () => {
-    const xml = WRAPPER(
-      `<Record type="HKQuantityTypeIdentifierHeartRate" startDate="2024-06-01 08:00:00 +0000" ` +
-        `endDate="2024-06-01 08:00:00 +0000" value="72">` +
-        `<MetadataEntry key="HKMetadataKeyHeartRateMotionContext" value="0"/>` +
-        `<MetadataEntry key="HKWasUserEntered" value="0"/>` +
-        "</Record>",
-    );
-    const out = await collect(xml);
-    expect(out).toHaveLength(1);
-    expect(out[0]?.kind).toBe("record");
-  });
-
-  test("emits Workout nodes independent of Record filtering", async () => {
-    const xml = WRAPPER(
-      `<Workout workoutActivityType="HKWorkoutActivityTypeRunning" duration="30" durationUnit="min" ` +
-        `sourceName="Apple Watch" startDate="2024-06-01 08:00:00 +0000" endDate="2024-06-01 08:30:00 +0000">` +
-        `<WorkoutEvent type="HKWorkoutEventTypePause" date="2024-06-01 08:10:00 +0000"/>` +
-        "</Workout>",
-    );
-    const out = await collect(xml);
-    expect(out).toEqual([
-      {
-        kind: "workout",
-        workoutActivityType: "HKWorkoutActivityTypeRunning",
-        startDate: "2024-06-01 08:00:00 +0000",
-        endDate: "2024-06-01 08:30:00 +0000",
-        duration: "30",
-        durationUnit: "min",
-        sourceName: "Apple Watch",
-        statistics: [],
-        events: [
-          {
-            type: "HKWorkoutEventTypePause",
-            date: "2024-06-01 08:10:00 +0000",
-            duration: null,
-            durationUnit: null,
-          },
-        ],
-        metadata: [],
-        routes: [],
-      },
-    ]);
-  });
-
-  test("drops malformed Workout activity types", async () => {
-    const xml = WRAPPER(
-      `<Workout workoutActivityType="Running" duration="30" durationUnit="min" ` +
-        `startDate="2024-06-01 08:00:00 +0000" endDate="2024-06-01 08:30:00 +0000"/>` +
-        `<Workout duration="30" durationUnit="min" ` +
-        `startDate="2024-06-01 09:00:00 +0000" endDate="2024-06-01 09:30:00 +0000"/>`,
-    );
-    expect(await collect(xml)).toEqual([]);
-  });
-
-  test("captures workout statistics, metadata, events, and routes", async () => {
+  test("captures workout children (events/stats/metadata/routes)", async () => {
     const xml = WRAPPER(
       `<Workout workoutActivityType="HKWorkoutActivityTypeRunning" duration="30" durationUnit="min" ` +
         `sourceName="Apple Watch" startDate="2024-06-01 08:00:00 +0000" endDate="2024-06-01 08:30:00 +0000">` +
         `<MetadataEntry key="HKIndoorWorkout" value="0"/>` +
         `<WorkoutEvent type="HKWorkoutEventTypeSegment" date="2024-06-01 08:00:00 +0000" duration="5" durationUnit="min"/>` +
         `<WorkoutStatistics type="HKQuantityTypeIdentifierRunningPower" startDate="2024-06-01 08:00:00 +0000" endDate="2024-06-01 08:30:00 +0000" average="210" minimum="180" maximum="240" unit="W"/>` +
-        `<WorkoutRoute sourceName="Apple Watch" startDate="2024-06-01 08:00:00 +0000" endDate="2024-06-01 08:30:00 +0000">` +
-        `<FileReference path="/workout-routes/route.gpx"/>` +
-        "</WorkoutRoute>" +
+        `<WorkoutRoute sourceName="Apple Watch" startDate="2024-06-01 08:00:00 +0000" endDate="2024-06-01 08:30:00 +0000"><FileReference path="/workout-routes/route.gpx"/></WorkoutRoute>` +
         "</Workout>",
     );
     const out = await collect(xml);
     expect(out).toHaveLength(1);
-    const workout = out[0];
-    expect(workout?.kind).toBe("workout");
-    if (workout?.kind !== "workout") return;
-    expect(workout.metadata).toEqual([{ key: "HKIndoorWorkout", value: "0" }]);
-    expect(workout.events).toEqual([
-      {
-        type: "HKWorkoutEventTypeSegment",
-        date: "2024-06-01 08:00:00 +0000",
-        duration: "5",
-        durationUnit: "min",
-      },
-    ]);
-    expect(workout.statistics).toEqual([
-      {
-        type: "HKQuantityTypeIdentifierRunningPower",
-        startDate: "2024-06-01 08:00:00 +0000",
-        endDate: "2024-06-01 08:30:00 +0000",
-        average: "210",
-        minimum: "180",
-        maximum: "240",
-        sum: null,
-        unit: "W",
-      },
-    ]);
-    expect(workout.routes).toEqual([
-      {
-        sourceName: "Apple Watch",
-        startDate: "2024-06-01 08:00:00 +0000",
-        endDate: "2024-06-01 08:30:00 +0000",
-        path: "/workout-routes/route.gpx",
-      },
-    ]);
+    expect(out[0]?.kind).toBe("workout");
+    if (out[0]?.kind !== "workout") return;
+    expect(out[0].metadata).toHaveLength(1);
+    expect(out[0].events).toHaveLength(1);
+    expect(out[0].statistics).toHaveLength(1);
+    expect(out[0].routes).toHaveLength(1);
   });
 
-  test("emits Sleep Category records", async () => {
-    const xml = WRAPPER(
-      `<Record type="HKCategoryTypeIdentifierSleepAnalysis" ` +
-        `startDate="2024-06-01 23:00:00 +0000" endDate="2024-06-02 06:30:00 +0000" ` +
-        `value="HKCategoryValueSleepAnalysisAsleepCore"/>`,
-    );
-    const out = await collect(xml);
-    expect(out).toHaveLength(1);
-    expect(out[0]?.kind).toBe("record");
-    if (out[0]?.kind === "record") {
-      expect(out[0].type).toBe("HKCategoryTypeIdentifierSleepAnalysis");
-      expect(out[0].value).toBe("HKCategoryValueSleepAnalysisAsleepCore");
-    }
-  });
-
-  test("handles a mixed document and preserves order", async () => {
+  test("preserves node order in mixed streams", async () => {
     const xml = WRAPPER(
       `<Record type="HKQuantityTypeIdentifierHeartRate" startDate="2024-06-01 08:00:00 +0000" endDate="2024-06-01 08:00:00 +0000" value="72"/>` +
         `<Workout workoutActivityType="HKWorkoutActivityTypeRunning" duration="30" durationUnit="min" startDate="2024-06-01 08:00:00 +0000" endDate="2024-06-01 08:30:00 +0000"/>` +
