@@ -8,6 +8,7 @@ import {
   getAdvancedCompositeReport,
   getDistance,
   getEnergy,
+  getHRAtPace,
   getHRV,
   getLoad,
   getPower,
@@ -15,10 +16,12 @@ import {
   getRunningDynamics,
   getSpeed,
   getVO2Max,
+  getWeeklyZ2Minutes,
   getWorkoutDetail,
   getWorkoutEfficiency,
   getWorkoutEvents,
   getWorkoutMetadata,
+  getWorkoutRecoveryTimes,
   getWorkoutRoutes,
   getWorkoutStats,
   getZoneTimeDistribution,
@@ -83,6 +86,9 @@ export default async function PerformancePage(): Promise<React.ReactElement> {
     distanceResult,
     energyResult,
     zoneTimeResult,
+    weeklyZ2Result,
+    hrAtPaceResult,
+    recoveryTimesResult,
     workoutsResult,
   ] = await Promise.all([
     getAdvancedCompositeReport({ from: shortFrom, to }),
@@ -97,6 +103,9 @@ export default async function PerformancePage(): Promise<React.ReactElement> {
     getDistance({ from: shortFrom, to }),
     getEnergy({ from: shortFrom, to }),
     getZoneTimeDistribution({ from: performanceFrom, to }),
+    getWeeklyZ2Minutes({ from: activityFrom, to }),
+    getHRAtPace({ from: performanceFrom, to }),
+    getWorkoutRecoveryTimes({ from: performanceFrom, to }),
     listWorkouts({ type: "Running", from: performanceFrom, to, limit: RUN_LIMIT }),
   ]);
 
@@ -244,6 +253,12 @@ export default async function PerformancePage(): Promise<React.ReactElement> {
         <RunKpiChart rows={runRows} metric="z2" />
       </div>
 
+      <div className="grid cols-3" style={{ marginBottom: 18 }}>
+        <WeeklyZ2Chart result={weeklyZ2Result} />
+        <HRAtPaceChart result={hrAtPaceResult} />
+        <RecoveryTimeChart result={recoveryTimesResult} />
+      </div>
+
       <div className="grid cols-2" style={{ marginBottom: 18 }}>
         <ChartCard
           title="Activity volume"
@@ -296,7 +311,7 @@ export default async function PerformancePage(): Promise<React.ReactElement> {
         ) : runRows.length === 0 ? (
           <div className="empty-state">No recent running workouts were found in this window.</div>
         ) : (
-          <RecentRunsTable rows={runRows} />
+          <RecentRunsTable rows={runRows} recoveryResult={recoveryTimesResult} />
         )}
       </div>
     </div>
@@ -685,6 +700,103 @@ function CardioZoneTimeChart({
   );
 }
 
+function WeeklyZ2Chart({
+  result,
+}: {
+  result: Awaited<ReturnType<typeof getWeeklyZ2Minutes>>;
+}): React.ReactElement {
+  const chartRows = result.ok ? result.data : [];
+  return (
+    <ChartCard
+      title="Weekly Z2 minutes"
+      tip="Estimated minutes in the Z2 heart-rate band per ISO week, derived from capped HR-sample intervals."
+      errors={[result]}
+      empty={chartRows.length === 0}
+    >
+      <StackedBar
+        key={chartDataKey("weekly-z2", chartRows)}
+        categories={chartRows.map((row) => shortDate(`${row.week}T00:00:00Z`))}
+        series={[
+          {
+            name: "Z2",
+            color: "#5FD3F3",
+            data: chartRows.map((row) => row.z2_duration_sec / 60),
+          },
+          {
+            name: "Other",
+            color: "#354541",
+            data: chartRows.map((row) =>
+              Math.max(0, (row.total_duration_sec - row.z2_duration_sec) / 60),
+            ),
+          },
+        ]}
+        yAxisLabel="min"
+        height={300}
+      />
+    </ChartCard>
+  );
+}
+
+function HRAtPaceChart({
+  result,
+}: {
+  result: Awaited<ReturnType<typeof getHRAtPace>>;
+}): React.ReactElement {
+  const data = result.ok
+    ? result.data
+        .map((row) => [row.start_ts, row.avg_hr] as [string, number | null])
+        .filter((point): point is [string, number] => point[1] !== null)
+    : [];
+  return (
+    <ChartCard
+      title="HR at same pace"
+      tip="Average HR when aligned speed samples are near 9:00/km. Lower HR at the same pace suggests better aerobic economy."
+      errors={[result]}
+      empty={data.length === 0}
+    >
+      <LineChart
+        key={chartDataKey("hr-at-pace", data)}
+        series={[{ name: "HR @ 9:00/km", color: "#D8FF3D", data }]}
+        yAxisLabel="bpm"
+        height={300}
+      />
+    </ChartCard>
+  );
+}
+
+function RecoveryTimeChart({
+  result,
+}: {
+  result: Awaited<ReturnType<typeof getWorkoutRecoveryTimes>>;
+}): React.ReactElement {
+  const data = result.ok
+    ? result.data
+        .map(
+          (row) =>
+            [
+              row.start_ts,
+              row.recovery_duration_sec === null ? null : row.recovery_duration_sec / 3600,
+            ] as [string, number | null],
+        )
+        .filter((point): point is [string, number] => point[1] !== null)
+    : [];
+  return (
+    <ChartCard
+      title="Recovery until next session"
+      tip="Elapsed time from each workout's end timestamp to the next workout start."
+      errors={[result]}
+      empty={data.length === 0}
+    >
+      <LineChart
+        key={chartDataKey("recovery-time", data)}
+        series={[{ name: "Recovery", color: "#BFA6FF", data }]}
+        yAxisLabel="hours"
+        height={300}
+      />
+    </ChartCard>
+  );
+}
+
 function RunContextCard({ rows }: { rows: PerformanceRunRow[] }): React.ReactElement {
   const routeCount = rows.reduce(
     (sum, row) => sum + (row.routes.ok ? row.routes.data.length : 0),
@@ -732,7 +844,18 @@ function MetricMini({ label, value }: { label: string; value: string }): React.R
   );
 }
 
-function RecentRunsTable({ rows }: { rows: PerformanceRunRow[] }): React.ReactElement {
+function RecentRunsTable({
+  rows,
+  recoveryResult,
+}: {
+  rows: PerformanceRunRow[];
+  recoveryResult: Awaited<ReturnType<typeof getWorkoutRecoveryTimes>>;
+}): React.ReactElement {
+  const recoveryByWorkout = new Map(
+    recoveryResult.ok
+      ? recoveryResult.data.map((row) => [row.workout_id, row.recovery_duration_sec] as const)
+      : [],
+  );
   return (
     <table className="workouts-table">
       <thead>
@@ -746,6 +869,7 @@ function RecentRunsTable({ rows }: { rows: PerformanceRunRow[] }): React.ReactEl
           <th>HR drift</th>
           <th>Decoupling</th>
           <th>Z2</th>
+          <th>Next recovery</th>
           <th>Context</th>
           <th />
         </tr>
@@ -766,6 +890,7 @@ function RecentRunsTable({ rows }: { rows: PerformanceRunRow[] }): React.ReactEl
             detail.ok && detail.data.z2_ratio !== null
               ? formatPercent(detail.data.z2_ratio, 1)
               : "—";
+          const recovery = recoveryByWorkout.get(workout.id) ?? null;
 
           return (
             <tr key={workout.id}>
@@ -778,6 +903,7 @@ function RecentRunsTable({ rows }: { rows: PerformanceRunRow[] }): React.ReactEl
               <td>{drift}</td>
               <td>{decoupling}</td>
               <td>{z2}</td>
+              <td>{recovery === null ? "—" : formatDuration(recovery)}</td>
               <td>
                 <ContextTags row={row} />
               </td>

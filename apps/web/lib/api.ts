@@ -13,8 +13,12 @@ import {
   HRVPointSchema,
   type LoadRow,
   LoadRowSchema,
+  type MetricWindowComparison,
+  MetricWindowComparisonSchema,
   type PowerPoint,
   PowerPointSchema,
+  type RecoveryFlag,
+  RecoveryFlagSchema,
   type RestingHRPoint,
   RestingHRPointSchema,
   type RestingHRRollingPoint,
@@ -37,14 +41,20 @@ import {
   VO2MaxPointSchema,
   type WalkingHRPoint,
   WalkingHRPointSchema,
+  type WeeklyZ2MinutesRow,
+  WeeklyZ2MinutesRowSchema,
   type WorkoutDetail,
   WorkoutDetailSchema,
   type WorkoutEfficiency,
   WorkoutEfficiencySchema,
   type WorkoutEvent,
   WorkoutEventSchema,
+  type WorkoutHRAtPace,
+  WorkoutHRAtPaceSchema,
   type WorkoutMetadata,
   WorkoutMetadataSchema,
+  type WorkoutRecoveryRow,
+  WorkoutRecoveryRowSchema,
   type WorkoutRoute,
   WorkoutRouteSchema,
   type WorkoutStat,
@@ -130,6 +140,10 @@ const HRPointListSchema = z.array(HRPointSchema);
 const RestingHRListSchema = z.array(RestingHRPointSchema);
 const RestingHRRollingListSchema = z.array(RestingHRRollingPointSchema);
 const LoadListSchema = z.array(LoadRowSchema);
+const WorkoutRecoveryListSchema = z.array(WorkoutRecoveryRowSchema);
+const WorkoutHRAtPaceListSchema = z.array(WorkoutHRAtPaceSchema);
+const MetricWindowComparisonListSchema = z.array(MetricWindowComparisonSchema);
+const WeeklyZ2MinutesListSchema = z.array(WeeklyZ2MinutesRowSchema);
 const VO2MaxListSchema = z.array(VO2MaxPointSchema);
 const HRVListSchema = z.array(HRVPointSchema);
 const ActivityListSchema = z.array(ActivityPointSchema);
@@ -225,6 +239,10 @@ export function getZoneTimeDistribution(
   return requestJson(buildUrl("metrics/zones/time", range), ZoneTimeDistributionSchema);
 }
 
+export function getWeeklyZ2Minutes(range: DateRange): Promise<FetchResult<WeeklyZ2MinutesRow[]>> {
+  return requestJson(buildUrl("metrics/zones/z2-weekly", range), WeeklyZ2MinutesListSchema);
+}
+
 export function getRestingHR(range: DateRange): Promise<FetchResult<RestingHRPoint[]>> {
   return requestJson(buildUrl("metrics/resting-hr", range), RestingHRListSchema);
 }
@@ -241,6 +259,22 @@ export function getSleepSummary(range: DateRange): Promise<FetchResult<SleepSumm
 
 export function getLoad(range: DateRange): Promise<FetchResult<LoadRow[]>> {
   return requestJson(buildUrl("metrics/load", range), LoadListSchema);
+}
+
+export function getWorkoutRecoveryTimes(
+  range: DateRange,
+): Promise<FetchResult<WorkoutRecoveryRow[]>> {
+  return requestJson(buildUrl("metrics/recovery-times", range), WorkoutRecoveryListSchema);
+}
+
+export function getHRAtPace(
+  range: DateRange,
+  params: { pace_sec_per_km?: number; tolerance_sec_per_km?: number } = {},
+): Promise<FetchResult<WorkoutHRAtPace[]>> {
+  return requestJson(
+    buildUrl("metrics/hr-at-pace", { ...range, ...params }),
+    WorkoutHRAtPaceListSchema,
+  );
 }
 
 export function getVO2Max(range: DateRange): Promise<FetchResult<VO2MaxPoint[]>> {
@@ -281,6 +315,17 @@ export function getPower(range: DateRange): Promise<FetchResult<PowerPoint[]>> {
 
 export function getRunningDynamics(range: DateRange): Promise<FetchResult<RunningDynamicsPoint[]>> {
   return requestJson(buildUrl("metrics/running-dynamics", range), RunningDynamicsListSchema);
+}
+
+export function getDailyComparison(to: string): Promise<FetchResult<MetricWindowComparison[]>> {
+  return requestJson(
+    buildUrl("metrics/daily-comparison", { to }),
+    MetricWindowComparisonListSchema,
+  );
+}
+
+export function getRecoveryFlag(range: DateRange): Promise<FetchResult<RecoveryFlag>> {
+  return requestJson(buildUrl("metrics/recovery-flag", range), RecoveryFlagSchema);
 }
 
 export function getSleepNightly(range: DateRange): Promise<FetchResult<SleepNightPoint[]>> {

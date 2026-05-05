@@ -5,8 +5,10 @@ import { StackedBar } from "@/components/charts/StackedBar";
 import {
   deriveWeeklyActivity,
   getActivity,
+  getDailyComparison,
   getHRV,
   getPower,
+  getRecoveryFlag,
   getRestingHR,
   getSleepSummary,
   getSpeed,
@@ -24,7 +26,7 @@ import {
   todayIso,
   windowStartIso,
 } from "@/lib/format";
-import type { ActivityPoint } from "@vitals/core";
+import type { ActivityPoint, MetricWindowComparison, RecoveryFlag } from "@vitals/core";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -34,18 +36,33 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
   const from = windowStartIso(30);
   const activityFrom = windowStartIso(12 * 7);
 
-  const [restingHR, sleep, vo2max, hrv, steps, walkingHR, speed, power, activity] =
-    await Promise.all([
-      getRestingHR({ from, to }),
-      getSleepSummary({ from, to }),
-      getVO2Max({ from, to }),
-      getHRV({ from, to }),
-      getSteps({ from, to }),
-      getWalkingHR({ from, to }),
-      getSpeed({ from, to }),
-      getPower({ from, to }),
-      getActivity({ from: activityFrom, to }),
-    ]);
+  const readinessFrom = windowStartIso(7);
+
+  const [
+    recoveryFlag,
+    dailyComparison,
+    restingHR,
+    sleep,
+    vo2max,
+    hrv,
+    steps,
+    walkingHR,
+    speed,
+    power,
+    activity,
+  ] = await Promise.all([
+    getRecoveryFlag({ from: readinessFrom, to }),
+    getDailyComparison(to),
+    getRestingHR({ from, to }),
+    getSleepSummary({ from, to }),
+    getVO2Max({ from, to }),
+    getHRV({ from, to }),
+    getSteps({ from, to }),
+    getWalkingHR({ from, to }),
+    getSpeed({ from, to }),
+    getPower({ from, to }),
+    getActivity({ from: activityFrom, to }),
+  ]);
   const workouts = activity.ok ? null : await listWorkouts({ from: activityFrom, to });
 
   return (
@@ -62,6 +79,11 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
         A quiet look at the numbers that matter — resting rhythms, sleep, oxygen, variability, and
         the work you&apos;ve logged from {from} to {to}.
       </p>
+
+      <div className="grid cols-2" style={{ marginBottom: 20 }}>
+        <RecoveryFlagCard result={recoveryFlag} />
+        <DailyComparisonCard result={dailyComparison} />
+      </div>
 
       <div className="grid cols-4" style={{ marginBottom: 20 }}>
         <RestingHRCard result={restingHR} />
@@ -93,6 +115,151 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
       </div>
     </div>
   );
+}
+
+function RecoveryFlagCard({
+  result,
+}: {
+  result: Awaited<ReturnType<typeof getRecoveryFlag>>;
+}): React.ReactElement {
+  if (!result.ok) {
+    return (
+      <div className="card">
+        <CardTitle
+          title="Recovery flag"
+          tip="Literal green/yellow/red readiness flag from resting HR, HRV, sleep, load, and same-pace HR signals."
+        />
+        <ErrorBanner title="Could not load recovery flag" detail={result.message} />
+      </div>
+    );
+  }
+
+  const flag = result.data;
+  return (
+    <div className="card">
+      <CardTitle
+        title="Recovery flag"
+        tip="Literal green/yellow/red readiness flag from resting HR, HRV, sleep, load, and same-pace HR signals."
+      />
+      <div className="stat-value">{flag.flag.toUpperCase()}</div>
+      <div className="stat-sub">
+        <span className={`tag ${flagTone(flag.flag)}`}>{flag.sample_quality} sample</span>
+      </div>
+      <div className="context-grid" style={{ marginTop: 16 }}>
+        <MiniMetric label="RHR" value={formatNullableDelta(flag.resting_hr_delta_bpm, " bpm")} />
+        <MiniMetric label="HRV" value={formatNullableDelta(flag.hrv_delta_ms, " ms")} />
+        <MiniMetric
+          label="Sleep"
+          value={
+            flag.sleep_hours_per_day === null
+              ? "—"
+              : `${formatNumber(flag.sleep_hours_per_day, 1)} h`
+          }
+        />
+        <MiniMetric
+          label="Load"
+          value={
+            flag.acute_chronic_load_ratio === null
+              ? "—"
+              : `${formatNumber(flag.acute_chronic_load_ratio, 2)}x`
+          }
+        />
+      </div>
+      <div className="context-note">{flag.reasons[0] ?? "Recovery signal unavailable."}</div>
+    </div>
+  );
+}
+
+function DailyComparisonCard({
+  result,
+}: {
+  result: Awaited<ReturnType<typeof getDailyComparison>>;
+}): React.ReactElement {
+  if (!result.ok) {
+    return (
+      <div className="card">
+        <CardTitle
+          title="Today vs baselines"
+          tip="Today compared with trailing 7-day and 30-day values across the daily metric set."
+        />
+        <ErrorBanner title="Could not load comparison" detail={result.message} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="card">
+      <CardTitle
+        title="Today vs baselines"
+        tip="Today compared with trailing 7-day and 30-day values across the daily metric set."
+      />
+      <table className="workouts-table">
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th>Today</th>
+            <th>7d</th>
+            <th>30d</th>
+          </tr>
+        </thead>
+        <tbody>
+          {result.data.map((row) => (
+            <tr key={row.metric}>
+              <td>{row.label}</td>
+              <td>{formatComparisonValue(row, row.today)}</td>
+              <td>{formatComparisonValue(row, row.avg_7d)}</td>
+              <td>{formatComparisonValue(row, row.avg_30d)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function MiniMetric({ label, value }: { label: string; value: string }): React.ReactElement {
+  return (
+    <div className="metric-mini">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function flagTone(flag: RecoveryFlag["flag"]): string {
+  if (flag === "green") return "success";
+  if (flag === "yellow") return "warning";
+  return "danger";
+}
+
+function formatNullableDelta(value: number | null, unit: string): string {
+  if (value === null) return "—";
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${formatNumber(value, 1)}${unit}`;
+}
+
+function formatComparisonValue(row: MetricWindowComparison, value: number | null): string {
+  if (value === null) return "—";
+  switch (row.metric) {
+    case "steps":
+      return formatNumber(value, 0);
+    case "distance":
+      return `${formatNumber(value / 1000, 2)} km`;
+    case "sleep_hours":
+      return `${formatNumber(value, 1)} h`;
+    case "active_energy":
+      return `${formatNumber(value, 0)} kcal`;
+    case "z2_minutes":
+      return `${formatNumber(value, 0)} min`;
+    case "training_load":
+      return formatNumber(value, 0);
+    case "running_speed":
+      return `${formatNumber(value, 2)} m/s`;
+    case "running_power":
+      return `${formatNumber(value, 0)} W`;
+    default:
+      return `${formatNumber(value, 1)} ${row.unit}`.trim();
+  }
 }
 
 function RestingHRCard({

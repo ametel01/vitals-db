@@ -4,6 +4,26 @@ All notable changes to this project are documented here. This file follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added — recovery / endurance analytics
+
+- New additive DTOs, query helpers, API routes, and dashboard surfaces for:
+  - recovery time from each workout to the next session
+  - weekly Z2 minutes from capped workout HR-sample intervals
+  - HR at the same running pace
+  - today vs trailing 7-day vs trailing 30-day metric comparisons
+  - literal green/yellow/red recovery flag
+- Dashboard overview now shows the recovery flag and today-vs-baseline table.
+- Performance page now charts weekly Z2 minutes, HR at the same pace, and
+  recovery time until the next session; recent runs also show the next recovery
+  gap.
+
+### Changed — docs / tests
+
+- `docs/API_CONTRACT.md` documents the new additive endpoints.
+- Focused DTO, query, and Hono route tests cover the new contracts.
+
 ## [0.11.0] — 2026-04-21
 
 Ingest-scaling slice. Apple Health exports re-send full history on every

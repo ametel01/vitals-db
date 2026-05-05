@@ -83,8 +83,9 @@ contract unchanged.
 
 ## Metrics
 
-Every route under `/metrics` requires both `from` and `to`. Invalid or missing
-values return `400` with `{ error: "invalid_query", issues: ZodIssue[] }`.
+Unless a route documents a different query shape, routes under `/metrics`
+require both `from` and `to`. Invalid or missing values return `400` with
+`{ error: "invalid_query", issues: ZodIssue[] }`.
 
 ### `GET /metrics/zones`
 
@@ -94,6 +95,28 @@ Query params:
 - `to` — required
 
 Response: `ZonesRow`. `z2_ratio` is nullable when the window has no HR samples.
+
+### `GET /metrics/zones/time`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `ZoneTimeDistributionRow[]`, estimated workout time in each HR zone.
+Intervals are derived from consecutive workout HR samples and capped to avoid
+sparse-sample overcounting.
+
+### `GET /metrics/zones/z2-weekly`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `WeeklyZ2MinutesRow[]`, one row per ISO week with
+`z2_duration_sec`, `total_duration_sec`, and nullable `z2_ratio`. Durations are
+estimated from the same capped HR-sample intervals as `/metrics/zones/time`.
 
 ### `GET /metrics/resting-hr`
 
@@ -179,6 +202,34 @@ Query params:
 - `to` — required
 
 Response: `LoadRow[]`, one row per workout in range.
+
+### `GET /metrics/recovery-times`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `WorkoutRecoveryRow[]`, one row per workout in range. Each row
+includes current workout `start_ts` / `end_ts`, nullable next workout id/start,
+and nullable `recovery_duration_sec` from current workout end to next workout
+start. The next workout is computed across the full workout history before the
+current-row date filter is applied.
+
+### `GET /metrics/hr-at-pace`
+
+Query params:
+
+- `from` — required
+- `to` — required
+- `pace_sec_per_km` — optional positive number, default `540`
+- `tolerance_sec_per_km` — optional non-negative number, default `30`
+
+Response: `WorkoutHRAtPace[]`, one row per running workout in range. Rows
+contain the requested pace band, aligned sample count, nullable `avg_hr`, and
+nullable `avg_speed_mps`. Speed samples are paired to nearest HR samples within
+60 seconds; running workouts with no qualifying aligned samples still emit a
+null-safe row.
 
 ### `GET /metrics/vo2max`
 
@@ -268,6 +319,30 @@ Query params:
 Response: `EnergyPoint[]`, day-bucketed totals of `active_kcal` and `basal_kcal`
 from the `energy` table. Each column is aggregated independently so sparse rows
 (active-only or basal-only samples) do not null out the daily total.
+
+### `GET /metrics/daily-comparison`
+
+Query params:
+
+- `to` — required date or datetime
+
+Response: `MetricWindowComparison[]`, one row per supported daily metric:
+resting HR, HRV, sleep hours, steps, active energy, walking HR, VO2 Max,
+distance, running speed, running power, training load, and Z2 minutes. Each row
+contains `today`, trailing `avg_7d`, trailing `avg_30d`, and today-vs-baseline
+deltas. The `to` day is treated as the "today" row.
+
+### `GET /metrics/recovery-flag`
+
+Query params:
+
+- `from` — required
+- `to` — required
+
+Response: `RecoveryFlag`, a literal `green` / `yellow` / `red` warning light
+plus score, reasons, sample quality, and component deltas for resting HR, HRV,
+sleep hours per day, acute:chronic load ratio, and same-pace HR. This is a
+training-readiness warning signal, not a medical diagnosis.
 
 ## Composite Analytics
 

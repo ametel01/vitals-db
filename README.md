@@ -26,6 +26,9 @@ Today the implementation covers:
 - weekly workout activity served by the API
 - Z2 ratio, full Z1..Z5 zones distribution, and heart-rate drift for workouts
 - rolling 7-day resting HR plus per-workout fixed-HR pace and fixed-duration decoupling
+- weekly Z2 minutes, recovery time until the next session, HR at the same pace,
+  today vs 7-day vs 30-day metric comparisons, and a literal
+  green/yellow/red recovery flag
 
 ## Stack
 
@@ -164,12 +167,14 @@ PORT=9999 DB_PATH=./vitals.duckdb bun run health serve
 The current UI has:
 
 - `/`: 30-day resting HR, 30-day sleep summary, 30-day VO2 max, 30-day HRV,
-  30-day steps, 30-day walking HR, a Performance section with 30-day running
+  30-day steps, 30-day walking HR, today-vs-baseline comparison rows, a
+  green/yellow/red recovery flag, a Performance section with 30-day running
   speed and running power, a link to the dedicated performance page, and
   12-week workout activity
 - `/performance`: rolling 7-day resting HR, recent running workouts with
-  pace at 120-130 bpm, fixed-duration decoupling, and explicit sample-based Z2
-  share
+  pace at 120-130 bpm, fixed-duration decoupling, explicit sample-based Z2
+  share, weekly Z2 minutes, HR at the same pace, and recovery time until the
+  next session
 - `/sleep`: nightly sleep list, asleep vs in-bed trend, selected-night segment
   timeline, and stage totals when raw sleep stages are available
 - `/workouts`: latest 100 workouts with type and date filters
@@ -187,6 +192,8 @@ The server currently exposes:
 - `GET /workouts/:id/zones`
 - `GET /workouts/:id/efficiency`
 - `GET /metrics/zones`
+- `GET /metrics/zones/time`
+- `GET /metrics/zones/z2-weekly`
 - `GET /metrics/resting-hr`
 - `GET /metrics/resting-hr/rolling`
 - `GET /metrics/sleep`
@@ -194,6 +201,8 @@ The server currently exposes:
 - `GET /metrics/sleep/nights`
 - `GET /metrics/sleep/segments`
 - `GET /metrics/load`
+- `GET /metrics/recovery-times`
+- `GET /metrics/hr-at-pace`
 - `GET /metrics/vo2max`
 - `GET /metrics/hrv`
 - `GET /metrics/walking-hr`
@@ -203,6 +212,8 @@ The server currently exposes:
 - `GET /metrics/steps`
 - `GET /metrics/distance`
 - `GET /metrics/energy`
+- `GET /metrics/daily-comparison`
+- `GET /metrics/recovery-flag`
 
 See [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) for query params,
 response DTOs, and error shapes. Date-only bounds are treated as full UTC days.

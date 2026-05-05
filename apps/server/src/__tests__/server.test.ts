@@ -8,7 +8,9 @@ import {
   HRPointSchema,
   HRVPointSchema,
   LoadRowSchema,
+  MetricWindowComparisonSchema,
   PowerPointSchema,
+  RecoveryFlagSchema,
   RestingHRPointSchema,
   RestingHRRollingPointSchema,
   RunFatigueFlagSchema,
@@ -21,10 +23,13 @@ import {
   StepsPointSchema,
   VO2MaxPointSchema,
   WalkingHRPointSchema,
+  WeeklyZ2MinutesRowSchema,
   WorkoutDetailSchema,
   WorkoutEfficiencySchema,
   WorkoutEventSchema,
+  WorkoutHRAtPaceSchema,
   WorkoutMetadataSchema,
+  WorkoutRecoveryRowSchema,
   WorkoutRouteSchema,
   WorkoutStatSchema,
   WorkoutSummarySchema,
@@ -281,6 +286,15 @@ describe("Hono server", () => {
     expect(body.find((row) => row.zone === "Z2")?.duration_sec).toBeGreaterThan(0);
   });
 
+  test("GET /metrics/zones/z2-weekly returns weekly Z2 minutes", async () => {
+    const res = await app.request("/metrics/zones/z2-weekly?from=2024-06-01&to=2024-06-06");
+    expect(res.status).toBe(200);
+    const body = z.array(WeeklyZ2MinutesRowSchema).parse(await res.json());
+    expect(body.length).toBeGreaterThan(0);
+    expect(body[0]?.week).toBe("2024-05-27");
+    expect(body[0]?.z2_duration_sec).toBeGreaterThan(0);
+  });
+
   test("GET /metrics/resting-hr rejects invalid date ranges before hitting DuckDB", async () => {
     const res = await app.request("/metrics/resting-hr?from=not-a-date&to=2024-06-02");
     expect(res.status).toBe(400);
@@ -442,6 +456,33 @@ describe("Hono server", () => {
     expect(walking?.load).toBeNull();
   });
 
+  test("GET /metrics/recovery-times returns time until the next session", async () => {
+    const res = await app.request("/metrics/recovery-times?from=2024-06-01&to=2024-06-03");
+    expect(res.status).toBe(200);
+    const body = z.array(WorkoutRecoveryRowSchema).parse(await res.json());
+    const running = body.find((row) => row.workout_id === WORKOUT_ID);
+    expect(running?.next_workout_id).toBe(WORKOUT_ID_WALK);
+    expect(running?.recovery_duration_sec).toBe(48 * 3600);
+  });
+
+  test("GET /metrics/hr-at-pace returns HR at a requested running pace", async () => {
+    const res = await app.request(
+      "/metrics/hr-at-pace?from=2024-06-04&to=2024-06-06&pace_sec_per_km=277.7777777778&tolerance_sec_per_km=10",
+    );
+    expect(res.status).toBe(200);
+    const body = z.array(WorkoutHRAtPaceSchema).parse(await res.json());
+    const row = body.find((candidate) => candidate.workout_id === WORKOUT_ID_EFFICIENCY);
+    expect(row?.sample_count).toBe(3);
+    expect(row?.avg_hr).toBeCloseTo((118 + 126 + 128) / 3, 5);
+  });
+
+  test("GET /metrics/hr-at-pace rejects invalid pace params", async () => {
+    const res = await app.request(
+      "/metrics/hr-at-pace?from=2024-06-04&to=2024-06-06&pace_sec_per_km=-1",
+    );
+    expect(res.status).toBe(400);
+  });
+
   test("GET /metrics/vo2max returns daily averages", async () => {
     const res = await app.request("/metrics/vo2max?from=2024-06-01&to=2024-06-02");
     expect(res.status).toBe(200);
@@ -541,6 +582,28 @@ describe("Hono server", () => {
   test("GET /metrics/energy rejects invalid date ranges", async () => {
     const res = await app.request("/metrics/energy?from=nope&to=2024-06-02");
     expect(res.status).toBe(400);
+  });
+
+  test("GET /metrics/daily-comparison returns today vs 7-day and 30-day rows", async () => {
+    const res = await app.request("/metrics/daily-comparison?to=2024-06-02");
+    expect(res.status).toBe(200);
+    const body = z.array(MetricWindowComparisonSchema).parse(await res.json());
+    const steps = body.find((row) => row.metric === "steps");
+    expect(steps?.today).toBe(4100);
+    expect(steps?.avg_7d).toBeCloseTo((3500 + 4100) / 7, 5);
+  });
+
+  test("GET /metrics/daily-comparison rejects invalid dates", async () => {
+    const res = await app.request("/metrics/daily-comparison?to=nope");
+    expect(res.status).toBe(400);
+  });
+
+  test("GET /metrics/recovery-flag returns a literal readiness flag", async () => {
+    const res = await app.request("/metrics/recovery-flag?from=2024-06-02&to=2024-06-02");
+    expect(res.status).toBe(200);
+    const body = RecoveryFlagSchema.parse(await res.json());
+    expect(["green", "yellow", "red"]).toContain(body.flag);
+    expect(body.reasons.length).toBeGreaterThan(0);
   });
 
   test("GET /metrics/composites/report returns the advanced report", async () => {
@@ -810,6 +873,38 @@ describe("Hono server", () => {
       "sample_count",
       "second_half_efficiency",
       "window_duration_sec",
+    ]);
+  });
+
+  test("GET /metrics/recovery-times pins the additive row shape", async () => {
+    const res = await app.request("/metrics/recovery-times?from=2024-06-01&to=2024-06-03");
+    expect(res.status).toBe(200);
+    const rows = (await res.json()) as Array<Record<string, unknown>>;
+    expect(rows.length).toBeGreaterThan(0);
+    expect(Object.keys(rows[0] ?? {}).sort()).toEqual([
+      "end_ts",
+      "next_start_ts",
+      "next_workout_id",
+      "recovery_duration_sec",
+      "start_ts",
+      "workout_id",
+    ]);
+  });
+
+  test("GET /metrics/recovery-flag pins the literal flag shape", async () => {
+    const res = await app.request("/metrics/recovery-flag?from=2024-06-02&to=2024-06-02");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(Object.keys(body).sort()).toEqual([
+      "acute_chronic_load_ratio",
+      "flag",
+      "hr_at_pace_delta_bpm",
+      "hrv_delta_ms",
+      "reasons",
+      "resting_hr_delta_bpm",
+      "sample_quality",
+      "score",
+      "sleep_hours_per_day",
     ]);
   });
 });

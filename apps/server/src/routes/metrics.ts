@@ -7,12 +7,15 @@ import {
   getDistanceDaily,
   getEnergyDaily,
   getFitnessTrend,
+  getHRAtPaceTrend,
   getHRVDaily,
   getLoadForRange,
   getLoadQuality,
+  getMetricWindowComparisons,
   getPowerDaily,
   getReadinessScore,
   getRecoveryDebt,
+  getRecoveryFlag,
   getRestingHRDaily,
   getRestingHRRolling7d,
   getRunEconomyScore,
@@ -27,6 +30,8 @@ import {
   getVO2MaxDaily,
   getWalkingHRDaily,
   getWeeklyActivity,
+  getWeeklyZ2Minutes,
+  getWorkoutRecoveryTimes,
   getZoneTimeDistribution,
   getZones,
   listRunFatigueFlags,
@@ -67,8 +72,23 @@ const RangeSchema = z.object({
   to: DateInputSchema,
 });
 
+const ToDateSchema = z.object({
+  to: DateInputSchema,
+});
+
+const HRAtPaceQuerySchema = RangeSchema.extend({
+  pace_sec_per_km: z.coerce.number().positive().optional(),
+  tolerance_sec_per_km: z.coerce.number().nonnegative().optional(),
+});
+
 function parseRange(raw: Record<string, string>): DateRange | { error: z.ZodIssue[] } {
   const result = RangeSchema.safeParse(raw);
+  if (!result.success) return { error: result.error.issues };
+  return result.data;
+}
+
+function parseToDate(raw: Record<string, string>): { to: string } | { error: z.ZodIssue[] } {
+  const result = ToDateSchema.safeParse(raw);
   if (!result.success) return { error: result.error.issues };
   return result.data;
 }
@@ -86,6 +106,12 @@ export function metricsRouter(db: Db): Hono {
     const parsed = parseRange(c.req.query());
     if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
     return c.json(await getZoneTimeDistribution(db, parsed));
+  });
+
+  app.get("/zones/z2-weekly", async (c) => {
+    const parsed = parseRange(c.req.query());
+    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
+    return c.json(await getWeeklyZ2Minutes(db, parsed));
   });
 
   app.get("/resting-hr", async (c) => {
@@ -128,6 +154,27 @@ export function metricsRouter(db: Db): Hono {
     const parsed = parseRange(c.req.query());
     if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
     return c.json(await getLoadForRange(db, parsed));
+  });
+
+  app.get("/recovery-times", async (c) => {
+    const parsed = parseRange(c.req.query());
+    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
+    return c.json(await getWorkoutRecoveryTimes(db, parsed));
+  });
+
+  app.get("/hr-at-pace", async (c) => {
+    const parsed = HRAtPaceQuerySchema.safeParse(c.req.query());
+    if (!parsed.success) {
+      return c.json({ error: "invalid_query", issues: parsed.error.issues }, 400);
+    }
+    const params: { paceSecPerKm?: number; toleranceSecPerKm?: number } = {};
+    if (parsed.data.pace_sec_per_km !== undefined) {
+      params.paceSecPerKm = parsed.data.pace_sec_per_km;
+    }
+    if (parsed.data.tolerance_sec_per_km !== undefined) {
+      params.toleranceSecPerKm = parsed.data.tolerance_sec_per_km;
+    }
+    return c.json(await getHRAtPaceTrend(db, parsed.data, params));
   });
 
   app.get("/vo2max", async (c) => {
@@ -188,6 +235,18 @@ export function metricsRouter(db: Db): Hono {
     const parsed = parseRange(c.req.query());
     if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
     return c.json(await getEnergyDaily(db, parsed));
+  });
+
+  app.get("/daily-comparison", async (c) => {
+    const parsed = parseToDate(c.req.query());
+    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
+    return c.json(await getMetricWindowComparisons(db, parsed.to));
+  });
+
+  app.get("/recovery-flag", async (c) => {
+    const parsed = parseRange(c.req.query());
+    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
+    return c.json(await getRecoveryFlag(db, parsed));
   });
 
   app.get("/composites/report", async (c) => {
