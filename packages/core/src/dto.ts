@@ -67,6 +67,17 @@ export type ZoneTimeDistributionRow = z.infer<typeof ZoneTimeDistributionRowSche
 export const ZoneTimeDistributionListSchema = z.array(ZoneTimeDistributionRowSchema);
 export type ZoneTimeDistributionList = z.infer<typeof ZoneTimeDistributionListSchema>;
 
+export const WeeklyZ2MinutesRowSchema = z.object({
+  week: IsoDate,
+  z2_duration_sec: NonNegativeNumber,
+  total_duration_sec: NonNegativeNumber,
+  z2_ratio: Ratio.nullable(),
+});
+export type WeeklyZ2MinutesRow = z.infer<typeof WeeklyZ2MinutesRowSchema>;
+
+export const WeeklyZ2MinutesListSchema = z.array(WeeklyZ2MinutesRowSchema);
+export type WeeklyZ2MinutesList = z.infer<typeof WeeklyZ2MinutesListSchema>;
+
 export const RestingHRPointSchema = z.object({
   day: IsoDate,
   avg_rhr: PositiveNumber,
@@ -136,6 +147,55 @@ export const LoadRowSchema = z.object({
   load: NonNegativeNumber.nullable(),
 });
 export type LoadRow = z.infer<typeof LoadRowSchema>;
+
+export const WorkoutRecoveryRowSchema = z.object({
+  workout_id: z.string(),
+  start_ts: IsoDateTime,
+  end_ts: IsoDateTime,
+  next_workout_id: z.string().nullable(),
+  next_start_ts: IsoDateTime.nullable(),
+  recovery_duration_sec: NonNegativeNumber.nullable(),
+});
+export type WorkoutRecoveryRow = z.infer<typeof WorkoutRecoveryRowSchema>;
+
+export const WorkoutHRAtPaceSchema = z.object({
+  workout_id: z.string(),
+  start_ts: IsoDateTime,
+  pace_sec_per_km: PositiveNumber,
+  tolerance_sec_per_km: NonNegativeNumber,
+  sample_count: NonNegativeInt,
+  avg_hr: PositiveNumber.nullable(),
+  avg_speed_mps: PositiveNumber.nullable(),
+});
+export type WorkoutHRAtPace = z.infer<typeof WorkoutHRAtPaceSchema>;
+
+export const MetricWindowComparisonSchema = z.object({
+  metric: z.string().min(1),
+  label: z.string().min(1),
+  unit: z.string(),
+  today: z.number().finite().nullable(),
+  avg_7d: z.number().finite().nullable(),
+  avg_30d: z.number().finite().nullable(),
+  delta_today_vs_7d: z.number().finite().nullable(),
+  delta_today_vs_30d: z.number().finite().nullable(),
+});
+export type MetricWindowComparison = z.infer<typeof MetricWindowComparisonSchema>;
+
+export const RecoveryFlagLevelSchema = z.enum(["green", "yellow", "red"]);
+export type RecoveryFlagLevel = z.infer<typeof RecoveryFlagLevelSchema>;
+
+export const RecoveryFlagSchema = z.object({
+  flag: RecoveryFlagLevelSchema,
+  score: NonNegativeInt,
+  reasons: z.array(z.string().min(1)),
+  resting_hr_delta_bpm: z.number().finite().nullable(),
+  hrv_delta_ms: z.number().finite().nullable(),
+  sleep_hours_per_day: NonNegativeNumber.nullable(),
+  acute_chronic_load_ratio: NonNegativeNumber.nullable(),
+  hr_at_pace_delta_bpm: z.number().finite().nullable(),
+  sample_quality: z.enum(["high", "mixed", "poor"]),
+});
+export type RecoveryFlag = z.infer<typeof RecoveryFlagSchema>;
 
 export const VO2MaxPointSchema = z.object({
   day: IsoDate,

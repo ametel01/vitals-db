@@ -8,7 +8,9 @@ import {
   HRPointSchema,
   HRVPointSchema,
   LoadRowSchema,
+  MetricWindowComparisonSchema,
   PowerPointSchema,
+  RecoveryFlagSchema,
   RestingHRPointSchema,
   RestingHRRollingPointSchema,
   RunFatigueFlagSchema,
@@ -20,11 +22,14 @@ import {
   StepsPointSchema,
   VO2MaxPointSchema,
   WalkingHRPointSchema,
+  WeeklyZ2MinutesRowSchema,
   WorkoutContextSummarySchema,
   WorkoutDecouplingSchema,
   WorkoutDetailSchema,
   WorkoutEfficiencySchema,
+  WorkoutHRAtPaceSchema,
   WorkoutPaceAtHRSchema,
+  WorkoutRecoveryRowSchema,
   type WorkoutSampleQualityIssue,
   WorkoutSampleQualitySchema,
   WorkoutSummarySchema,
@@ -131,6 +136,16 @@ describe("DTO round-trip parsing", () => {
     expect(ZoneTimeDistributionListSchema.parse([fixture])).toEqual([fixture]);
   });
 
+  test("WeeklyZ2MinutesRow", () => {
+    const fixture = {
+      week: "2024-06-03",
+      z2_duration_sec: 2400,
+      total_duration_sec: 3600,
+      z2_ratio: 2 / 3,
+    };
+    expect(WeeklyZ2MinutesRowSchema.parse(fixture)).toEqual(fixture);
+  });
+
   test("RestingHRPoint", () => {
     const fixture = { day: "2024-06-01", avg_rhr: 52.4 };
     expect(RestingHRPointSchema.parse(fixture)).toEqual(fixture);
@@ -170,6 +185,60 @@ describe("DTO round-trip parsing", () => {
   test("LoadRow", () => {
     const fixture = { workout_id: "abc123", duration_sec: 3600, avg_hr: 144, load: 518_400 };
     expect(LoadRowSchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("WorkoutRecoveryRow", () => {
+    const fixture = {
+      workout_id: "abc123",
+      start_ts: "2024-06-01T08:00:00.000Z",
+      end_ts: "2024-06-01T09:00:00.000Z",
+      next_workout_id: "def456",
+      next_start_ts: "2024-06-02T08:00:00.000Z",
+      recovery_duration_sec: 82_800,
+    };
+    expect(WorkoutRecoveryRowSchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("WorkoutHRAtPace", () => {
+    const fixture = {
+      workout_id: "abc123",
+      start_ts: "2024-06-01T08:00:00.000Z",
+      pace_sec_per_km: 600,
+      tolerance_sec_per_km: 30,
+      sample_count: 8,
+      avg_hr: 122,
+      avg_speed_mps: 1.68,
+    };
+    expect(WorkoutHRAtPaceSchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("MetricWindowComparison", () => {
+    const fixture = {
+      metric: "resting_hr",
+      label: "Resting HR",
+      unit: "bpm",
+      today: 55,
+      avg_7d: 53,
+      avg_30d: 52,
+      delta_today_vs_7d: 2,
+      delta_today_vs_30d: 3,
+    };
+    expect(MetricWindowComparisonSchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("RecoveryFlag", () => {
+    const fixture = {
+      flag: "yellow" as const,
+      score: 1,
+      reasons: ["Resting HR is elevated versus baseline."],
+      resting_hr_delta_bpm: 5,
+      hrv_delta_ms: null,
+      sleep_hours_per_day: 6.5,
+      acute_chronic_load_ratio: 1.1,
+      hr_at_pace_delta_bpm: null,
+      sample_quality: "mixed" as const,
+    };
+    expect(RecoveryFlagSchema.parse(fixture)).toEqual(fixture);
   });
 
   test("VO2MaxPoint", () => {
