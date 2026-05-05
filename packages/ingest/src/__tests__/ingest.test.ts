@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type Db, migrate, openDb } from "@vitals/db";
-import { getLastImportFile, getLastImportTs, ingestFile } from "../incremental";
+import { createHealthIngestEngine } from "../engine";
 
 const FIXTURE_XML = `<?xml version="1.0" encoding="UTF-8"?>
 <HealthData locale="en_GB">
@@ -55,6 +55,7 @@ describe("ingestFile integration", () => {
   let dbPath: string;
   let xmlPath: string;
   let db: Db;
+  let engine: Awaited<ReturnType<typeof createHealthIngestEngine>>;
 
   beforeEach(async () => {
     dir = await mkdtemp(join(tmpdir(), "vitals-ingest-test-"));
@@ -63,6 +64,7 @@ describe("ingestFile integration", () => {
     await writeFile(xmlPath, FIXTURE_XML, "utf8");
     db = await openDb(dbPath);
     await migrate(db);
+    engine = await createHealthIngestEngine(db);
   });
 
   afterEach(async () => {
@@ -71,7 +73,7 @@ describe("ingestFile integration", () => {
   });
 
   test("inserts expected rows per table and skips out-of-scope/manual samples", async () => {
-    const stats = await ingestFile(db, xmlPath);
+    const stats = await engine.ingestFile(xmlPath, { mode: "incremental" });
 
     // Three HR Records in XML: one duplicate (same ts/value/source) and one
     // manual-entry. The manual-entry never reaches the writer; the duplicate
@@ -94,7 +96,7 @@ describe("ingestFile integration", () => {
   });
 
   test("row counts via SELECT match stats", async () => {
-    await ingestFile(db, xmlPath);
+    await engine.ingestFile(xmlPath, { mode: "incremental" });
 
     const tables = [
       ["heart_rate", 2],
@@ -119,11 +121,11 @@ describe("ingestFile integration", () => {
   });
 
   test("re-ingesting the same file adds zero new rows (dedup)", async () => {
-    await ingestFile(db, xmlPath);
+    await engine.ingestFile(xmlPath, { mode: "incremental" });
     const before = await db.get<{ n: number }>("SELECT COUNT(*)::INTEGER AS n FROM heart_rate");
 
     // Bypass the incremental filter so dedup is actually exercised across the full file.
-    const stats = await ingestFile(db, xmlPath, { full: true });
+    const stats = await engine.ingestFile(xmlPath, { mode: "full" });
 
     const after = await db.get<{ n: number }>("SELECT COUNT(*)::INTEGER AS n FROM heart_rate");
     expect(after?.n).toBe(before?.n ?? -1);
@@ -132,26 +134,24 @@ describe("ingestFile integration", () => {
   });
 
   test("records last_import_ts and last_import_file", async () => {
-    await ingestFile(db, xmlPath);
+    await engine.ingestFile(xmlPath, { mode: "incremental" });
 
-    const ts = await getLastImportTs(db);
-    expect(ts).not.toBeNull();
-
-    const file = await getLastImportFile(db);
-    expect(file).toBe(xmlPath);
+    const checkpoint = await engine.getCheckpoint();
+    expect(checkpoint.lastImportTsMs).not.toBeNull();
+    expect(checkpoint.lastImportFile).toBe(xmlPath);
   });
 
   test("advances last_import_ts for processed duplicate rows", async () => {
     const futurePath = join(dir, "future-duplicate.xml");
     await writeFile(futurePath, FUTURE_DUPLICATE_XML, "utf8");
 
-    await ingestFile(db, futurePath);
-    const firstTs = await getLastImportTs(db);
+    await engine.ingestFile(futurePath, { mode: "incremental" });
+    const firstTs = (await engine.getCheckpoint()).lastImportTsMs;
     expect(firstTs).not.toBeNull();
 
     await setLastImportTsMsForTest(db, Date.parse("2024-06-02T00:00:00.000Z"));
-    const stats = await ingestFile(db, futurePath);
-    const secondTs = await getLastImportTs(db);
+    const stats = await engine.ingestFile(futurePath, { mode: "incremental" });
+    const secondTs = (await engine.getCheckpoint()).lastImportTsMs;
 
     expect(stats.inserted.heart_rate).toBe(0);
     expect(stats.skipped).toBe(1);
@@ -162,7 +162,7 @@ describe("ingestFile integration", () => {
     const workoutPath = join(dir, "duplicate-workout.xml");
     await writeFile(workoutPath, DUPLICATE_WORKOUT_WINDOW_XML, "utf8");
 
-    const stats = await ingestFile(db, workoutPath);
+    const stats = await engine.ingestFile(workoutPath, { mode: "incremental" });
     const count = await db.get<{ n: number }>("SELECT COUNT(*)::INTEGER AS n FROM workouts");
 
     expect(stats.inserted.workouts).toBe(1);
@@ -171,13 +171,13 @@ describe("ingestFile integration", () => {
   });
 
   test("honours custom batchSize (forces multiple transactions)", async () => {
-    const stats = await ingestFile(db, xmlPath, { batchSize: 2 });
+    const stats = await engine.ingestFile(xmlPath, { mode: "incremental", batchSize: 2 });
     expect(stats.inserted.heart_rate).toBe(2);
     expect(stats.skipped).toBe(1);
   });
 
   test("energy sparse columns round-trip through DuckDB", async () => {
-    await ingestFile(db, xmlPath);
+    await engine.ingestFile(xmlPath, { mode: "incremental" });
     const rows = await db.all<{ active_kcal: number | null; basal_kcal: number | null }>(
       "SELECT active_kcal, basal_kcal FROM energy ORDER BY active_kcal NULLS LAST",
     );
@@ -187,7 +187,7 @@ describe("ingestFile integration", () => {
   });
 
   test("sleep state is normalized while raw stages are preserved", async () => {
-    await ingestFile(db, xmlPath);
+    await engine.ingestFile(xmlPath, { mode: "incremental" });
     const rows = await db.all<{ state: string; raw_state: string | null }>(
       "SELECT state, raw_state FROM sleep ORDER BY start_ts",
     );

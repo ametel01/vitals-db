@@ -4,11 +4,9 @@ import { parseArgs } from "node:util";
 import { type Db, migrate, openDb } from "@vitals/db";
 import {
   BUFFER_MS,
-  type IngestStats,
+  type IngestRunResult,
+  createHealthIngestEngine,
   cropHealthExport,
-  getLastImportFile,
-  getLastImportTs,
-  ingestFile,
 } from "@vitals/ingest";
 import { loadEnv } from "./env";
 import { createApp } from "./server";
@@ -42,7 +40,8 @@ async function runIngest(path: string): Promise<void> {
   const db = await openDb(env.DB_PATH);
   try {
     await migrate(db);
-    const stats = await ingestFile(db, path);
+    const engine = await createHealthIngestEngine(db);
+    const stats = await engine.ingestFile(path, { mode: "incremental" });
     process.stdout.write(`ingest: ${formatStats(stats)}\n`);
   } finally {
     db.close();
@@ -59,7 +58,8 @@ async function runCrop(inputPath: string, outputPath?: string): Promise<void> {
   const db = await openDb(env.DB_PATH);
   try {
     await migrate(db);
-    const lastTsMs = await getLastImportTs(db);
+    const engine = await createHealthIngestEngine(db);
+    const lastTsMs = (await engine.getCheckpoint()).lastImportTsMs;
     if (lastTsMs === null) {
       throw new Error("no previous import recorded; run `health ingest <path>` first");
     }
@@ -96,20 +96,21 @@ async function runRebuild(): Promise<void> {
   const db = await openDb(env.DB_PATH);
   try {
     await migrate(db);
-    const lastFile = await getLastImportFile(db);
+    const engine = await createHealthIngestEngine(db);
+    const lastFile = (await engine.getCheckpoint()).lastImportFile;
     if (lastFile === null) {
       throw new Error("no previous import recorded; run `health ingest <path>` first");
     }
     await clearAnalytics(db);
     await migrate(db);
-    const stats = await ingestFile(db, lastFile, { full: true });
+    const stats = await engine.ingestFile(lastFile, { mode: "full" });
     process.stdout.write(`rebuild: re-ingested ${lastFile} — ${formatStats(stats)}\n`);
   } finally {
     db.close();
   }
 }
 
-function formatStats(stats: IngestStats): string {
+function formatStats(stats: IngestRunResult): string {
   const total = Object.values(stats.inserted).reduce((sum, n) => sum + n, 0);
   return `inserted ${total} rows, skipped ${stats.skipped} duplicates`;
 }

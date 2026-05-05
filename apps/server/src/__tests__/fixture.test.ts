@@ -8,7 +8,7 @@ import {
   WorkoutDetailSchema,
   WorkoutSummarySchema,
 } from "@vitals/core";
-import { ingestFile } from "@vitals/ingest";
+import { createHealthIngestEngine } from "@vitals/ingest";
 import { z } from "zod";
 import { createApp } from "../server";
 import { type Fixture, makeFixtureDb } from "./seed";
@@ -21,7 +21,8 @@ describe("committed sample fixture", () => {
 
   beforeEach(async () => {
     fixture = await makeFixtureDb();
-    await ingestFile(fixture.db, SAMPLE_FIXTURE_PATH, { full: true });
+    const engine = await createHealthIngestEngine(fixture.db);
+    await engine.ingestFile(SAMPLE_FIXTURE_PATH, { mode: "full" });
     app = createApp({ db: fixture.db });
   });
 

@@ -40,6 +40,14 @@ export {
   writeBatches,
 } from "./writer";
 export {
+  DEFAULT_REPLAY_BUFFER_MS,
+  type HealthIngestEngine,
+  type IngestCheckpoint,
+  type IngestPolicy,
+  type IngestRunResult,
+  createHealthIngestEngine,
+} from "./engine";
+export {
   BUFFER_MS,
   clearIngestState,
   getIngestState,
