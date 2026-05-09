@@ -1,313 +1,91 @@
-import type { Db } from "@vitals/db";
-import {
-  type DateRange,
-  getAdvancedCompositeReport,
-  getAerobicEfficiencyTrend,
-  getConsistencyIndex,
-  getDistanceDaily,
-  getEnergyDaily,
-  getFitnessTrend,
-  getHRAtPaceTrend,
-  getHRVDaily,
-  getLoadForRange,
-  getLoadQuality,
-  getMetricWindowComparisons,
-  getPowerDaily,
-  getReadinessScore,
-  getRecoveryDebt,
-  getRecoveryFlag,
-  getRestingHRDaily,
-  getRestingHRRolling7d,
-  getRunEconomyScore,
-  getRunningDynamicsDaily,
-  getSleepNightly,
-  getSleepNights,
-  getSleepSegments,
-  getSleepSummary,
-  getSpeedDaily,
-  getStepsDaily,
-  getTrainingStrainVsRecovery,
-  getVO2MaxDaily,
-  getWalkingHRDaily,
-  getWeeklyActivity,
-  getWeeklyZ2Minutes,
-  getWorkoutRecoveryTimes,
-  getZoneTimeDistribution,
-  getZones,
-  listRunFatigueFlags,
-} from "@vitals/queries";
-import { Hono } from "hono";
-import { z } from "zod";
+import { type Context, Hono } from "hono";
+import type { ServiceResult, VitalsReadService } from "../services/read-service";
 
-const DATE_ONLY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
-
-function isValidDateOnly(value: string): boolean {
-  const match = DATE_ONLY_RE.exec(value);
-  if (match === null) {
-    return false;
+function toHttp<T>(c: Context, result: ServiceResult<T>) {
+  if (result.ok) {
+    return c.json(result.data as Record<string, unknown> | unknown[]);
   }
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  const date = new Date(Date.UTC(year, month - 1, day));
-
-  return (
-    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
-  );
+  if (result.error === "not_found") {
+    return c.json({ error: "not_found" }, 404);
+  }
+  return c.json({ error: result.error, issues: result.issues }, 400);
 }
 
-const DateInputSchema = z
-  .string()
-  .refine(
-    (value) =>
-      isValidDateOnly(value) || z.string().datetime({ offset: true }).safeParse(value).success,
-    {
-      message: "Expected YYYY-MM-DD or an ISO 8601 datetime with timezone offset",
-    },
-  );
-
-const RangeSchema = z.object({
-  from: DateInputSchema,
-  to: DateInputSchema,
-});
-
-const ToDateSchema = z.object({
-  to: DateInputSchema,
-});
-
-const HRAtPaceQuerySchema = RangeSchema.extend({
-  pace_sec_per_km: z.coerce.number().positive().optional(),
-  tolerance_sec_per_km: z.coerce.number().nonnegative().optional(),
-});
-
-function parseRange(raw: Record<string, string>): DateRange | { error: z.ZodIssue[] } {
-  const result = RangeSchema.safeParse(raw);
-  if (!result.success) return { error: result.error.issues };
-  return result.data;
-}
-
-function parseToDate(raw: Record<string, string>): { to: string } | { error: z.ZodIssue[] } {
-  const result = ToDateSchema.safeParse(raw);
-  if (!result.success) return { error: result.error.issues };
-  return result.data;
-}
-
-export function metricsRouter(db: Db): Hono {
+export function metricsRouter(service: VitalsReadService): Hono {
   const app = new Hono();
 
-  app.get("/zones", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getZones(db, parsed));
-  });
-
-  app.get("/zones/time", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getZoneTimeDistribution(db, parsed));
-  });
-
-  app.get("/zones/z2-weekly", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getWeeklyZ2Minutes(db, parsed));
-  });
-
-  app.get("/resting-hr", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getRestingHRDaily(db, parsed));
-  });
-
-  app.get("/resting-hr/rolling", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getRestingHRRolling7d(db, parsed));
-  });
-
-  app.get("/sleep", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getSleepSummary(db, parsed));
-  });
-
-  app.get("/sleep/nightly", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getSleepNightly(db, parsed));
-  });
-
-  app.get("/sleep/nights", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getSleepNights(db, parsed));
-  });
-
-  app.get("/sleep/segments", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getSleepSegments(db, parsed));
-  });
-
-  app.get("/load", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getLoadForRange(db, parsed));
-  });
-
-  app.get("/recovery-times", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getWorkoutRecoveryTimes(db, parsed));
-  });
-
-  app.get("/hr-at-pace", async (c) => {
-    const parsed = HRAtPaceQuerySchema.safeParse(c.req.query());
-    if (!parsed.success) {
-      return c.json({ error: "invalid_query", issues: parsed.error.issues }, 400);
-    }
-    const params: { paceSecPerKm?: number; toleranceSecPerKm?: number } = {};
-    if (parsed.data.pace_sec_per_km !== undefined) {
-      params.paceSecPerKm = parsed.data.pace_sec_per_km;
-    }
-    if (parsed.data.tolerance_sec_per_km !== undefined) {
-      params.toleranceSecPerKm = parsed.data.tolerance_sec_per_km;
-    }
-    return c.json(await getHRAtPaceTrend(db, parsed.data, params));
-  });
-
-  app.get("/vo2max", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getVO2MaxDaily(db, parsed));
-  });
-
-  app.get("/hrv", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getHRVDaily(db, parsed));
-  });
-
-  app.get("/walking-hr", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getWalkingHRDaily(db, parsed));
-  });
-
-  app.get("/speed", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getSpeedDaily(db, parsed));
-  });
-
-  app.get("/power", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getPowerDaily(db, parsed));
-  });
-
-  app.get("/running-dynamics", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getRunningDynamicsDaily(db, parsed));
-  });
-
-  app.get("/activity", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getWeeklyActivity(db, parsed));
-  });
-
-  app.get("/steps", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getStepsDaily(db, parsed));
-  });
-
-  app.get("/distance", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getDistanceDaily(db, parsed));
-  });
-
-  app.get("/energy", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getEnergyDaily(db, parsed));
-  });
-
-  app.get("/daily-comparison", async (c) => {
-    const parsed = parseToDate(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getMetricWindowComparisons(db, parsed.to));
-  });
-
-  app.get("/recovery-flag", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getRecoveryFlag(db, parsed));
-  });
-
-  app.get("/composites/report", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getAdvancedCompositeReport(db, parsed));
-  });
-
-  app.get("/composites/aerobic-efficiency", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getAerobicEfficiencyTrend(db, parsed));
-  });
-
-  app.get("/composites/readiness", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getReadinessScore(db, parsed));
-  });
-
-  app.get("/composites/training-strain", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getTrainingStrainVsRecovery(db, parsed));
-  });
-
-  app.get("/composites/run-fatigue", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await listRunFatigueFlags(db, parsed));
-  });
-
-  app.get("/composites/fitness-trend", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getFitnessTrend(db, parsed));
-  });
-
-  app.get("/composites/load-quality", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getLoadQuality(db, parsed));
-  });
-
-  app.get("/composites/recovery-debt", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getRecoveryDebt(db, parsed));
-  });
-
-  app.get("/composites/consistency-index", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getConsistencyIndex(db, parsed));
-  });
-
-  app.get("/composites/run-economy", async (c) => {
-    const parsed = parseRange(c.req.query());
-    if ("error" in parsed) return c.json({ error: "invalid_query", issues: parsed.error }, 400);
-    return c.json(await getRunEconomyScore(db, parsed));
-  });
+  app.get("/zones", async (c) => toHttp(c, await service.metrics.zones(c.req.query())));
+  app.get("/zones/time", async (c) => toHttp(c, await service.metrics.zoneTime(c.req.query())));
+  app.get("/zones/z2-weekly", async (c) =>
+    toHttp(c, await service.metrics.z2Weekly(c.req.query())),
+  );
+  app.get("/resting-hr", async (c) => toHttp(c, await service.metrics.restingHr(c.req.query())));
+  app.get("/resting-hr/rolling", async (c) =>
+    toHttp(c, await service.metrics.restingHrRolling(c.req.query())),
+  );
+  app.get("/sleep", async (c) => toHttp(c, await service.metrics.sleep(c.req.query())));
+  app.get("/sleep/nightly", async (c) =>
+    toHttp(c, await service.metrics.sleepNightly(c.req.query())),
+  );
+  app.get("/sleep/nights", async (c) =>
+    toHttp(c, await service.metrics.sleepNights(c.req.query())),
+  );
+  app.get("/sleep/segments", async (c) =>
+    toHttp(c, await service.metrics.sleepSegments(c.req.query())),
+  );
+  app.get("/load", async (c) => toHttp(c, await service.metrics.load(c.req.query())));
+  app.get("/recovery-times", async (c) =>
+    toHttp(c, await service.metrics.recoveryTimes(c.req.query())),
+  );
+  app.get("/hr-at-pace", async (c) => toHttp(c, await service.metrics.hrAtPace(c.req.query())));
+  app.get("/vo2max", async (c) => toHttp(c, await service.metrics.vo2max(c.req.query())));
+  app.get("/hrv", async (c) => toHttp(c, await service.metrics.hrv(c.req.query())));
+  app.get("/walking-hr", async (c) => toHttp(c, await service.metrics.walkingHr(c.req.query())));
+  app.get("/speed", async (c) => toHttp(c, await service.metrics.speed(c.req.query())));
+  app.get("/power", async (c) => toHttp(c, await service.metrics.power(c.req.query())));
+  app.get("/running-dynamics", async (c) =>
+    toHttp(c, await service.metrics.runningDynamics(c.req.query())),
+  );
+  app.get("/activity", async (c) => toHttp(c, await service.metrics.activity(c.req.query())));
+  app.get("/steps", async (c) => toHttp(c, await service.metrics.steps(c.req.query())));
+  app.get("/distance", async (c) => toHttp(c, await service.metrics.distance(c.req.query())));
+  app.get("/energy", async (c) => toHttp(c, await service.metrics.energy(c.req.query())));
+  app.get("/daily-comparison", async (c) =>
+    toHttp(c, await service.metrics.dailyComparison(c.req.query())),
+  );
+  app.get("/recovery-flag", async (c) =>
+    toHttp(c, await service.metrics.recoveryFlag(c.req.query())),
+  );
+  app.get("/composites/report", async (c) =>
+    toHttp(c, await service.metrics.compositesReport(c.req.query())),
+  );
+  app.get("/composites/aerobic-efficiency", async (c) =>
+    toHttp(c, await service.metrics.compositesAerobicEfficiency(c.req.query())),
+  );
+  app.get("/composites/readiness", async (c) =>
+    toHttp(c, await service.metrics.compositesReadiness(c.req.query())),
+  );
+  app.get("/composites/training-strain", async (c) =>
+    toHttp(c, await service.metrics.compositesTrainingStrain(c.req.query())),
+  );
+  app.get("/composites/run-fatigue", async (c) =>
+    toHttp(c, await service.metrics.compositesRunFatigue(c.req.query())),
+  );
+  app.get("/composites/fitness-trend", async (c) =>
+    toHttp(c, await service.metrics.compositesFitnessTrend(c.req.query())),
+  );
+  app.get("/composites/load-quality", async (c) =>
+    toHttp(c, await service.metrics.compositesLoadQuality(c.req.query())),
+  );
+  app.get("/composites/recovery-debt", async (c) =>
+    toHttp(c, await service.metrics.compositesRecoveryDebt(c.req.query())),
+  );
+  app.get("/composites/consistency-index", async (c) =>
+    toHttp(c, await service.metrics.compositesConsistencyIndex(c.req.query())),
+  );
+  app.get("/composites/run-economy", async (c) =>
+    toHttp(c, await service.metrics.compositesRunEconomy(c.req.query())),
+  );
 
   return app;
 }
