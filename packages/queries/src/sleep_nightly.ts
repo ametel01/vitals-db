@@ -29,12 +29,24 @@ export async function getSleepNightly(db: Db, range: DateRange): Promise<SleepNi
                  a.day AS day,
                  a.asleep_hours::DOUBLE AS asleep_hours,
                  COALESCE(b.in_bed_hours, 0)::DOUBLE AS in_bed_hours,
+                 COALESCE(w.awake_hours, 0)::DOUBLE AS awake_hours,
                  CASE
-                   WHEN b.in_bed_hours IS NULL OR b.in_bed_hours = 0 THEN NULL
-                   ELSE (a.asleep_hours / b.in_bed_hours)::DOUBLE
+                   WHEN b.in_bed_hours IS NOT NULL AND b.in_bed_hours > 0
+                     THEN (a.asleep_hours / b.in_bed_hours)::DOUBLE
+                   WHEN (a.asleep_hours + COALESCE(w.awake_hours, 0)) > 0
+                     THEN (a.asleep_hours / (a.asleep_hours + COALESCE(w.awake_hours, 0)))::DOUBLE
+                   ELSE NULL
                  END AS efficiency
                FROM asleep a
                LEFT JOIN in_bed b ON a.day = b.day
+               LEFT JOIN (
+                 SELECT
+                   DATE(start_ts - INTERVAL 12 HOUR) AS day,
+                   SUM(date_diff('second', start_ts, end_ts)) / 3600.0 AS awake_hours
+                 FROM sleep
+                 WHERE state = 'awake' AND start_ts >= ? AND start_ts ${upper.operator} ?
+                 GROUP BY DATE(start_ts - INTERVAL 12 HOUR)
+               ) w ON a.day = w.day
                ORDER BY a.day`;
   const from = normalizeRangeStart(range.from);
   const to = upper.value;
@@ -43,7 +55,7 @@ export async function getSleepNightly(db: Db, range: DateRange): Promise<SleepNi
     asleep_hours: number;
     in_bed_hours: number;
     efficiency: number | null;
-  }>(sql, [from, to, from, to]);
+  }>(sql, [from, to, from, to, from, to]);
   return rows.map((row) =>
     SleepNightPointSchema.parse({
       day: toIsoDate(row.day),

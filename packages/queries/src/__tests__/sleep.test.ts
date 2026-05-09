@@ -48,6 +48,7 @@ describe("getSleepSummary", () => {
     ]);
     const summary = await getSleepSummary(db, { from: "2024-05-30", to: "2024-06-03" });
     expect(summary.total_hours).toBeCloseTo(7, 3);
+    expect(summary.efficiency).toBe(1);
     expect(summary.consistency_stddev).toBeNull();
   });
 });

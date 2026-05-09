@@ -58,8 +58,10 @@ export async function getSleepNights(db: Db, range: DateRange): Promise<SleepNig
                  in_bed_hours,
                  awake_hours,
                  CASE
-                   WHEN in_bed_hours = 0 THEN NULL
-                   ELSE (asleep_hours / in_bed_hours)::DOUBLE
+                   WHEN in_bed_hours > 0 THEN (asleep_hours / in_bed_hours)::DOUBLE
+                   WHEN (asleep_hours + awake_hours) > 0
+                     THEN (asleep_hours / (asleep_hours + awake_hours))::DOUBLE
+                   ELSE NULL
                  END AS efficiency,
                  CASE WHEN stage_row_count = 0 THEN NULL ELSE core_hours_value END AS core_hours,
                  CASE WHEN stage_row_count = 0 THEN NULL ELSE deep_hours_value END AS deep_hours,

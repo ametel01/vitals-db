@@ -39,7 +39,7 @@ describe("getSleepNightly", () => {
     expect(rows).toEqual([]);
   });
 
-  test("returns null efficiency when a night has no in_bed coverage", async () => {
+  test("falls back to asleep/(asleep+awake) when a night has no in_bed coverage", async () => {
     await db.run("INSERT INTO sleep (start_ts, end_ts, state) VALUES (?, ?, ?)", [
       "2024-06-05 23:00:00",
       "2024-06-06 05:00:00",
@@ -49,6 +49,6 @@ describe("getSleepNightly", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]?.asleep_hours).toBeCloseTo(6, 3);
     expect(rows[0]?.in_bed_hours).toBe(0);
-    expect(rows[0]?.efficiency).toBeNull();
+    expect(rows[0]?.efficiency).toBe(1);
   });
 });

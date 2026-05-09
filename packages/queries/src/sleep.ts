@@ -9,7 +9,8 @@ import { type DateRange, normalizeRangeEnd, normalizeRangeStart } from "./dates"
 //     keeps the SQL a single scan. If a future provider emits overlaps the
 //     efficiency value can exceed 1.0 — the DTO Ratio validator would catch it
 //     and we revisit then.
-//   * efficiency = sum(asleep) / sum(in_bed). Same raw-sum choice.
+//   * efficiency = sum(asleep) / sum(in_bed). If in_bed coverage is absent,
+//     fallback to sum(asleep) / (sum(asleep) + sum(awake)).
 //   * consistency_stddev = sample stddev of per-night earliest asleep start
 //     expressed as seconds-past-UTC-midnight. Known limitation: does not model
 //     midnight-wraparound (11pm vs 1am look 2h apart in a 24h circle but 22h
@@ -39,13 +40,8 @@ export async function getSleepSummary(db: Db, range: DateRange): Promise<SleepSu
                    WHEN (SELECT SUM(date_diff('second', start_ts, end_ts))
                            FROM sleep
                            WHERE state = 'in_bed' AND start_ts >= ? AND start_ts ${upper.operator}
-                             ?) IS NULL
-                     OR (SELECT SUM(date_diff('second', start_ts, end_ts))
-                           FROM sleep
-                           WHERE state = 'in_bed' AND start_ts >= ? AND start_ts ${upper.operator}
-                             ?) = 0
-                   THEN NULL
-                   ELSE
+                             ?) > 0
+                   THEN
                      (SELECT SUM(date_diff('second', start_ts, end_ts))
                         FROM sleep
                         WHERE state = 'asleep' AND start_ts >= ? AND start_ts ${upper.operator}
@@ -54,6 +50,38 @@ export async function getSleepSummary(db: Db, range: DateRange): Promise<SleepSu
                           FROM sleep
                           WHERE state = 'in_bed' AND start_ts >= ? AND start_ts ${upper.operator}
                             ?)::DOUBLE
+                   WHEN (
+                     (SELECT SUM(date_diff('second', start_ts, end_ts))
+                        FROM sleep
+                        WHERE state = 'asleep' AND start_ts >= ? AND start_ts ${upper.operator}
+                          ?)
+                     + COALESCE(
+                       (SELECT SUM(date_diff('second', start_ts, end_ts))
+                          FROM sleep
+                          WHERE state = 'awake' AND start_ts >= ? AND start_ts ${upper.operator}
+                            ?),
+                       0
+                     )
+                   ) > 0
+                   THEN
+                     (SELECT SUM(date_diff('second', start_ts, end_ts))
+                        FROM sleep
+                        WHERE state = 'asleep' AND start_ts >= ? AND start_ts ${upper.operator}
+                          ?)::DOUBLE
+                     / (
+                       (SELECT SUM(date_diff('second', start_ts, end_ts))
+                          FROM sleep
+                          WHERE state = 'asleep' AND start_ts >= ? AND start_ts ${upper.operator}
+                            ?)
+                       + COALESCE(
+                         (SELECT SUM(date_diff('second', start_ts, end_ts))
+                            FROM sleep
+                            WHERE state = 'awake' AND start_ts >= ? AND start_ts ${upper.operator}
+                              ?),
+                         0
+                       )
+                     )::DOUBLE
+                   ELSE NULL
                  END AS efficiency`;
   const from = normalizeRangeStart(range.from);
   const to = upper.value;
@@ -63,13 +91,21 @@ export async function getSleepSummary(db: Db, range: DateRange): Promise<SleepSu
     from,
     to, // total_hours
     from,
-    to, // in_bed null check
-    from,
     to, // in_bed zero check
     from,
     to, // efficiency numerator
     from,
     to, // efficiency denominator
+    from,
+    to, // fallback asleep + awake numerator part
+    from,
+    to, // fallback asleep + awake denominator awake part
+    from,
+    to, // fallback numerator asleep
+    from,
+    to, // fallback denominator asleep part
+    from,
+    to, // fallback denominator awake part
   ];
   const row = await db.get<{
     total_hours: number | null;
