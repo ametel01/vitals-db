@@ -27,8 +27,6 @@ import {
   RunningDynamicsPointSchema,
   type SleepNightDetail,
   SleepNightDetailSchema,
-  type SleepNightPoint,
-  SleepNightPointSchema,
   type SleepSegment,
   SleepSegmentSchema,
   type SleepSummary,
@@ -65,14 +63,12 @@ import {
   type WorkoutZoneBreakdownRow,
   ZoneTimeDistributionListSchema,
   type ZoneTimeDistributionRow,
-  type ZonesRow,
-  ZonesRowSchema,
 } from "@vitals/core";
 import { z } from "zod";
 
 const DEFAULT_BASE_URL = "http://localhost:8787";
 
-export const API_BASE_URL = process.env.VITALS_API_URL ?? DEFAULT_BASE_URL;
+const API_BASE_URL = process.env.VITALS_API_URL ?? DEFAULT_BASE_URL;
 
 export interface DateRange {
   from: string;
@@ -154,7 +150,6 @@ const WalkingHRListSchema = z.array(WalkingHRPointSchema);
 const SpeedListSchema = z.array(SpeedPointSchema);
 const PowerListSchema = z.array(PowerPointSchema);
 const RunningDynamicsListSchema = z.array(RunningDynamicsPointSchema);
-const SleepNightListSchema = z.array(SleepNightPointSchema);
 const SleepNightDetailListSchema = z.array(SleepNightDetailSchema);
 const SleepSegmentListSchema = z.array(SleepSegmentSchema);
 const WorkoutStatListSchema = z.array(WorkoutStatSchema);
@@ -227,10 +222,6 @@ export function getWorkoutRoutes(id: string): Promise<FetchResult<WorkoutRoute[]
     buildUrl(`workouts/${encodeURIComponent(id)}/routes`, {}),
     WorkoutRouteListSchema,
   );
-}
-
-export function getZones(range: DateRange): Promise<FetchResult<ZonesRow>> {
-  return requestJson(buildUrl("metrics/zones", range), ZonesRowSchema);
 }
 
 export function getZoneTimeDistribution(
@@ -326,10 +317,6 @@ export function getDailyComparison(to: string): Promise<FetchResult<MetricWindow
 
 export function getRecoveryFlag(range: DateRange): Promise<FetchResult<RecoveryFlag>> {
   return requestJson(buildUrl("metrics/recovery-flag", range), RecoveryFlagSchema);
-}
-
-export function getSleepNightly(range: DateRange): Promise<FetchResult<SleepNightPoint[]>> {
-  return requestJson(buildUrl("metrics/sleep/nightly", range), SleepNightListSchema);
 }
 
 export function getSleepNights(range: DateRange): Promise<FetchResult<SleepNightDetail[]>> {

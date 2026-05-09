@@ -21,7 +21,7 @@ export default function Loading(): React.ReactElement {
           </div>
           <div className="report-action">
             <span>Recommendation</span>
-            <strong>Loading current report signals...</strong>
+            <strong>Loading current report signals&hellip;</strong>
           </div>
         </div>
         <div className="composite-card-grid">

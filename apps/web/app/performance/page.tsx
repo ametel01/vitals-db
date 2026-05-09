@@ -46,15 +46,20 @@ import type {
   WorkoutStat,
   WorkoutSummary,
 } from "@vitals/core";
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Performance | Vital",
+  description:
+    "Endurance analytics across aerobic fitness, recovery, run economy, load, and workout context.",
+};
 
 export const dynamic = "force-dynamic";
 
-const RHR_WINDOW_DAYS = 60;
-const PERFORMANCE_WINDOW_DAYS = 120;
-const ACTIVITY_WINDOW_DAYS = 180;
-const SHORT_WINDOW_DAYS = 30;
+const CHART_WINDOW_DAYS = 90;
 const RUN_LIMIT = 14;
+const EMPTY_VALUE = "—";
 
 interface PerformanceRunRow {
   workout: WorkoutSummary;
@@ -68,10 +73,7 @@ interface PerformanceRunRow {
 
 export default async function PerformancePage(): Promise<React.ReactElement> {
   const to = todayIso();
-  const rhrFrom = windowStartIso(RHR_WINDOW_DAYS);
-  const performanceFrom = windowStartIso(PERFORMANCE_WINDOW_DAYS);
-  const activityFrom = windowStartIso(ACTIVITY_WINDOW_DAYS);
-  const shortFrom = windowStartIso(SHORT_WINDOW_DAYS);
+  const chartFrom = windowStartIso(CHART_WINDOW_DAYS);
 
   const [
     reportResult,
@@ -91,22 +93,22 @@ export default async function PerformancePage(): Promise<React.ReactElement> {
     recoveryTimesResult,
     workoutsResult,
   ] = await Promise.all([
-    getAdvancedCompositeReport({ from: shortFrom, to }),
-    getRestingHRRolling({ from: rhrFrom, to }),
-    getVO2Max({ from: performanceFrom, to }),
-    getHRV({ from: performanceFrom, to }),
-    getSpeed({ from: performanceFrom, to }),
-    getPower({ from: performanceFrom, to }),
-    getRunningDynamics({ from: performanceFrom, to }),
-    getLoad({ from: performanceFrom, to }),
-    getActivity({ from: activityFrom, to }),
-    getDistance({ from: shortFrom, to }),
-    getEnergy({ from: shortFrom, to }),
-    getZoneTimeDistribution({ from: performanceFrom, to }),
-    getWeeklyZ2Minutes({ from: activityFrom, to }),
-    getHRAtPace({ from: performanceFrom, to }),
-    getWorkoutRecoveryTimes({ from: performanceFrom, to }),
-    listWorkouts({ type: "Running", from: performanceFrom, to, limit: RUN_LIMIT }),
+    getAdvancedCompositeReport({ from: chartFrom, to }),
+    getRestingHRRolling({ from: chartFrom, to }),
+    getVO2Max({ from: chartFrom, to }),
+    getHRV({ from: chartFrom, to }),
+    getSpeed({ from: chartFrom, to }),
+    getPower({ from: chartFrom, to }),
+    getRunningDynamics({ from: chartFrom, to }),
+    getLoad({ from: chartFrom, to }),
+    getActivity({ from: chartFrom, to }),
+    getDistance({ from: chartFrom, to }),
+    getEnergy({ from: chartFrom, to }),
+    getZoneTimeDistribution({ from: chartFrom, to }),
+    getWeeklyZ2Minutes({ from: chartFrom, to }),
+    getHRAtPace({ from: chartFrom, to }),
+    getWorkoutRecoveryTimes({ from: chartFrom, to }),
+    listWorkouts({ type: "Running", from: chartFrom, to, limit: RUN_LIMIT }),
   ]);
 
   const runRows =
@@ -131,7 +133,7 @@ export default async function PerformancePage(): Promise<React.ReactElement> {
       <div className="kicker">
         <span>Endurance</span>
         <span>·</span>
-        <span>{PERFORMANCE_WINDOW_DAYS}-day window</span>
+        <span>{CHART_WINDOW_DAYS}-day window</span>
       </div>
       <h2 className="page-title">
         Performance, <em>fully instrumented.</em>
@@ -153,7 +155,7 @@ export default async function PerformancePage(): Promise<React.ReactElement> {
         <MetricCard
           title="Resting HR"
           value={latestMetric(rollingResult, "avg_rhr_7d", (v) => `${formatNumber(v, 1)} bpm`)}
-          sub={`${RHR_WINDOW_DAYS}-day rolling view`}
+          sub={`${CHART_WINDOW_DAYS}-day rolling view`}
           tip="7-day rolling resting heart rate. Lower is usually better only when recovery and training context agree."
         />
         <MetricCard
@@ -219,10 +221,10 @@ export default async function PerformancePage(): Promise<React.ReactElement> {
           <LineChart
             key={chartDataKey("output", [speedResult, powerResult])}
             series={[
-              lineSeries(speedResult, "Speed m/s", "avg_speed", "#7FE09D"),
-              lineSeries(powerResult, "Power W", "avg_power", "#F5A524"),
+              lineSeries(speedResult, "Speed m/s", "avg_speed", "#7FE09D", 0),
+              lineSeries(powerResult, "Power W", "avg_power", "#F5A524", 1),
             ].filter(isSeries)}
-            yAxisLabel="m/s / W"
+            yAxisLabels={["m/s", "W"]}
             height={300}
           />
         </ChartCard>
@@ -236,11 +238,17 @@ export default async function PerformancePage(): Promise<React.ReactElement> {
           <LineChart
             key={chartDataKey("dynamics", dynamicsResult)}
             series={[
-              lineSeries(dynamicsResult, "Vert osc cm", "avg_vertical_oscillation_cm", "#BFA6FF"),
-              lineSeries(dynamicsResult, "GCT ms", "avg_ground_contact_time_ms", "#FF5D8F"),
-              lineSeries(dynamicsResult, "Stride m", "avg_stride_length_m", "#5FD3F3"),
+              lineSeries(
+                dynamicsResult,
+                "Vert osc cm",
+                "avg_vertical_oscillation_cm",
+                "#BFA6FF",
+                0,
+              ),
+              lineSeries(dynamicsResult, "GCT ms", "avg_ground_contact_time_ms", "#FF5D8F", 1),
+              lineSeries(dynamicsResult, "Stride m", "avg_stride_length_m", "#5FD3F3", 2),
             ].filter(isSeries)}
-            yAxisLabel="mixed"
+            yAxisLabels={["cm", "ms", "m"]}
             height={300}
           />
         </ChartCard>
@@ -286,10 +294,10 @@ export default async function PerformancePage(): Promise<React.ReactElement> {
           <LineChart
             key={chartDataKey("volume", [distanceResult, energyResult])}
             series={[
-              distanceKmSeries(distanceResult),
-              lineSeries(energyResult, "Active kcal", "active_kcal", "#F5A524"),
+              distanceKmSeries(distanceResult, 0),
+              lineSeries(energyResult, "Active kcal", "active_kcal", "#F5A524", 1),
             ].filter(isSeries)}
-            yAxisLabel="km / kcal"
+            yAxisLabels={["km", "kcal"]}
             height={300}
           />
         </ChartCard>
@@ -345,7 +353,7 @@ function CompositeReportPanel({
           <div className="kicker">
             <span>Report answers</span>
             <span>·</span>
-            <span>{SHORT_WINDOW_DAYS}-day window</span>
+            <span>{CHART_WINDOW_DAYS}-day window</span>
           </div>
           <h3 id="performance-report-title" className="section-title compact">
             What changed, and what to do next
@@ -602,11 +610,15 @@ function RunKpiChart({
         row.detail.ok && row.detail.data.z2_ratio !== null ? row.detail.data.z2_ratio * 100 : null,
     },
   }[metric];
-  const data = rows
-    .slice()
-    .reverse()
-    .map((row) => [row.workout.start_ts, config.value(row)] as [string, number | null])
-    .filter((point): point is [string, number] => point[1] !== null);
+  const data: Array<[string, number]> = [];
+  for (let index = rows.length - 1; index >= 0; index -= 1) {
+    const row = rows[index];
+    if (row === undefined) continue;
+    const value = config.value(row);
+    if (value !== null) {
+      data.push([row.workout.start_ts, value]);
+    }
+  }
 
   return (
     <ChartCard title={config.title} tip={config.tip} errors={[]} empty={data.length === 0}>
@@ -621,10 +633,13 @@ function RunKpiChart({
 }
 
 function ZoneShareChart({ rows }: { rows: PerformanceRunRow[] }): React.ReactElement {
-  const chartRows = rows
-    .slice(0, 10)
-    .reverse()
-    .filter((row) => row.detail.ok && row.detail.data.z2_ratio !== null);
+  const chartRows: PerformanceRunRow[] = [];
+  for (let index = Math.min(rows.length, 10) - 1; index >= 0; index -= 1) {
+    const row = rows[index];
+    if (row === undefined) continue;
+    if (row.detail.ok && row.detail.data.z2_ratio !== null) chartRows.push(row);
+  }
+
   return (
     <ChartCard
       title="Run intensity mix"
@@ -742,11 +757,15 @@ function HRAtPaceChart({
 }: {
   result: Awaited<ReturnType<typeof getHRAtPace>>;
 }): React.ReactElement {
-  const data = result.ok
-    ? result.data
-        .map((row) => [row.start_ts, row.avg_hr] as [string, number | null])
-        .filter((point): point is [string, number] => point[1] !== null)
-    : [];
+  const data: Array<[string, number]> = [];
+  if (result.ok) {
+    for (const row of result.data) {
+      if (row.avg_hr !== null) {
+        data.push([row.start_ts, row.avg_hr]);
+      }
+    }
+  }
+
   return (
     <ChartCard
       title="HR at same pace"
@@ -769,17 +788,15 @@ function RecoveryTimeChart({
 }: {
   result: Awaited<ReturnType<typeof getWorkoutRecoveryTimes>>;
 }): React.ReactElement {
-  const data = result.ok
-    ? result.data
-        .map(
-          (row) =>
-            [
-              row.start_ts,
-              row.recovery_duration_sec === null ? null : row.recovery_duration_sec / 3600,
-            ] as [string, number | null],
-        )
-        .filter((point): point is [string, number] => point[1] !== null)
-    : [];
+  const data: Array<[string, number]> = [];
+  if (result.ok) {
+    for (const row of result.data) {
+      if (row.recovery_duration_sec !== null) {
+        data.push([row.start_ts, row.recovery_duration_sec / 3600]);
+      }
+    }
+  }
+
   return (
     <ChartCard
       title="Recovery until next session"
@@ -929,7 +946,7 @@ function ContextTags({ row }: { row: PerformanceRunRow }): React.ReactElement {
     ).length;
     if (pauses > 0) tags.push(`${pauses} pause`);
   }
-  if (tags.length === 0) return <>—</>;
+  if (tags.length === 0) return <>{EMPTY_VALUE}</>;
   return (
     <div className="tag-list">
       {tags.map((tag) => (
@@ -971,18 +988,18 @@ function lineSeries<T extends { day?: string; week?: string }, K extends keyof T
   name: string,
   key: K,
   color: string,
+  yAxisIndex = 0,
 ): LineSeries | null {
   if (!result.ok) return null;
-  const data = result.data
-    .map((point) => {
-      const date = point.day ?? point.week;
-      const value = point[key];
-      return typeof date === "string" && typeof value === "number"
-        ? ([`${date}T00:00:00Z`, value] as [string, number])
-        : null;
-    })
-    .filter((point): point is [string, number] => point !== null);
-  return data.length === 0 ? null : { name, color, data };
+  const data: Array<[string, number]> = [];
+  for (const point of result.data) {
+    const date = point.day ?? point.week;
+    const value = point[key];
+    if (typeof date === "string" && typeof value === "number") {
+      data.push([`${date}T00:00:00Z`, value]);
+    }
+  }
+  return data.length === 0 ? null : { name, color, data, yAxisIndex };
 }
 
 function activityHoursSeries(result: Awaited<ReturnType<typeof getActivity>>): LineSeries | null {
@@ -993,12 +1010,15 @@ function activityHoursSeries(result: Awaited<ReturnType<typeof getActivity>>): L
   return data.length === 0 ? null : { name: "Hours", color: "#5FD3F3", data };
 }
 
-function distanceKmSeries(result: Awaited<ReturnType<typeof getDistance>>): LineSeries | null {
+function distanceKmSeries(
+  result: Awaited<ReturnType<typeof getDistance>>,
+  yAxisIndex = 0,
+): LineSeries | null {
   if (!result.ok) return null;
   const data = result.data.map(
     (point) => [`${point.day}T00:00:00Z`, point.total_meters / 1000] as [string, number],
   );
-  return data.length === 0 ? null : { name: "Distance km", color: "#7FE09D", data };
+  return data.length === 0 ? null : { name: "Distance km", color: "#7FE09D", data, yAxisIndex };
 }
 
 function isSeries(series: LineSeries | null): series is LineSeries {
@@ -1061,9 +1081,13 @@ function summarizeRunMetric(
   rows: PerformanceRunRow[],
   value: (row: PerformanceRunRow) => number | null,
 ): { avg: number | null; count: number } {
-  const values = rows
-    .map(value)
-    .filter((metric): metric is number => metric !== null && Number.isFinite(metric));
+  const values: number[] = [];
+  for (const row of rows) {
+    const metric = value(row);
+    if (metric !== null && Number.isFinite(metric)) {
+      values.push(metric);
+    }
+  }
   if (values.length === 0) return { avg: null, count: 0 };
   return {
     avg: values.reduce((sum, metric) => sum + metric, 0) / values.length,

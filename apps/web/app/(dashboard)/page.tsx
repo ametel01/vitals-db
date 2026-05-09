@@ -10,6 +10,7 @@ import {
   getPower,
   getRecoveryFlag,
   getRestingHR,
+  getSleepNights,
   getSleepSummary,
   getSpeed,
   getSteps,
@@ -19,6 +20,7 @@ import {
 } from "@/lib/api";
 import {
   chartDataKey,
+  daysAgoIso,
   formatDuration,
   formatNumber,
   formatPercent,
@@ -33,6 +35,7 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage(): Promise<React.ReactElement> {
   const to = todayIso();
+  const latestFullDay = daysAgoIso(1);
   const from = windowStartIso(30);
   const activityFrom = windowStartIso(12 * 7);
 
@@ -43,6 +46,7 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
     dailyComparison,
     restingHR,
     sleep,
+    sleepNights,
     vo2max,
     hrv,
     steps,
@@ -52,9 +56,10 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
     activity,
   ] = await Promise.all([
     getRecoveryFlag({ from: readinessFrom, to }),
-    getDailyComparison(to),
+    getDailyComparison(latestFullDay),
     getRestingHR({ from, to }),
     getSleepSummary({ from, to }),
+    getSleepNights({ from, to }),
     getVO2Max({ from, to }),
     getHRV({ from, to }),
     getSteps({ from, to }),
@@ -79,15 +84,15 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
         A quiet look at the numbers that matter — resting rhythms, sleep, oxygen, variability, and
         the work you&apos;ve logged from {from} to {to}.
       </p>
+      <RecoveryFlagChip result={recoveryFlag} />
 
-      <div className="grid cols-2" style={{ marginBottom: 20 }}>
-        <RecoveryFlagCard result={recoveryFlag} />
-        <DailyComparisonCard result={dailyComparison} />
+      <div style={{ marginBottom: 20 }}>
+        <DailyComparisonCard result={dailyComparison} day={latestFullDay} />
       </div>
 
       <div className="grid cols-4" style={{ marginBottom: 20 }}>
         <RestingHRCard result={restingHR} />
-        <SleepCard result={sleep} />
+        <SleepCard result={sleep} nightsResult={sleepNights} />
         <VO2MaxCard result={vo2max} />
         <HRVCard result={hrv} />
       </div>
@@ -117,70 +122,74 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
   );
 }
 
-function RecoveryFlagCard({
+function RecoveryFlagChip({
   result,
 }: {
   result: Awaited<ReturnType<typeof getRecoveryFlag>>;
 }): React.ReactElement {
   if (!result.ok) {
     return (
-      <div className="card">
-        <CardTitle
-          title="Recovery flag"
-          tip="Literal green/yellow/red readiness flag from resting HR, HRV, sleep, load, and same-pace HR signals."
-        />
-        <ErrorBanner title="Could not load recovery flag" detail={result.message} />
+      <div className="recovery-chip-wrap">
+        <button type="button" className="recovery-chip danger">
+          <span className="recovery-chip-label">Recovery</span>
+          <strong>UNAVAILABLE</strong>
+          <div className="recovery-chip-bubble">Could not load recovery flag: {result.message}</div>
+        </button>
       </div>
     );
   }
 
   const flag = result.data;
   return (
-    <div className="card">
-      <CardTitle
-        title="Recovery flag"
-        tip="Literal green/yellow/red readiness flag from resting HR, HRV, sleep, load, and same-pace HR signals."
-      />
-      <div className="stat-value">{flag.flag.toUpperCase()}</div>
-      <div className="stat-sub">
+    <div className="recovery-chip-wrap">
+      <button type="button" className={`recovery-chip ${flagTone(flag.flag)}`}>
+        <span className="recovery-chip-label">Recovery</span>
+        <strong>{flag.flag.toUpperCase()}</strong>
         <span className={`tag ${flagTone(flag.flag)}`}>{flag.sample_quality} sample</span>
-      </div>
-      <div className="context-grid" style={{ marginTop: 16 }}>
-        <MiniMetric label="RHR" value={formatNullableDelta(flag.resting_hr_delta_bpm, " bpm")} />
-        <MiniMetric label="HRV" value={formatNullableDelta(flag.hrv_delta_ms, " ms")} />
-        <MiniMetric
-          label="Sleep"
-          value={
-            flag.sleep_hours_per_day === null
-              ? "—"
-              : `${formatNumber(flag.sleep_hours_per_day, 1)} h`
-          }
-        />
-        <MiniMetric
-          label="Load"
-          value={
-            flag.acute_chronic_load_ratio === null
-              ? "—"
-              : `${formatNumber(flag.acute_chronic_load_ratio, 2)}x`
-          }
-        />
-      </div>
-      <div className="context-note">{flag.reasons[0] ?? "Recovery signal unavailable."}</div>
+        <div className="recovery-chip-bubble">
+          <div className="context-grid">
+            <MiniMetric
+              label="RHR"
+              value={formatNullableDelta(flag.resting_hr_delta_bpm, " bpm")}
+            />
+            <MiniMetric label="HRV" value={formatNullableDelta(flag.hrv_delta_ms, " ms")} />
+            <MiniMetric
+              label="Sleep"
+              value={
+                flag.sleep_hours_per_day === null
+                  ? "—"
+                  : `${formatNumber(flag.sleep_hours_per_day, 1)} h`
+              }
+            />
+            <MiniMetric
+              label="Load"
+              value={
+                flag.acute_chronic_load_ratio === null
+                  ? "—"
+                  : `${formatNumber(flag.acute_chronic_load_ratio, 2)}x`
+              }
+            />
+          </div>
+          <div className="context-note">{flag.reasons[0] ?? "Recovery signal unavailable."}</div>
+        </div>
+      </button>
     </div>
   );
 }
 
 function DailyComparisonCard({
   result,
+  day,
 }: {
   result: Awaited<ReturnType<typeof getDailyComparison>>;
+  day: string;
 }): React.ReactElement {
   if (!result.ok) {
     return (
       <div className="card">
         <CardTitle
-          title="Today vs baselines"
-          tip="Today compared with trailing 7-day and 30-day values across the daily metric set."
+          title="Latest full day vs baselines"
+          tip="Most recent completed UTC day compared with trailing 7-day and 30-day values across the daily metric set."
         />
         <ErrorBanner title="Could not load comparison" detail={result.message} />
       </div>
@@ -190,14 +199,17 @@ function DailyComparisonCard({
   return (
     <div className="card">
       <CardTitle
-        title="Today vs baselines"
-        tip="Today compared with trailing 7-day and 30-day values across the daily metric set."
+        title="Latest full day vs baselines"
+        tip="Most recent completed UTC day compared with trailing 7-day and 30-day values across the daily metric set."
       />
+      <div className="stat-sub" style={{ marginBottom: 12 }}>
+        Full day: {day}
+      </div>
       <table className="workouts-table">
         <thead>
           <tr>
             <th>Metric</th>
-            <th>Today</th>
+            <th>Day</th>
             <th>7d</th>
             <th>30d</th>
           </tr>
@@ -326,8 +338,10 @@ function RestingHRCard({
 
 function SleepCard({
   result,
+  nightsResult,
 }: {
   result: Awaited<ReturnType<typeof getSleepSummary>>;
+  nightsResult: Awaited<ReturnType<typeof getSleepNights>>;
 }): React.ReactElement {
   if (!result.ok) {
     return (
@@ -343,23 +357,29 @@ function SleepCard({
 
   const summary = result.data;
   const hours = summary.total_hours;
+  const recordedNights = nightsResult.ok ? nightsResult.data.length : 0;
+  const avgHoursPerNight = recordedNights > 0 ? hours / recordedNights : null;
   const efficiency = summary.efficiency;
   const consistency = summary.consistency_stddev;
 
   return (
     <div className="card">
       <CardTitle
-        title="Sleep (30-day total)"
+        title="Sleep (avg/night)"
         tip="Total asleep hours over the window, with efficiency (asleep ÷ in-bed) and bedtime consistency (σ in minutes)."
       />
-      <div className="stat-value">{formatNumber(hours, 1)} h</div>
+      <div className="stat-value">
+        {avgHoursPerNight === null ? "—" : `${formatNumber(avgHoursPerNight, 1)} h`}
+      </div>
       <div className="stat-sub">
+        {recordedNights > 0 ? `${recordedNights} recorded nights · ` : ""}
         Efficiency {efficiency === null ? "—" : formatPercent(efficiency, 0)} · Consistency σ{" "}
         {consistency === null ? "—" : formatSleepConsistencyMinutes(consistency)}
       </div>
       <div style={{ marginTop: 16, color: "var(--text-muted)", fontSize: 13 }}>
-        Summary across the 30-day window. Efficiency is asleep hours over in-bed hours; consistency
-        σ is the standard deviation of bedtime, in minutes.
+        Average asleep hours per recorded night in the 30-day window. Efficiency is computed as
+        total asleep duration divided by total in-bed duration; it is null when no in-bed samples
+        exist in the window. Consistency σ is the standard deviation of bedtime, in minutes.
       </div>
       <div style={{ marginTop: 12 }}>
         <Link href="/sleep">Open sleep detail →</Link>

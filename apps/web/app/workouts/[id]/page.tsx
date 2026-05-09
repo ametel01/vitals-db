@@ -24,7 +24,13 @@ import type {
   WorkoutZoneBreakdownRow,
 } from "@vitals/core";
 import { HR_ZONES, HR_ZONE_ORDER } from "@vitals/core";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+
+export const metadata: Metadata = {
+  title: "Workout Detail | Vital",
+  description: "Detailed workout heart-rate, zone, drift, load, and efficiency analytics.",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -67,7 +73,7 @@ export default async function WorkoutDetailPage({
       </div>
       <h2 className="page-title">{detail.type === "" ? "Workout" : detail.type}</h2>
       <p className="page-subtitle">
-        {formatIsoDateTime(detail.start_ts)} — {formatIsoDateTime(detail.end_ts)}
+        {formatIsoDateTime(detail.start_ts)} to {formatIsoDateTime(detail.end_ts)}
       </p>
 
       <div className="grid cols-3" style={{ marginBottom: 20 }}>

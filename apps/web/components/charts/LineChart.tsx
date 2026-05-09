@@ -28,11 +28,13 @@ export interface LineSeries {
   name: string;
   data: Array<[string, number]>;
   color?: string;
+  yAxisIndex?: number;
 }
 
 export interface LineChartProps {
   series: LineSeries[];
   yAxisLabel?: string;
+  yAxisLabels?: string[];
   xAxisType?: "time" | "category";
   height?: number;
   markBand?: { yFrom: number; yTo: number; label: string };
@@ -41,6 +43,7 @@ export interface LineChartProps {
 export function LineChart({
   series,
   yAxisLabel,
+  yAxisLabels,
   xAxisType = "time",
   height = 280,
   markBand,
@@ -76,12 +79,55 @@ export function LineChart({
       fontSize: 11,
     };
 
+    const axisBase = {
+      type: "value",
+      nameGap: 24,
+      scale: true,
+      nameTextStyle: {
+        color: "#546058",
+        fontFamily: "Fraunces, serif",
+        fontStyle: "italic",
+        fontSize: 11,
+      },
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: axisLabelStyle,
+    };
+
+    const yAxisConfig =
+      yAxisLabels === undefined
+        ? ({
+            ...axisBase,
+            name: yAxisLabel,
+            splitLine: {
+              lineStyle: { color: "rgba(36, 47, 43, 0.6)", type: "dashed" },
+            },
+          } as const)
+        : yAxisLabels.map((label, index) => ({
+            ...axisBase,
+            name: label,
+            position: index === 0 ? "left" : "right",
+            offset: index <= 1 ? 0 : (index - 1) * 52,
+            splitLine:
+              index === 0
+                ? {
+                    lineStyle: { color: "rgba(36, 47, 43, 0.6)", type: "dashed" },
+                  }
+                : { show: false },
+          }));
+
     chart.setOption({
       animation: true,
       animationDuration: 650,
       animationEasing: "cubicOut",
       textStyle: { fontFamily: "Figtree, sans-serif", color: "#8A9790" },
-      grid: { left: 52, right: 24, top: 28, bottom: 36, containLabel: true },
+      grid: {
+        left: 52,
+        right: yAxisLabels === undefined ? 24 : 24 + Math.max(0, yAxisLabels.length - 1) * 52,
+        top: 28,
+        bottom: 36,
+        containLabel: true,
+      },
       tooltip: {
         trigger: "axis",
         backgroundColor: "rgba(12, 18, 16, 0.96)",
@@ -121,29 +167,13 @@ export function LineChart({
         axisLabel: axisLabelStyle,
         splitLine: { show: false },
       },
-      yAxis: {
-        type: "value",
-        name: yAxisLabel,
-        nameGap: 24,
-        scale: true,
-        nameTextStyle: {
-          color: "#546058",
-          fontFamily: "Fraunces, serif",
-          fontStyle: "italic",
-          fontSize: 11,
-        },
-        axisLine: { show: false },
-        axisTick: { show: false },
-        axisLabel: axisLabelStyle,
-        splitLine: {
-          lineStyle: { color: "rgba(36, 47, 43, 0.6)", type: "dashed" },
-        },
-      },
+      yAxis: yAxisConfig,
       series: series.map((s, index) => {
         const color = s.color ?? "#D8FF3D";
         return {
           name: s.name,
           type: "line",
+          yAxisIndex: s.yAxisIndex ?? 0,
           showSymbol: false,
           smooth: true,
           smoothMonotone: "x",
@@ -188,7 +218,7 @@ export function LineChart({
       window.removeEventListener("resize", handleResize);
       chart.dispose();
     };
-  }, [series, yAxisLabel, xAxisType, markBand]);
+  }, [series, yAxisLabel, yAxisLabels, xAxisType, markBand]);
 
   return <div ref={containerRef} style={{ width: "100%", height }} />;
 }

@@ -20,7 +20,7 @@ echarts.use([
   LegendComponent,
 ]);
 
-export interface StackedBarSeries {
+interface StackedBarSeries {
   name: string;
   data: number[];
   color?: string;

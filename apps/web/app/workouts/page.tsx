@@ -2,7 +2,13 @@ import { ErrorBanner } from "@/components/ErrorBanner";
 import { type ListWorkoutsParams, listWorkouts } from "@/lib/api";
 import { formatDuration, formatIsoDateTime } from "@/lib/format";
 import type { WorkoutSummary } from "@vitals/core";
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Workouts | Vital",
+  description: "Search and inspect workout sessions by type, date range, duration, and source.",
+};
 
 export const dynamic = "force-dynamic";
 

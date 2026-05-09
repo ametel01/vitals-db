@@ -488,6 +488,92 @@ a:hover {
   transform: translateY(0) scale(1);
 }
 
+.recovery-chip-wrap {
+  margin: -12px 0 20px;
+}
+
+.recovery-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: help;
+  position: relative;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.recovery-chip-label {
+  color: var(--text-dim);
+}
+
+.recovery-chip strong {
+  font-size: 12px;
+  letter-spacing: 0.09em;
+  font-weight: 600;
+}
+
+.recovery-chip.success {
+  border-color: rgba(127, 224, 157, 0.55);
+}
+
+.recovery-chip.warning {
+  border-color: rgba(245, 165, 36, 0.55);
+}
+
+.recovery-chip.danger {
+  border-color: rgba(255, 107, 74, 0.55);
+}
+
+.recovery-chip:hover,
+.recovery-chip:focus-visible {
+  box-shadow: 0 0 0 3px rgba(216, 255, 61, 0.12);
+  outline: none;
+}
+
+.recovery-chip-bubble {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 0;
+  min-width: 360px;
+  max-width: min(640px, calc(100vw - 56px));
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  background: linear-gradient(180deg, #1a2321, #111816);
+  color: var(--text);
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  transition: opacity 180ms ease, transform 180ms ease;
+  z-index: 30;
+  box-shadow: 0 14px 38px -14px rgba(0, 0, 0, 0.75);
+}
+
+.recovery-chip:hover .recovery-chip-bubble,
+.recovery-chip:focus-visible .recovery-chip-bubble {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.recovery-chip-bubble .context-grid {
+  margin-top: 0;
+}
+
+.recovery-chip-bubble .context-note {
+  margin-top: 12px;
+}
+
 /* ---------- Grid ---------- */
 .grid {
   display: grid;

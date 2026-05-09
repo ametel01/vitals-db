@@ -13,7 +13,14 @@ import {
   windowStartIso,
 } from "@/lib/format";
 import type { SleepNightDetail, SleepSegment } from "@vitals/core";
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Sleep | Vital",
+  description:
+    "Night-by-night sleep architecture, stage coverage, efficiency, and segment timelines.",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -99,9 +106,12 @@ function sleepColor(segment: SleepSegment): string {
 }
 
 function averageEfficiency(nights: SleepNightDetail[]): number | null {
-  const values = nights
-    .map((night) => night.efficiency)
-    .filter((value): value is number => value !== null);
+  const values: number[] = [];
+  for (const night of nights) {
+    if (night.efficiency !== null) {
+      values.push(night.efficiency);
+    }
+  }
   if (values.length === 0) return null;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
@@ -174,30 +184,32 @@ function SleepPageContent({
   requestedNight: string | undefined;
   segmentsResult: Awaited<ReturnType<typeof getSleepSegments>>;
 }): React.ReactElement {
+  const nightsNewestFirst = nights.toSorted((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
+  const nightsChronological = [...nightsNewestFirst].reverse();
   const selectedNight =
-    nights.find((night) => night.day === requestedNight) ?? nights[nights.length - 1];
+    nightsNewestFirst.find((night) => night.day === requestedNight) ?? nightsNewestFirst[0];
   const selectedNightKey = selectedNight?.day ?? "";
   const selectedSegments =
     segmentsResult.ok && selectedNight !== undefined
       ? segmentsResult.data.filter((segment) => segment.night === selectedNight.day)
       : [];
-  const totalAsleepHours = nights.reduce((sum, night) => sum + night.asleep_hours, 0);
-  const avgAsleepHours = totalAsleepHours / nights.length;
-  const efficiency = averageEfficiency(nights);
-  const stageCoverageCount = nights.filter(hasStageDetail).length;
+  const totalAsleepHours = nightsNewestFirst.reduce((sum, night) => sum + night.asleep_hours, 0);
+  const avgAsleepHours = totalAsleepHours / nightsNewestFirst.length;
+  const efficiency = averageEfficiency(nightsNewestFirst);
+  const stageCoverageCount = nightsNewestFirst.filter(hasStageDetail).length;
 
   const trendSeries = [
     {
       name: "Asleep",
       color: "#BFA6FF",
-      data: nights.map(
+      data: nightsChronological.map(
         (night) => [`${night.day}T00:00:00Z`, night.asleep_hours] as [string, number],
       ),
     },
     {
       name: "In bed",
       color: "#546058",
-      data: nights.map(
+      data: nightsChronological.map(
         (night) => [`${night.day}T00:00:00Z`, night.in_bed_hours] as [string, number],
       ),
     },
@@ -208,7 +220,7 @@ function SleepPageContent({
       <div className="grid cols-4" style={{ marginBottom: 20 }}>
         <SummaryCard
           label="Nights"
-          value={String(nights.length)}
+          value={String(nightsNewestFirst.length)}
           sub={`Window size ${days} days`}
           tip="Number of sleep nights analyzed in this window."
         />
@@ -226,7 +238,7 @@ function SleepPageContent({
         />
         <SummaryCard
           label="Stage coverage"
-          value={`${stageCoverageCount}/${nights.length}`}
+          value={`${stageCoverageCount}/${nightsNewestFirst.length}`}
           sub={
             stageCoverageCount === nights.length
               ? "All nights include preserved stage detail"
@@ -256,7 +268,7 @@ function SleepPageContent({
             tip="Every night in the window. Click one to drill into its timeline and stage totals."
           />
           <div className="sleep-night-list">
-            {nights.map((night) => (
+            {nightsNewestFirst.map((night) => (
               <Link
                 key={night.day}
                 href={sleepHref(days, night.day)}
