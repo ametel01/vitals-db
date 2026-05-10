@@ -1,11 +1,18 @@
 import { SidebarNav } from "@/components/SidebarNav";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Vital — health signal",
   description: "Apple Health analytics, slow-made.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  colorScheme: "dark",
+  themeColor: "#0a0d0b",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }): React.ReactElement {
