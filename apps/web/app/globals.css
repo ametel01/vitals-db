@@ -49,6 +49,7 @@
 html,
 body {
   height: 100%;
+  min-width: 0;
 }
 
 body {
@@ -59,10 +60,11 @@ body {
   font-feature-settings: "ss01", "cv11";
   font-size: 15px;
   line-height: 1.5;
-  letter-spacing: -0.005em;
+  letter-spacing: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100%;
+  overflow-x: hidden;
   color-scheme: dark;
 }
 
@@ -97,6 +99,7 @@ a:hover {
 .app-shell {
   display: grid;
   grid-template-columns: var(--sidebar-w) 1fr;
+  min-width: 0;
   min-height: 100vh;
   position: relative;
   z-index: 1;
@@ -106,6 +109,7 @@ a:hover {
   position: sticky;
   top: 0;
   align-self: start;
+  min-width: 0;
   height: 100vh;
   padding: 28px 20px 24px;
   border-right: 1px solid var(--border);
@@ -128,7 +132,7 @@ a:hover {
   font-style: italic;
   font-weight: 400;
   font-size: 28px;
-  letter-spacing: -0.035em;
+  letter-spacing: 0;
   color: var(--text);
   line-height: 1;
 }
@@ -163,6 +167,7 @@ a:hover {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .side-section-label {
@@ -185,7 +190,7 @@ a:hover {
   color: var(--text-muted);
   font-size: 14px;
   font-weight: 500;
-  letter-spacing: -0.005em;
+  letter-spacing: 0;
   position: relative;
   transition: color 200ms ease, background 200ms ease;
 }
@@ -252,11 +257,13 @@ a:hover {
   padding: 44px 56px 88px;
   max-width: 1360px;
   width: 100%;
+  min-width: 0;
   flex: 1;
   position: relative;
 }
 
 .main-inner {
+  min-width: 0;
   animation: fade-in 500ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
@@ -275,9 +282,9 @@ a:hover {
 .page-title {
   font-family: var(--font-display);
   font-weight: 300;
-  font-size: clamp(38px, 4.2vw, 60px);
+  font-size: 60px;
   line-height: 0.98;
-  letter-spacing: -0.035em;
+  letter-spacing: 0;
   color: var(--text);
   margin-bottom: 12px;
 }
@@ -337,7 +344,7 @@ a:hover {
   font-style: italic;
   font-weight: 400;
   font-size: 20px;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   color: var(--text);
   margin: 40px 0 14px;
   display: flex;
@@ -358,6 +365,7 @@ a:hover {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 22px 22px 20px;
+  min-width: 0;
   position: relative;
   transition: border-color 260ms ease, transform 260ms ease;
 }
@@ -459,7 +467,7 @@ a:hover {
   font-weight: 400;
   font-size: 12px;
   line-height: 1.55;
-  letter-spacing: -0.005em;
+  letter-spacing: 0;
   text-align: left;
   opacity: 0;
   transform: translateY(4px) scale(0.985);
@@ -654,7 +662,7 @@ a:hover {
   font-family: var(--font-mono);
   font-weight: 500;
   font-size: 32px;
-  letter-spacing: -0.045em;
+  letter-spacing: 0;
   color: var(--text);
   line-height: 1.02;
   font-variant-numeric: tabular-nums;
@@ -1093,7 +1101,7 @@ a:hover {
   font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 500;
-  letter-spacing: -0.005em;
+  letter-spacing: 0;
   transition: color 160ms ease, background 160ms ease;
 }
 
@@ -1239,7 +1247,7 @@ a:hover {
   font-style: italic;
   font-weight: 300;
   font-size: 34px;
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
 }
 
 .sleep-detail-header p {
@@ -1303,4 +1311,313 @@ a:hover {
   height: 3px;
   border-radius: 999px;
   background: var(--text-dim);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1200px) {
+  .app-main {
+    padding-inline: 40px;
+  }
+
+  .grid.cols-3,
+  .composite-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    display: block;
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    height: auto;
+    padding: 14px 18px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(216, 255, 61, 0.055), transparent 60%),
+      rgba(12, 18, 16, 0.96);
+    backdrop-filter: blur(18px);
+  }
+
+  .brand {
+    width: 100%;
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .brand-mark {
+    font-size: 25px;
+  }
+
+  .sidebar .side-footer,
+  .side-section-label,
+  .side-link[aria-current="page"]::before {
+    display: none;
+  }
+
+  .sidebar .side-section {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sidebar .side-section::-webkit-scrollbar {
+    display: none;
+  }
+
+  .side-link {
+    flex: 0 0 auto;
+    gap: 8px;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.026);
+    scroll-snap-align: start;
+  }
+
+  .side-link[aria-current="page"] {
+    color: #0a0d0b;
+    border-color: var(--lime);
+    background: var(--lime);
+  }
+
+  .side-link[aria-current="page"] .glyph {
+    color: #0a0d0b;
+  }
+
+  .app-main {
+    max-width: none;
+    padding: 30px 22px calc(64px + env(safe-area-inset-bottom));
+  }
+
+  .page-title {
+    font-size: 42px;
+    line-height: 1.04;
+  }
+
+  .grid,
+  .grid.cols-4,
+  .grid.cols-3,
+  .grid.cols-2,
+  .composite-report-head,
+  .composite-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .context-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .card {
+    border-radius: 12px;
+  }
+
+  .recovery-chip {
+    max-width: 100%;
+    flex-wrap: wrap;
+    border-radius: 16px;
+    line-height: 1.25;
+  }
+
+  .recovery-chip-bubble {
+    min-width: 0;
+    width: min(560px, calc(100vw - 44px));
+    max-width: calc(100vw - 44px);
+  }
+
+  .info-tip-bubble {
+    right: -2px;
+    min-width: min(220px, calc(100vw - 52px));
+    max-width: calc(100vw - 52px);
+  }
+
+  .metric-card {
+    min-height: 132px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .workouts-table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .workouts-table th,
+  .workouts-table td {
+    padding: 12px 14px;
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    font-size: 14px;
+  }
+
+  .sidebar {
+    gap: 12px;
+    padding: 12px 14px;
+  }
+
+  .app-main {
+    padding: 24px 14px calc(52px + env(safe-area-inset-bottom));
+  }
+
+  .kicker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 10px;
+    line-height: 1.45;
+    margin-bottom: 12px;
+  }
+
+  .kicker::before {
+    width: 14px;
+  }
+
+  .page-title {
+    font-size: 34px;
+    margin-bottom: 10px;
+    text-wrap: balance;
+  }
+
+  .page-subtitle {
+    max-width: none;
+    margin-bottom: 24px;
+    font-size: 13px;
+  }
+
+  .section-title {
+    margin: 30px 0 12px;
+    font-size: 18px;
+    line-height: 1.25;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .card h2 {
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12.5px;
+    line-height: 1.35;
+  }
+
+  .info-tip {
+    flex: 0 0 18px;
+  }
+
+  .stat-value {
+    overflow: visible;
+    font-size: 26px;
+    text-overflow: clip;
+    text-wrap: balance;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .stat-sub {
+    line-height: 1.45;
+  }
+
+  .metric-mini {
+    padding: 10px;
+  }
+
+  .metric-mini strong {
+    font-size: 17px;
+    overflow-wrap: anywhere;
+  }
+
+  .filters {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .filters label,
+  .filters input,
+  .filters select,
+  .filters button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .segmented-control {
+    width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    border-radius: 14px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .segmented-control a {
+    flex: 0 0 auto;
+    padding: 8px 12px;
+    white-space: nowrap;
+  }
+
+  .sleep-night-list {
+    max-height: none;
+  }
+
+  .sleep-night-title,
+  .sleep-detail-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .sleep-detail-header .stat-value {
+    font-size: 28px;
+  }
+}
+
+@media (max-width: 420px) {
+  .side-link {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .side-link .glyph {
+    width: 16px;
+    height: 16px;
+  }
+
+  .brand-mark {
+    font-size: 22px;
+  }
+
+  .page-title {
+    font-size: 30px;
+  }
+
+  .context-grid,
+  .recovery-chip-bubble .context-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .workouts-table {
+    font-size: 13px;
+  }
+
+  .workouts-table th,
+  .workouts-table td {
+    padding: 11px 12px;
+  }
 }
