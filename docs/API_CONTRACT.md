@@ -157,10 +157,12 @@ Query params:
 - `to` — required
 
 Response: `SleepNightPoint[]`, one row per night keyed by the UTC `DATE` of
-each night's first `asleep` start. `asleep_hours` and `in_bed_hours` are raw
-segment-duration sums (same choice as `/metrics/sleep`). `efficiency` is null
-when the night has no `in_bed` coverage. Additive to `/metrics/sleep`, which
-continues to return the 30-day summary.
+each night's first `asleep` start. `asleep_hours` is the raw sum of asleep
+segment durations (same choice as `/metrics/sleep`). `in_bed_hours` uses raw
+`in_bed` segment duration when present, and otherwise falls back to the
+asleep + awake duration for Apple exports that do not include explicit InBed
+samples. Additive to `/metrics/sleep`, which continues to return the 30-day
+summary.
 
 ### `GET /metrics/sleep/nights`
 
@@ -172,6 +174,8 @@ Query params:
 Response: `SleepNightDetail[]`, one row per night for the dedicated sleep page.
 Each row includes `bedtime`, `wake_time`, asleep / in-bed / awake totals, and
 nullable `core_hours`, `deep_hours`, `rem_hours`, and `unspecified_hours`.
+As on `/metrics/sleep/nightly`, `in_bed_hours` falls back to the observed
+asleep + awake duration when explicit InBed samples are absent.
 Those stage totals are `null` for nights that were ingested before `0.8.0`
 without the additive `sleep.raw_state` backfill. Additive to both
 `/metrics/sleep` and `/metrics/sleep/nightly`.
