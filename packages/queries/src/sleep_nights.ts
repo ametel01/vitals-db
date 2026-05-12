@@ -29,7 +29,7 @@ export async function getSleepNights(db: Db, range: DateRange): Promise<SleepNig
                    MIN(start_ts) AS bedtime,
                    MAX(end_ts) AS wake_time,
                    SUM(CASE WHEN state = 'asleep' THEN duration_hours ELSE 0 END)::DOUBLE AS asleep_hours,
-                   SUM(CASE WHEN state = 'in_bed' THEN duration_hours ELSE 0 END)::DOUBLE AS in_bed_hours,
+                   SUM(CASE WHEN state = 'in_bed' THEN duration_hours ELSE 0 END)::DOUBLE AS explicit_in_bed_hours,
                    SUM(CASE WHEN state = 'awake' THEN duration_hours ELSE 0 END)::DOUBLE AS awake_hours,
                    SUM(CASE WHEN raw_state = 'HKCategoryValueSleepAnalysisAsleepCore' THEN duration_hours ELSE 0 END)::DOUBLE AS core_hours_value,
                    SUM(CASE WHEN raw_state = 'HKCategoryValueSleepAnalysisAsleepDeep' THEN duration_hours ELSE 0 END)::DOUBLE AS deep_hours_value,
@@ -55,10 +55,14 @@ export async function getSleepNights(db: Db, range: DateRange): Promise<SleepNig
                  bedtime,
                  wake_time,
                  asleep_hours,
-                 in_bed_hours,
+                 CASE
+                   WHEN explicit_in_bed_hours > 0 THEN explicit_in_bed_hours
+                   ELSE asleep_hours + awake_hours
+                 END AS in_bed_hours,
                  awake_hours,
                  CASE
-                   WHEN in_bed_hours > 0 THEN (asleep_hours / in_bed_hours)::DOUBLE
+                   WHEN explicit_in_bed_hours > 0
+                     THEN (asleep_hours / explicit_in_bed_hours)::DOUBLE
                    WHEN (asleep_hours + awake_hours) > 0
                      THEN (asleep_hours / (asleep_hours + awake_hours))::DOUBLE
                    ELSE NULL

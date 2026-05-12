@@ -107,7 +107,7 @@ describe("getSleepNights", () => {
     expect(rows).toEqual([]);
   });
 
-  test("falls back to asleep/(asleep+awake) when in_bed is missing", async () => {
+  test("derives in_bed_hours from asleep plus awake duration when explicit in_bed is missing", async () => {
     await db.run("INSERT INTO sleep (start_ts, end_ts, state) VALUES (?, ?, ?), (?, ?, ?)", [
       "2024-06-07 23:00:00",
       "2024-06-08 05:00:00",
@@ -119,7 +119,7 @@ describe("getSleepNights", () => {
     const rows = await getSleepNights(db, { from: "2024-06-07", to: "2024-06-08" });
     expect(rows).toHaveLength(1);
     expect(rows[0]?.asleep_hours).toBeCloseTo(6, 3);
-    expect(rows[0]?.in_bed_hours).toBe(0);
+    expect(rows[0]?.in_bed_hours).toBeCloseTo(6.5, 3);
     expect(rows[0]?.awake_hours).toBeCloseTo(0.5, 3);
     expect(rows[0]?.efficiency).toBeCloseTo(6 / 6.5, 6);
   });
