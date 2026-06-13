@@ -300,6 +300,14 @@ describe("Hono server", () => {
     expect(res.status).toBe(400);
   });
 
+  test("GET /metrics/resting-hr rejects reversed date ranges", async () => {
+    const res = await app.request("/metrics/resting-hr?from=2024-06-14&to=2024-06-08");
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("invalid_query");
+    expect(body.issues.length).toBeGreaterThan(0);
+  });
+
   test("GET /metrics/zones rejects invalid date ranges", async () => {
     const res = await app.request("/metrics/zones?from=2024-06-01&to=not-a-date");
     expect(res.status).toBe(400);
@@ -606,6 +614,13 @@ describe("Hono server", () => {
     expect(body.reasons.length).toBeGreaterThan(0);
   });
 
+  test("GET /metrics/recovery-flag rejects reversed date ranges", async () => {
+    const res = await app.request("/metrics/recovery-flag?from=2024-06-14&to=2024-06-08");
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("invalid_query");
+  });
+
   test("GET /metrics/composites/report returns the advanced report", async () => {
     const res = await app.request("/metrics/composites/report?from=2024-06-01&to=2024-06-06");
     expect(res.status).toBe(200);
@@ -622,6 +637,13 @@ describe("Hono server", () => {
   test("GET /metrics/composites report rejects invalid date ranges", async () => {
     const res = await app.request("/metrics/composites/report?from=bad&to=2024-06-06");
     expect(res.status).toBe(400);
+  });
+
+  test("GET /metrics/composites report rejects reversed date ranges", async () => {
+    const res = await app.request("/metrics/composites/report?from=2024-06-14&to=2024-06-08");
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("invalid_query");
   });
 
   test("GET /metrics/composites metric endpoints return composite results", async () => {

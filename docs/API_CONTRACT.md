@@ -85,7 +85,8 @@ contract unchanged.
 
 Unless a route documents a different query shape, routes under `/metrics`
 require both `from` and `to`. Invalid or missing values return `400` with
-`{ error: "invalid_query", issues: ZodIssue[] }`.
+`{ error: "invalid_query", issues: ZodIssue[] }`. `to` must be on or after
+`from`; reversed ranges return `400 invalid_query`.
 
 ### `GET /metrics/zones`
 

@@ -113,18 +113,34 @@ const DateInputSchema = z
     },
   );
 
-const RangeSchema = z.object({
+function dateInputToTime(value: string): number {
+  return new Date(isValidDateOnly(value) ? `${value}T00:00:00.000Z` : value).getTime();
+}
+
+const BaseRangeSchema = z.object({
   from: DateInputSchema,
   to: DateInputSchema,
+});
+
+function isOrderedRange(value: { from: string; to: string }): boolean {
+  return dateInputToTime(value.from) <= dateInputToTime(value.to);
+}
+
+const RangeSchema = BaseRangeSchema.refine(isOrderedRange, {
+  message: "Expected to to be on or after from",
+  path: ["to"],
 });
 
 const ToDateSchema = z.object({
   to: DateInputSchema,
 });
 
-const HRAtPaceQuerySchema = RangeSchema.extend({
+const HRAtPaceQuerySchema = BaseRangeSchema.extend({
   pace_sec_per_km: z.coerce.number().positive().optional(),
   tolerance_sec_per_km: z.coerce.number().nonnegative().optional(),
+}).refine(isOrderedRange, {
+  message: "Expected to to be on or after from",
+  path: ["to"],
 });
 
 const WorkoutIdParamsSchema = z.object({
