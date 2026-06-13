@@ -140,7 +140,7 @@ export function summarizeSleepWindow(
   };
 }
 
-export function compareSleepWindows(
+function compareSleepWindows(
   current: SleepWindowSummary,
   prior: SleepWindowSummary,
 ): SleepMetricComparisons {

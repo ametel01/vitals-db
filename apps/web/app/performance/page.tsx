@@ -1226,17 +1226,23 @@ function loadSeries(
   yAxisIndex = 0,
 ): LineSeries | null {
   if (!result.ok) return null;
-  const data = result.data
-    .filter((row) => row.start_ts.length > 0 && row.load !== null && Number.isFinite(row.load))
-    .map((row) => [row.start_ts, row.load ?? 0] as [string, number]);
+  const data: Array<[string, number]> = [];
+  for (const row of result.data) {
+    if (row.start_ts.length > 0 && row.load !== null && Number.isFinite(row.load)) {
+      data.push([row.start_ts, row.load]);
+    }
+  }
   return data.length === 0 ? null : { name: "Training Load", color: "#3E9BFF", data, yAxisIndex };
 }
 
 function hrAtPaceSeries(result: Awaited<ReturnType<typeof getHRAtPace>>): LineSeries | null {
   if (!result.ok) return null;
-  const data = result.data
-    .filter((row) => row.avg_hr !== null && Number.isFinite(row.avg_hr))
-    .map((row) => [row.start_ts, row.avg_hr ?? 0] as [string, number]);
+  const data: Array<[string, number]> = [];
+  for (const row of result.data) {
+    if (row.avg_hr !== null && Number.isFinite(row.avg_hr)) {
+      data.push([row.start_ts, row.avg_hr]);
+    }
+  }
   return data.length === 0 ? null : { name: "HR @ 9:00/km", color: "#D8FF3D", data };
 }
 
@@ -1314,7 +1320,7 @@ function runMetricSummary(
 }
 
 function chronologicalRows(rows: PerformanceRunRow[]): PerformanceRunRow[] {
-  return [...rows].sort(
+  return rows.toSorted(
     (left, right) => Date.parse(left.workout.start_ts) - Date.parse(right.workout.start_ts),
   );
 }

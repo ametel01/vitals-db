@@ -97,7 +97,7 @@ export function formatSleepConsistencyMinutes(seconds: number): string {
   return `${formatNumber(seconds / 60, 1)} min`;
 }
 
-export function daysAgoIso(days: number): string {
+function daysAgoIso(days: number): string {
   const d = new Date();
   d.setUTCDate(d.getUTCDate() - days);
   return d.toISOString().slice(0, 10);
