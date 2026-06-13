@@ -228,9 +228,13 @@ response DTOs, and error shapes. Date-only bounds are treated as full UTC days.
 ## Development Checks
 
 ```bash
-bun test
+bun run verify
+bun run check:ci
 bun run typecheck
-bun run check
+bun test
+bun run build
 ```
+
+CI runs `bun install --frozen-lockfile` followed by `bun run verify`.
 
 The repo test suite currently passes end to end, including ingest, queries, API routes, and the committed sample fixture.

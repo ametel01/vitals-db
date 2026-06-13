@@ -14,7 +14,7 @@
     "test": "bun test",
     "build": "bun run typecheck && bun run build:web",
     "build:web": "bun run --filter @vitals/web build",
-    "verify": "bun run check:ci && bun run typecheck && bun run test",
+    "verify": "bun run check:ci && bun run typecheck && bun run test && bun run build:web",
     "health": "bun apps/server/src/cli.ts",
     "fixture": "bun scripts/gen-fixture.ts",
     "postinstall": "lefthook install",
