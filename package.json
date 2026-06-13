@@ -17,12 +17,14 @@
     "verify": "bun run check:ci && bun run typecheck && bun run test",
     "health": "bun apps/server/src/cli.ts",
     "fixture": "bun scripts/gen-fixture.ts",
-    "postinstall": "lefthook install"
+    "postinstall": "lefthook install",
+    "doctor": "npx react-doctor@latest"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@types/bun": "1.1.14",
     "lefthook": "1.8.2",
+    "react-doctor": "^0.5.2",
     "typescript": "5.6.3"
   }
 }
