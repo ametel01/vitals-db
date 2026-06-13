@@ -12,8 +12,6 @@ import {
   type HRVPoint,
   HRVPointSchema,
   type LoadRow,
-  type MetricWindowComparison,
-  MetricWindowComparisonSchema,
   type PowerPoint,
   PowerPointSchema,
   type RecoveryFlag,
@@ -44,20 +42,12 @@ import {
   WorkoutDetailSchema,
   type WorkoutEfficiency,
   WorkoutEfficiencySchema,
-  type WorkoutEvent,
-  WorkoutEventSchema,
   type WorkoutHRAtPace,
   WorkoutHRAtPaceSchema,
-  type WorkoutMetadata,
-  WorkoutMetadataSchema,
   type WorkoutPerformanceRunRow,
   WorkoutPerformanceRunRowListSchema,
   type WorkoutRecoveryRow,
   WorkoutRecoveryRowSchema,
-  type WorkoutRoute,
-  WorkoutRouteSchema,
-  type WorkoutStat,
-  WorkoutStatSchema,
   type WorkoutSummary,
   WorkoutSummarySchema,
   WorkoutZoneBreakdownListSchema,
@@ -156,7 +146,6 @@ const WebLoadRowSchema: z.ZodType<LoadRow, z.ZodTypeDef, unknown> = z
 const LoadListSchema: z.ZodType<LoadRow[], z.ZodTypeDef, unknown> = z.array(WebLoadRowSchema);
 const WorkoutRecoveryListSchema = z.array(WorkoutRecoveryRowSchema);
 const WorkoutHRAtPaceListSchema = z.array(WorkoutHRAtPaceSchema);
-const MetricWindowComparisonListSchema = z.array(MetricWindowComparisonSchema);
 const WeeklyZ2MinutesListSchema = z.array(WeeklyZ2MinutesRowSchema);
 const VO2MaxListSchema = z.array(VO2MaxPointSchema);
 const HRVListSchema = z.array(HRVPointSchema);
@@ -170,10 +159,6 @@ const PowerListSchema = z.array(PowerPointSchema);
 const RunningDynamicsListSchema = z.array(RunningDynamicsPointSchema);
 const SleepNightDetailListSchema = z.array(SleepNightDetailSchema);
 const SleepSegmentListSchema = z.array(SleepSegmentSchema);
-const WorkoutStatListSchema = z.array(WorkoutStatSchema);
-const WorkoutEventListSchema = z.array(WorkoutEventSchema);
-const WorkoutMetadataListSchema = z.array(WorkoutMetadataSchema);
-const WorkoutRouteListSchema = z.array(WorkoutRouteSchema);
 const PerformanceRunRowListSchema = WorkoutPerformanceRunRowListSchema;
 
 export function getAdvancedCompositeReport(
@@ -222,34 +207,6 @@ export function getWorkoutEfficiency(
   return requestJson(
     buildUrl(`workouts/${encodeURIComponent(id)}/efficiency`, params),
     WorkoutEfficiencySchema,
-  );
-}
-
-export function getWorkoutStats(id: string): Promise<FetchResult<WorkoutStat[]>> {
-  return requestJson(
-    buildUrl(`workouts/${encodeURIComponent(id)}/stats`, {}),
-    WorkoutStatListSchema,
-  );
-}
-
-export function getWorkoutEvents(id: string): Promise<FetchResult<WorkoutEvent[]>> {
-  return requestJson(
-    buildUrl(`workouts/${encodeURIComponent(id)}/events`, {}),
-    WorkoutEventListSchema,
-  );
-}
-
-export function getWorkoutMetadata(id: string): Promise<FetchResult<WorkoutMetadata[]>> {
-  return requestJson(
-    buildUrl(`workouts/${encodeURIComponent(id)}/metadata`, {}),
-    WorkoutMetadataListSchema,
-  );
-}
-
-export function getWorkoutRoutes(id: string): Promise<FetchResult<WorkoutRoute[]>> {
-  return requestJson(
-    buildUrl(`workouts/${encodeURIComponent(id)}/routes`, {}),
-    WorkoutRouteListSchema,
   );
 }
 
@@ -335,13 +292,6 @@ export function getPower(range: DateRange): Promise<FetchResult<PowerPoint[]>> {
 
 export function getRunningDynamics(range: DateRange): Promise<FetchResult<RunningDynamicsPoint[]>> {
   return requestJson(buildUrl("metrics/running-dynamics", range), RunningDynamicsListSchema);
-}
-
-export function getDailyComparison(to: string): Promise<FetchResult<MetricWindowComparison[]>> {
-  return requestJson(
-    buildUrl("metrics/daily-comparison", { to }),
-    MetricWindowComparisonListSchema,
-  );
 }
 
 export function getRecoveryFlag(range: DateRange): Promise<FetchResult<RecoveryFlag>> {
