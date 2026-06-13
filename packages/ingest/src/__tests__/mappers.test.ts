@@ -19,6 +19,29 @@ function record(
   };
 }
 
+function workout(overrides: Partial<ParsedWorkout> = {}): ParsedWorkout {
+  return {
+    kind: "workout",
+    workoutActivityType: "HKWorkoutActivityTypeRunning",
+    startDate: "2024-06-01 08:00:00 +0000",
+    endDate: "2024-06-01 08:30:00 +0000",
+    duration: "30",
+    durationUnit: "min",
+    sourceName: "Apple Watch",
+    statistics: [],
+    events: [],
+    metadata: [],
+    routes: [],
+    ...overrides,
+  };
+}
+
+function mappedWorkoutId(mapped: ReturnType<typeof mapWorkout>): string {
+  const id = mapped.values[0];
+  if (typeof id !== "string") throw new Error("expected workout id");
+  return id;
+}
+
 describe("mappers edge cases", () => {
   test("normalizes Apple Health dates to UTC", () => {
     expect(parseHKDate("2024-01-15 07:23:11 +0100")).toBe("2024-01-15 06:23:11.000");
@@ -48,21 +71,23 @@ describe("mappers edge cases", () => {
   });
 
   test("workout id remains stable for identical workouts", () => {
-    const workout: ParsedWorkout = {
-      kind: "workout",
-      workoutActivityType: "HKWorkoutActivityTypeRunning",
-      startDate: "2024-06-01 08:00:00 +0000",
-      endDate: "2024-06-01 08:30:00 +0000",
-      duration: "30",
-      durationUnit: "min",
-      sourceName: "Apple Watch",
-      statistics: [],
-      events: [],
-      metadata: [],
-      routes: [],
-    };
-    const a = mapWorkout(workout);
-    const b = mapWorkout(workout);
-    expect(a.values[0]).toBe((b.values[0] as string | number | null) ?? null);
+    const sourceWorkout = workout();
+    const a = mapWorkout(sourceWorkout);
+    const b = mapWorkout(sourceWorkout);
+    expect(mappedWorkoutId(a)).toBe(mappedWorkoutId(b));
+  });
+
+  test("workout id differs for same window from different sources", () => {
+    const appleWatch = mapWorkout(workout({ sourceName: "Apple Watch" }));
+    const thirdParty = mapWorkout(workout({ sourceName: "Strava" }));
+
+    expect(mappedWorkoutId(appleWatch)).not.toBe(mappedWorkoutId(thirdParty));
+  });
+
+  test("workout id remains stable for same source when only duration changes", () => {
+    const thirtyMinutes = mapWorkout(workout({ duration: "30" }));
+    const thirtyOneMinutes = mapWorkout(workout({ duration: "31" }));
+
+    expect(mappedWorkoutId(thirtyMinutes)).toBe(mappedWorkoutId(thirtyOneMinutes));
   });
 });

@@ -74,8 +74,15 @@ function dedupKey(
   return `${type}|${startTs}|${endTs}|${value}|${source ?? ""}`;
 }
 
-function workoutIdOf(rawType: string, startTs: string, endTs: string): string {
-  return createHash("sha1").update(`${rawType}|${startTs}|${endTs}`).digest("hex");
+function workoutIdOf(
+  rawType: string,
+  startTs: string,
+  endTs: string,
+  source: string | null,
+): string {
+  return createHash("sha1")
+    .update(`${rawType}|${startTs}|${endTs}|${source ?? ""}`)
+    .digest("hex");
 }
 
 function parseFiniteNumber(raw: string | null): number | null {
@@ -478,7 +485,7 @@ export function mapWorkout(w: ParsedWorkout): MappedInsert {
   const source = w.sourceName;
   const canonicalType = canonicalWorkoutType(w.workoutActivityType);
   const durationSec = computeWorkoutDurationSec(w, startTsMs, endTsMs);
-  const id = workoutIdOf(w.workoutActivityType, startTs, endTs);
+  const id = workoutIdOf(w.workoutActivityType, startTs, endTs, source);
 
   return makeMapped(
     "workouts",
@@ -506,7 +513,7 @@ function workoutIdForParsedWorkout(w: ParsedWorkout): {
   const startTs = formatDuckTs(startTsMs);
   const endTs = formatDuckTs(endTsMs);
   return {
-    id: workoutIdOf(w.workoutActivityType, startTs, endTs),
+    id: workoutIdOf(w.workoutActivityType, startTs, endTs, w.sourceName),
     startTs,
     endTs,
     startTsMs,

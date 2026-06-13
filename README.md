@@ -132,6 +132,22 @@ Without a rebuild:
 - the new `/sleep` page still works, but older nights may only show normalized
   segments and no stage totals
 
+### Rebuild After Source-Aware Workout Ids
+
+New imports derive workout ids from source, activity type, and normalized
+start/end timestamps so same-window workouts from different sources remain
+separate. Existing local databases keep previously imported workout ids until
+you rebuild:
+
+```bash
+bun run health rebuild
+```
+
+After rebuild, API route ids for historical workouts can change because ids are
+derived from source/type/time. Rebuilding backfills historical workout ids and
+keeps workout stats, events, metadata, and route context attached to the same
+source-aware parent id.
+
 ## Start The Dashboard
 
 Run the API in one terminal:

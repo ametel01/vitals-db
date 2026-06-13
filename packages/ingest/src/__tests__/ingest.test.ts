@@ -50,6 +50,23 @@ const DUPLICATE_WORKOUT_WINDOW_XML = `<?xml version="1.0" encoding="UTF-8"?>
 </HealthData>
 `;
 
+const SOURCE_COLLISION_WORKOUT_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<HealthData locale="en_GB">
+  <Workout workoutActivityType="HKWorkoutActivityTypeRunning" duration="30" durationUnit="min" sourceName="Apple Watch" startDate="2024-06-01 08:00:00 +0000" endDate="2024-06-01 08:30:00 +0000">
+    <MetadataEntry key="Device" value="Apple Watch"/>
+    <WorkoutRoute sourceName="Apple Watch" startDate="2024-06-01 08:00:00 +0000" endDate="2024-06-01 08:30:00 +0000">
+      <FileReference path="/workout-routes/watch.gpx"/>
+    </WorkoutRoute>
+  </Workout>
+  <Workout workoutActivityType="HKWorkoutActivityTypeRunning" duration="30" durationUnit="min" sourceName="Garmin" startDate="2024-06-01 08:00:00 +0000" endDate="2024-06-01 08:30:00 +0000">
+    <MetadataEntry key="Device" value="Garmin"/>
+    <WorkoutRoute sourceName="Garmin" startDate="2024-06-01 08:00:00 +0000" endDate="2024-06-01 08:30:00 +0000">
+      <FileReference path="/workout-routes/garmin.gpx"/>
+    </WorkoutRoute>
+  </Workout>
+</HealthData>
+`;
+
 describe("ingestFile integration", () => {
   let dir: string;
   let dbPath: string;
@@ -168,6 +185,36 @@ describe("ingestFile integration", () => {
     expect(stats.inserted.workouts).toBe(1);
     expect(stats.skipped).toBe(1);
     expect(count?.n).toBe(1);
+  });
+
+  test("same-window workouts from different sources keep distinct child context", async () => {
+    const workoutPath = join(dir, "source-collision-workouts.xml");
+    await writeFile(workoutPath, SOURCE_COLLISION_WORKOUT_XML, "utf8");
+
+    const stats = await engine.ingestFile(workoutPath, { mode: "incremental" });
+    const workoutCount = await db.get<{ n: number }>("SELECT COUNT(*)::INTEGER AS n FROM workouts");
+    const workoutRows = await db.all<{ id: string; source: string | null }>(
+      "SELECT id, source FROM workouts ORDER BY source",
+    );
+    const metadataRows = await db.all<{ workout_id: string; value: string }>(
+      "SELECT workout_id, value FROM workout_metadata ORDER BY value",
+    );
+    const routeRows = await db.all<{ workout_id: string; path: string | null }>(
+      "SELECT workout_id, path FROM workout_routes ORDER BY path",
+    );
+
+    expect(stats.inserted.workouts).toBe(2);
+    expect(workoutCount?.n).toBe(2);
+    expect(new Set(workoutRows.map((row) => row.id)).size).toBe(2);
+    expect(metadataRows).toHaveLength(2);
+    expect(routeRows).toHaveLength(2);
+    expect(new Set(metadataRows.map((row) => row.workout_id)).size).toBe(2);
+    expect(new Set(routeRows.map((row) => row.workout_id)).size).toBe(2);
+    expect(metadataRows.map((row) => row.value)).toEqual(["Apple Watch", "Garmin"]);
+    expect(routeRows.map((row) => row.path)).toEqual([
+      "/workout-routes/garmin.gpx",
+      "/workout-routes/watch.gpx",
+    ]);
   });
 
   test("honours custom batchSize (forces multiple transactions)", async () => {
