@@ -35,7 +35,7 @@ export default function RootLayout({ children }: { children: ReactNode }): React
                 Instrument
               </div>
               <div>
-                <span className="version">v0.10.0</span> · duckdb · bun
+                <span className="version">v0.11.0</span> · duckdb · bun
               </div>
               <div style={{ marginTop: 4, fontStyle: "italic" }}>Private. On-device. Yours.</div>
             </div>
