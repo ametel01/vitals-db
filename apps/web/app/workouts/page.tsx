@@ -91,7 +91,7 @@ function WorkoutsTable({ workouts }: { workouts: WorkoutSummary[] }): React.Reac
           <th>Type</th>
           <th>Duration</th>
           <th>Source</th>
-          <th />
+          <th>Detail</th>
         </tr>
       </thead>
       <tbody>

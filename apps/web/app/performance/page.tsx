@@ -888,7 +888,7 @@ function RecentRunsTable({
           <th>Z2</th>
           <th>Next recovery</th>
           <th>Context</th>
-          <th />
+          <th>Detail</th>
         </tr>
       </thead>
       <tbody>
