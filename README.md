@@ -17,7 +17,8 @@ Today the implementation covers:
 - heart rate variability daily averages
 - walking heart rate daily averages
 - sleep total hours, efficiency, and consistency summary plus nightly breakdown
-- dedicated `/sleep` page with nightly cards, stage totals, and segment timeline
+- dedicated `/sleep` dashboard with sleep score, trends, selected-night lanes,
+  stage breakdown, recent nights, consistency, and insight cards
 - dedicated `/performance` page with coaching insights, KPI sparklines, a combined
   aerobic-efficiency trend, curated diagnostics, benchmark sessions, and guidance
 - simple workout load (`duration_sec * avg_hr`)
@@ -193,8 +194,9 @@ The current UI has:
   sparklines, a combined aerobic-efficiency trend, curated diagnostics, recent
   benchmark sessions, actionable guidance, weekly Z2 minutes, HR at the same
   pace, and recovery time until the next session
-- `/sleep`: nightly sleep list, asleep vs in-bed trend, selected-night segment
-  timeline, and stage totals when raw sleep stages are available
+- `/sleep`: sleep score and prior-window comparisons, asleep vs in-bed trend,
+  selected-night stage lanes, stage breakdown, recent nights table, consistency
+  chart, local-time labels, and insight cards
 - `/workouts`: latest 100 workouts with type and date filters
 - `/workouts/:id`: workout duration, explicit Z2 share, pace at 120-130 bpm,
   fixed-duration decoupling, HR drift classification, load, HR chart, and
