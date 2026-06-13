@@ -30,6 +30,10 @@ export interface LineSeries {
   data: Array<[string, number]>;
   color?: string;
   yAxisIndex?: number;
+  lineType?: "solid" | "dashed";
+  lineWidth?: number;
+  area?: boolean;
+  smooth?: boolean;
 }
 
 export interface LineChartProps {
@@ -266,7 +270,6 @@ function buildSeriesItem(
     type: "line",
     yAxisIndex: item.yAxisIndex ?? 0,
     showSymbol: false,
-    smooth: true,
     smoothMonotone: "x",
     symbol: "circle",
     symbolSize: 6,
@@ -279,10 +282,16 @@ function buildSeriesItem(
       },
     },
     data: item.data,
-    lineStyle: { width: 2, color, cap: "round" },
     itemStyle: { color },
-    areaStyle: seriesCount === 1 ? buildAreaStyle(color) : undefined,
+    areaStyle: item.area === true || seriesCount === 1 ? buildAreaStyle(color) : undefined,
     ...(index === 0 && markArea !== undefined ? { markArea } : {}),
+    lineStyle: {
+      width: item.lineWidth ?? 2,
+      color,
+      cap: "round",
+      type: item.lineType ?? "solid",
+    },
+    smooth: item.smooth ?? true,
   };
 }
 

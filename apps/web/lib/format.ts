@@ -70,6 +70,29 @@ export function formatTimeOfDay(iso: string): string {
   });
 }
 
+export function formatLocalTimeOfDay(iso: string, timeZone?: string): string {
+  const date = new Date(iso);
+  return date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone,
+  });
+}
+
+export function formatLocalIsoDate(iso: string, timeZone?: string): string {
+  const date = new Date(iso);
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone,
+  });
+}
+
+export function localTimeZoneLabel(timeZone?: string): string {
+  const resolved = timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return resolved === undefined || resolved === "" ? "local time" : resolved;
+}
+
 export function formatSleepConsistencyMinutes(seconds: number): string {
   return `${formatNumber(seconds / 60, 1)} min`;
 }

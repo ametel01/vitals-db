@@ -2,10 +2,13 @@ import { describe, expect, test } from "bun:test";
 import {
   chartDataKey,
   formatIsoDateTime,
+  formatLocalIsoDate,
+  formatLocalTimeOfDay,
   formatPace,
   formatPercentValue,
   formatSleepConsistencyMinutes,
   formatTimeOfDay,
+  localTimeZoneLabel,
   windowStartIso,
 } from "../format";
 
@@ -22,6 +25,12 @@ describe("web format helpers", () => {
 
   test("formatTimeOfDay renders UTC times for stable sleep labels", () => {
     expect(formatTimeOfDay("2024-06-01T22:30:00.000Z")).toContain("10:30");
+  });
+
+  test("local sleep time helpers use the requested local time zone", () => {
+    expect(formatLocalTimeOfDay("2024-06-01T22:30:00.000Z", "America/Los_Angeles")).toBe("3:30 PM");
+    expect(formatLocalIsoDate("2024-06-01T02:30:00.000Z", "America/Los_Angeles")).toBe("May 31");
+    expect(localTimeZoneLabel("America/Los_Angeles")).toBe("America/Los_Angeles");
   });
 
   test("windowStartIso returns an inclusive UTC window start", () => {
