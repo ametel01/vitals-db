@@ -18,7 +18,8 @@ Today the implementation covers:
 - walking heart rate daily averages
 - sleep total hours, efficiency, and consistency summary plus nightly breakdown
 - dedicated `/sleep` page with nightly cards, stage totals, and segment timeline
-- dedicated `/performance` page with rolling 7-day resting HR and per-run endurance KPIs
+- dedicated `/performance` page with coaching insights, KPI sparklines, a combined
+  aerobic-efficiency trend, curated diagnostics, benchmark sessions, and guidance
 - simple workout load (`duration_sec * avg_hr`)
 - VO2 max daily averages
 - running speed and running power daily averages
@@ -187,10 +188,11 @@ The current UI has:
   green/yellow/red recovery flag, a Performance section with 30-day running
   speed and running power, a link to the dedicated performance page, and
   12-week workout activity
-- `/performance`: rolling 7-day resting HR, recent running workouts with
-  pace at 120-130 bpm, fixed-duration decoupling, explicit sample-based Z2
-  share, weekly Z2 minutes, HR at the same pace, and recovery time until the
-  next session
+- `/performance`: 90-day coaching dashboard with a dated range control, next-week
+  forecast, report insight cards, VO2 Max / resting HR / HRV / training-load
+  sparklines, a combined aerobic-efficiency trend, curated diagnostics, recent
+  benchmark sessions, actionable guidance, weekly Z2 minutes, HR at the same
+  pace, and recovery time until the next session
 - `/sleep`: nightly sleep list, asleep vs in-bed trend, selected-night segment
   timeline, and stage totals when raw sleep stages are available
 - `/workouts`: latest 100 workouts with type and date filters

@@ -6,6 +6,15 @@ All notable changes to this project are documented here. This file follows
 
 ## [Unreleased]
 
+### Changed — performance dashboard
+
+- Performance page redesigned into a coaching dashboard with a compact dated
+  header, next-week forecast, four report insight cards, four KPI sparkline
+  cards, one combined aerobic-efficiency trend chart, eight curated diagnostic
+  cards, recent benchmark sessions, and actionable guidance.
+- `LoadRow` now includes workout `start_ts`; `/metrics/load` keeps returning
+  one row per workout in range and can now power dated training-load charts.
+
 ### Added — recovery / endurance analytics
 
 - New additive DTOs, query helpers, API routes, and dashboard surfaces for:
