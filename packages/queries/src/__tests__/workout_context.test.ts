@@ -4,6 +4,7 @@ import {
   getWorkoutContextSummary,
   getWorkoutEvents,
   getWorkoutMetadata,
+  getWorkoutPerformanceRunRows,
   getWorkoutRoutes,
   getWorkoutStats,
 } from "../workout_context";
@@ -118,6 +119,53 @@ describe("workout context queries", () => {
       has_weather: true,
       has_elevation: false,
     });
+  });
+
+  test("batches recent running performance rows with context arrays", async () => {
+    await db.run(
+      "INSERT INTO workouts (id, type, start_ts, end_ts, duration_sec, source) VALUES (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)",
+      [
+        "wk-running-newer",
+        "Running",
+        "2024-06-02 08:00:00",
+        "2024-06-02 08:45:00",
+        2700,
+        "Apple Watch",
+        "wk-walking-newer",
+        "Walking",
+        "2024-06-03 08:00:00",
+        "2024-06-03 08:45:00",
+        2700,
+        "Apple Watch",
+      ],
+    );
+
+    const rows = await getWorkoutPerformanceRunRows(db, {
+      from: "2024-06-01",
+      to: "2024-06-03",
+      limit: 1,
+    });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.workout.id).toBe("wk-running-newer");
+    expect(rows[0]?.workout.type).toBe("Running");
+    expect(rows[0]?.detail.id).toBe("wk-running-newer");
+    expect(rows[0]?.efficiency.pace_at_hr.sample_count).toBe(0);
+    expect(rows[0]?.stats).toEqual([]);
+    expect(rows[0]?.events).toEqual([]);
+    expect(rows[0]?.metadata).toEqual([]);
+    expect(rows[0]?.routes).toEqual([]);
+
+    const allRows = await getWorkoutPerformanceRunRows(db, {
+      from: "2024-06-01",
+      to: "2024-06-03",
+      limit: 10,
+    });
+    expect(allRows.map((row) => row.workout.id)).toEqual(["wk-running-newer", WORKOUT_ID]);
+    expect(allRows[1]?.stats).toHaveLength(1);
+    expect(allRows[1]?.events).toHaveLength(2);
+    expect(allRows[1]?.metadata).toHaveLength(2);
+    expect(allRows[1]?.routes).toHaveLength(1);
   });
 
   test("infers indoor and unknown context when routes are absent", async () => {

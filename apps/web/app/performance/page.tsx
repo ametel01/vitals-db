@@ -11,21 +11,15 @@ import {
   getHRAtPace,
   getHRV,
   getLoad,
+  getPerformanceRunRows,
   getPower,
   getRestingHRRolling,
   getRunningDynamics,
   getSpeed,
   getVO2Max,
   getWeeklyZ2Minutes,
-  getWorkoutDetail,
-  getWorkoutEfficiency,
-  getWorkoutEvents,
-  getWorkoutMetadata,
   getWorkoutRecoveryTimes,
-  getWorkoutRoutes,
-  getWorkoutStats,
   getZoneTimeDistribution,
-  listWorkouts,
 } from "@/lib/api";
 import {
   chartDataKey,
@@ -43,6 +37,12 @@ import type {
   CompositeResult,
   LoadRow,
   RestingHRRollingPoint,
+  WorkoutDetail,
+  WorkoutEfficiency,
+  WorkoutEvent,
+  WorkoutMetadata,
+  WorkoutPerformanceRunRow as WorkoutPerformanceRunRowDto,
+  WorkoutRoute,
   WorkoutStat,
   WorkoutSummary,
 } from "@vitals/core";
@@ -63,12 +63,28 @@ const EMPTY_VALUE = "—";
 
 interface PerformanceRunRow {
   workout: WorkoutSummary;
-  detail: Awaited<ReturnType<typeof getWorkoutDetail>>;
-  efficiency: Awaited<ReturnType<typeof getWorkoutEfficiency>>;
-  stats: Awaited<ReturnType<typeof getWorkoutStats>>;
-  events: Awaited<ReturnType<typeof getWorkoutEvents>>;
-  metadata: Awaited<ReturnType<typeof getWorkoutMetadata>>;
-  routes: Awaited<ReturnType<typeof getWorkoutRoutes>>;
+  detail: FetchResult<WorkoutDetail>;
+  efficiency: FetchResult<WorkoutEfficiency>;
+  stats: FetchResult<WorkoutStat[]>;
+  events: FetchResult<WorkoutEvent[]>;
+  metadata: FetchResult<WorkoutMetadata[]>;
+  routes: FetchResult<WorkoutRoute[]>;
+}
+
+function okResult<T>(data: T): FetchResult<T> {
+  return { ok: true, data };
+}
+
+function toPerformanceRunRow(row: WorkoutPerformanceRunRowDto): PerformanceRunRow {
+  return {
+    workout: row.workout,
+    detail: okResult(row.detail),
+    efficiency: okResult(row.efficiency),
+    stats: okResult(row.stats),
+    events: okResult(row.events),
+    metadata: okResult(row.metadata),
+    routes: okResult(row.routes),
+  };
 }
 
 export default async function PerformancePage(): Promise<React.ReactElement> {
@@ -91,7 +107,7 @@ export default async function PerformancePage(): Promise<React.ReactElement> {
     weeklyZ2Result,
     hrAtPaceResult,
     recoveryTimesResult,
-    workoutsResult,
+    performanceRunsResult,
   ] = await Promise.all([
     getAdvancedCompositeReport({ from: chartFrom, to }),
     getRestingHRRolling({ from: chartFrom, to }),
@@ -108,25 +124,12 @@ export default async function PerformancePage(): Promise<React.ReactElement> {
     getWeeklyZ2Minutes({ from: chartFrom, to }),
     getHRAtPace({ from: chartFrom, to }),
     getWorkoutRecoveryTimes({ from: chartFrom, to }),
-    listWorkouts({ type: "Running", from: chartFrom, to, limit: RUN_LIMIT }),
+    getPerformanceRunRows({ from: chartFrom, to }, { limit: RUN_LIMIT }),
   ]);
 
-  const runRows =
-    workoutsResult.ok && workoutsResult.data.length > 0
-      ? await Promise.all(
-          workoutsResult.data.map(async (workout) => {
-            const [detail, efficiency, stats, events, metadata, routes] = await Promise.all([
-              getWorkoutDetail(workout.id),
-              getWorkoutEfficiency(workout.id),
-              getWorkoutStats(workout.id),
-              getWorkoutEvents(workout.id),
-              getWorkoutMetadata(workout.id),
-              getWorkoutRoutes(workout.id),
-            ]);
-            return { workout, detail, efficiency, stats, events, metadata, routes };
-          }),
-        )
-      : [];
+  const runRows = performanceRunsResult.ok
+    ? performanceRunsResult.data.map(toPerformanceRunRow)
+    : [];
 
   return (
     <div>
@@ -314,8 +317,11 @@ export default async function PerformancePage(): Promise<React.ReactElement> {
           title="Recent runs"
           tip="Most recent running sessions with sample-derived efficiency and Apple workout statistics where available."
         />
-        {!workoutsResult.ok ? (
-          <ErrorBanner title="Could not load running workouts" detail={workoutsResult.message} />
+        {!performanceRunsResult.ok ? (
+          <ErrorBanner
+            title="Could not load running workouts"
+            detail={performanceRunsResult.message}
+          />
         ) : runRows.length === 0 ? (
           <div className="empty-state">No recent running workouts were found in this window.</div>
         ) : (

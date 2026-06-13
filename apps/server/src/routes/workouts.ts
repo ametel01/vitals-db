@@ -15,6 +15,9 @@ export function workoutsRouter(service: VitalsReadService): Hono {
   const app = new Hono();
 
   app.get("/", async (c) => toHttp(c, await service.workouts.list(c.req.query())));
+  app.get("/performance-runs", async (c) =>
+    toHttp(c, await service.workouts.performanceRuns(c.req.query())),
+  );
   app.get("/:id", async (c) => toHttp(c, await service.workouts.detail(c.req.param("id"))));
   app.get("/:id/hr", async (c) => toHttp(c, await service.workouts.hr(c.req.param("id"))));
   app.get("/:id/zones", async (c) => toHttp(c, await service.workouts.zones(c.req.param("id"))));

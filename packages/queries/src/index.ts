@@ -56,9 +56,11 @@ export { getWorkoutEfficiency, type WorkoutEfficiencyParams } from "./efficiency
 export { getFitnessTrend } from "./fitness_trend";
 export { getWorkoutSampleQuality } from "./sample_quality";
 export {
+  getWorkoutPerformanceRunRows,
   getWorkoutContextSummary,
   getWorkoutEvents,
   getWorkoutMetadata,
   getWorkoutRoutes,
   getWorkoutStats,
+  type WorkoutPerformanceRunRowsParams,
 } from "./workout_context";

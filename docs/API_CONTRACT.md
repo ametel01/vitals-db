@@ -23,6 +23,19 @@ Query params (all optional):
 
 Response: `WorkoutSummary[]`, ordered by descending `start_ts`.
 
+### `GET /workouts/performance-runs`
+
+Query params:
+
+- `from` — optional date or datetime
+- `to` — optional date or datetime
+- `limit` — optional positive integer, default `14`
+
+Response: `WorkoutPerformanceRunRow[]`, ordered by descending workout
+`start_ts`. Each row contains the running workout summary, detail, efficiency,
+stats, events, metadata, and route references needed by the performance page.
+This route is additive and does not replace the per-workout routes.
+
 ### `GET /workouts/:id`
 
 Path params:

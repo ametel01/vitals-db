@@ -319,6 +319,20 @@ export const WorkoutEfficiencySchema = z.object({
 });
 export type WorkoutEfficiency = z.infer<typeof WorkoutEfficiencySchema>;
 
+export const WorkoutPerformanceRunRowSchema = z.object({
+  workout: WorkoutSummarySchema,
+  detail: WorkoutDetailSchema,
+  efficiency: WorkoutEfficiencySchema,
+  stats: z.array(WorkoutStatSchema),
+  events: z.array(WorkoutEventSchema),
+  metadata: z.array(WorkoutMetadataSchema),
+  routes: z.array(WorkoutRouteSchema),
+});
+export type WorkoutPerformanceRunRow = z.infer<typeof WorkoutPerformanceRunRowSchema>;
+
+export const WorkoutPerformanceRunRowListSchema = z.array(WorkoutPerformanceRunRowSchema);
+export type WorkoutPerformanceRunRowList = z.infer<typeof WorkoutPerformanceRunRowListSchema>;
+
 export const CompositeConfidenceSchema = z.enum(["high", "medium", "low"]);
 export type CompositeConfidence = z.infer<typeof CompositeConfidenceSchema>;
 

@@ -29,6 +29,7 @@ import {
   WorkoutEfficiencySchema,
   WorkoutHRAtPaceSchema,
   WorkoutPaceAtHRSchema,
+  WorkoutPerformanceRunRowSchema,
   WorkoutRecoveryRowSchema,
   type WorkoutSampleQualityIssue,
   WorkoutSampleQualitySchema,
@@ -371,6 +372,75 @@ describe("DTO round-trip parsing", () => {
       },
     };
     expect(WorkoutEfficiencySchema.parse(fixture)).toEqual(fixture);
+  });
+
+  test("WorkoutPerformanceRunRow", () => {
+    const workout = {
+      id: "abc123",
+      type: "Running",
+      start_ts: "2024-06-01T08:00:00.000Z",
+      end_ts: "2024-06-01T09:00:00.000Z",
+      duration_sec: 3600,
+      source: "Apple Watch",
+    };
+    const fixture = {
+      workout,
+      detail: {
+        ...workout,
+        drift_pct: 4.2,
+        drift_classification: "moderate" as const,
+        load: 420_000,
+        z2_ratio: 0.5,
+      },
+      efficiency: {
+        pace_at_hr: {
+          hr_min: 120,
+          hr_max: 130,
+          sample_count: 4,
+          avg_speed_mps: 3.8,
+          pace_sec_per_km: 263.1578947368421,
+        },
+        decoupling: {
+          window_duration_sec: 3600,
+          sample_count: 8,
+          first_half_efficiency: 0.03,
+          second_half_efficiency: 0.028,
+          decoupling_pct: 6.666666666666667,
+        },
+      },
+      stats: [
+        {
+          workout_id: "abc123",
+          type: "HKQuantityTypeIdentifierRunningPower",
+          start_ts: "2024-06-01T08:00:00.000Z",
+          end_ts: "2024-06-01T09:00:00.000Z",
+          average: 220,
+          minimum: 180,
+          maximum: 260,
+          sum: null,
+          unit: "W",
+        },
+      ],
+      events: [
+        {
+          workout_id: "abc123",
+          type: "HKWorkoutEventTypePause",
+          ts: "2024-06-01T08:30:00.000Z",
+          duration_sec: null,
+        },
+      ],
+      metadata: [{ workout_id: "abc123", key: "HKIndoorWorkout", value: "0" }],
+      routes: [
+        {
+          workout_id: "abc123",
+          start_ts: "2024-06-01T08:00:00.000Z",
+          end_ts: "2024-06-01T09:00:00.000Z",
+          source: "Apple Watch",
+          path: "/workout-routes/route.gpx",
+        },
+      ],
+    };
+    expect(WorkoutPerformanceRunRowSchema.parse(fixture)).toEqual(fixture);
   });
 
   test("CompositeResult", () => {

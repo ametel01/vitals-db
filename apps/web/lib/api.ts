@@ -51,6 +51,8 @@ import {
   WorkoutHRAtPaceSchema,
   type WorkoutMetadata,
   WorkoutMetadataSchema,
+  type WorkoutPerformanceRunRow,
+  WorkoutPerformanceRunRowListSchema,
   type WorkoutRecoveryRow,
   WorkoutRecoveryRowSchema,
   type WorkoutRoute,
@@ -156,6 +158,7 @@ const WorkoutStatListSchema = z.array(WorkoutStatSchema);
 const WorkoutEventListSchema = z.array(WorkoutEventSchema);
 const WorkoutMetadataListSchema = z.array(WorkoutMetadataSchema);
 const WorkoutRouteListSchema = z.array(WorkoutRouteSchema);
+const PerformanceRunRowListSchema = WorkoutPerformanceRunRowListSchema;
 
 export function getAdvancedCompositeReport(
   range: DateRange,
@@ -167,6 +170,16 @@ export function listWorkouts(
   params: ListWorkoutsParams = {},
 ): Promise<FetchResult<WorkoutSummary[]>> {
   return requestJson(buildUrl("workouts", params), WorkoutListSchema);
+}
+
+export function getPerformanceRunRows(
+  range: DateRange,
+  params: { limit?: number } = {},
+): Promise<FetchResult<WorkoutPerformanceRunRow[]>> {
+  return requestJson(
+    buildUrl("workouts/performance-runs", { ...range, ...params }),
+    PerformanceRunRowListSchema,
+  );
 }
 
 export function getWorkoutDetail(id: string): Promise<FetchResult<WorkoutDetail>> {

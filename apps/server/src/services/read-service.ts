@@ -27,6 +27,7 @@ import type {
   WorkoutEvent,
   WorkoutHRAtPace,
   WorkoutMetadata,
+  WorkoutPerformanceRunRow,
   WorkoutRecoveryRow,
   WorkoutRoute,
   WorkoutStat,
@@ -38,6 +39,7 @@ import type {
 import type { Db } from "@vitals/db";
 import type { DateRange, ListWorkoutsParams } from "@vitals/queries";
 import {
+  type WorkoutPerformanceRunRowsParams,
   getAdvancedCompositeReport,
   getAerobicEfficiencyTrend,
   getConsistencyIndex,
@@ -73,6 +75,7 @@ import {
   getWorkoutEvents,
   getWorkoutHR,
   getWorkoutMetadata,
+  getWorkoutPerformanceRunRows,
   getWorkoutRecoveryTimes,
   getWorkoutRoutes,
   getWorkoutStats,
@@ -169,6 +172,23 @@ const ListQuerySchema = z.object({
   offset: z.coerce.number().int().nonnegative().optional(),
 });
 
+const PerformanceRunsQuerySchema = z
+  .object({
+    from: DateInputSchema.optional(),
+    to: DateInputSchema.optional(),
+    limit: z.coerce.number().int().positive().optional(),
+  })
+  .refine(
+    (value) =>
+      value.from === undefined ||
+      value.to === undefined ||
+      isOrderedRange({ from: value.from, to: value.to }),
+    {
+      message: "Expected to to be on or after from",
+      path: ["to"],
+    },
+  );
+
 type InvalidQuery = { ok: false; error: "invalid_query"; issues: z.ZodIssue[] };
 type InvalidParams = { ok: false; error: "invalid_params"; issues: z.ZodIssue[] };
 type NotFound = { ok: false; error: "not_found" };
@@ -179,6 +199,9 @@ export type ServiceResult<T> = ServiceOk<T> | InvalidQuery | InvalidParams | Not
 export interface VitalsReadService {
   workouts: {
     list(raw: Record<string, string>): Promise<ServiceResult<WorkoutSummary[]>>;
+    performanceRuns(
+      raw: Record<string, string>,
+    ): Promise<ServiceResult<WorkoutPerformanceRunRow[]>>;
     detail(rawId: string): Promise<ServiceResult<WorkoutDetail>>;
     hr(rawId: string): Promise<ServiceResult<HRPoint[]>>;
     zones(rawId: string): Promise<ServiceResult<WorkoutZoneBreakdownRow[]>>;
@@ -281,6 +304,15 @@ export function createVitalsReadService(db: Db): VitalsReadService {
         if (parsed.data.limit !== undefined) params.limit = parsed.data.limit;
         if (parsed.data.offset !== undefined) params.offset = parsed.data.offset;
         return { ok: true, data: await listWorkouts(db, params) };
+      },
+      async performanceRuns(raw) {
+        const parsed = PerformanceRunsQuerySchema.safeParse(raw);
+        if (!parsed.success) return invalidQuery(parsed.error.issues);
+        const params: WorkoutPerformanceRunRowsParams = {};
+        if (parsed.data.from !== undefined) params.from = parsed.data.from;
+        if (parsed.data.to !== undefined) params.to = parsed.data.to;
+        if (parsed.data.limit !== undefined) params.limit = parsed.data.limit;
+        return { ok: true, data: await getWorkoutPerformanceRunRows(db, params) };
       },
       async detail(rawId) {
         const parsed = parseId(rawId);

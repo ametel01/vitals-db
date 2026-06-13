@@ -6,6 +6,8 @@ import {
   WorkoutEventSchema,
   type WorkoutMetadata,
   WorkoutMetadataSchema,
+  type WorkoutPerformanceRunRow,
+  WorkoutPerformanceRunRowSchema,
   type WorkoutRoute,
   WorkoutRouteSchema,
   type WorkoutStat,
@@ -13,6 +15,16 @@ import {
 } from "@vitals/core";
 import type { Db } from "@vitals/db";
 import { toIsoDateTime } from "./dates";
+import { getWorkoutEfficiency } from "./efficiency";
+import { type ListWorkoutsParams, getWorkoutDetail, listWorkouts } from "./workouts";
+
+const DEFAULT_PERFORMANCE_RUN_LIMIT = 14;
+
+export interface WorkoutPerformanceRunRowsParams {
+  from?: string;
+  to?: string;
+  limit?: number;
+}
 
 interface WorkoutStatRow {
   workout_id: string;
@@ -117,6 +129,46 @@ export async function getWorkoutRoutes(db: Db, workoutId: string): Promise<Worko
       ...row,
       start_ts: toIsoDateTime(row.start_ts),
       end_ts: toIsoDateTime(row.end_ts),
+    }),
+  );
+}
+
+export async function getWorkoutPerformanceRunRows(
+  db: Db,
+  params: WorkoutPerformanceRunRowsParams = {},
+): Promise<WorkoutPerformanceRunRow[]> {
+  const listParams: ListWorkoutsParams = {
+    type: "Running",
+    limit: params.limit ?? DEFAULT_PERFORMANCE_RUN_LIMIT,
+  };
+  if (params.from !== undefined) listParams.from = params.from;
+  if (params.to !== undefined) listParams.to = params.to;
+  const workouts = await listWorkouts(db, listParams);
+
+  return Promise.all(
+    workouts.map(async (workout) => {
+      const [detail, efficiency, stats, events, metadata, routes] = await Promise.all([
+        getWorkoutDetail(db, workout.id),
+        getWorkoutEfficiency(db, workout.id),
+        getWorkoutStats(db, workout.id),
+        getWorkoutEvents(db, workout.id),
+        getWorkoutMetadata(db, workout.id),
+        getWorkoutRoutes(db, workout.id),
+      ]);
+
+      if (detail === null || efficiency === null) {
+        throw new Error(`Missing performance row dependency for workout ${workout.id}`);
+      }
+
+      return WorkoutPerformanceRunRowSchema.parse({
+        workout,
+        detail,
+        efficiency,
+        stats,
+        events,
+        metadata,
+        routes,
+      });
     }),
   );
 }

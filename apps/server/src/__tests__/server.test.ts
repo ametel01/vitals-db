@@ -29,6 +29,7 @@ import {
   WorkoutEventSchema,
   WorkoutHRAtPaceSchema,
   WorkoutMetadataSchema,
+  WorkoutPerformanceRunRowSchema,
   WorkoutRecoveryRowSchema,
   WorkoutRouteSchema,
   WorkoutStatSchema,
@@ -110,6 +111,34 @@ describe("Hono server", () => {
     expect(res.status).toBe(200);
     const body = z.array(WorkoutSummarySchema).parse(await res.json());
     expect(body).toHaveLength(1);
+  });
+
+  test("GET /workouts/performance-runs returns batched recent running rows", async () => {
+    const res = await app.request(
+      "/workouts/performance-runs?from=2024-06-01&to=2024-06-06&limit=2",
+    );
+    expect(res.status).toBe(200);
+    const body = z.array(WorkoutPerformanceRunRowSchema).parse(await res.json());
+    expect(body.length).toBeLessThanOrEqual(2);
+    expect(body).toHaveLength(2);
+    expect(Object.keys(body[0] ?? {}).sort()).toEqual([
+      "detail",
+      "efficiency",
+      "events",
+      "metadata",
+      "routes",
+      "stats",
+      "workout",
+    ]);
+    expect(body.every((row) => row.workout.type === "Running")).toBe(true);
+    expect(body[0]?.workout.id).toBe(WORKOUT_ID_EFFICIENCY_SHORT);
+  });
+
+  test("GET /workouts/performance-runs rejects invalid dates", async () => {
+    const res = await app.request("/workouts/performance-runs?from=not-a-date&to=2024-06-06");
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("invalid_query");
   });
 
   test("GET /workouts/:id returns detail with drift, load, and z2_ratio", async () => {
