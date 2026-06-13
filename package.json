@@ -5,6 +5,9 @@
   "type": "module",
   "packageManager": "bun@1.3.13",
   "workspaces": ["apps/*", "packages/*"],
+  "overrides": {
+    "postcss": "8.5.10"
+  },
   "scripts": {
     "lint": "biome lint .",
     "format": "biome format --write .",
