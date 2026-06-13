@@ -18,6 +18,7 @@ describe("load queries", () => {
   test("getWorkoutLoad returns duration * avg_hr", async () => {
     const row = await getWorkoutLoad(db, WORKOUT_ID);
     expect(row).not.toBeNull();
+    expect(row?.start_ts).toBe("2024-06-01T08:00:00.000Z");
     expect(row?.avg_hr).toBeCloseTo(120, 3);
     expect(row?.load).toBeCloseTo(3600 * 120, 3);
     expect(row?.duration_sec).toBe(3600);
@@ -45,7 +46,9 @@ describe("load queries", () => {
     const rows = await getLoadForRange(db, { from: "2024-06-01", to: "2024-06-03" });
     expect(rows).toHaveLength(2);
     expect(rows[0]?.workout_id).toBe(WORKOUT_ID);
+    expect(rows[0]?.start_ts).toBe("2024-06-01T08:00:00.000Z");
     expect(rows[1]?.workout_id).toBe("wk-other");
+    expect(rows[1]?.start_ts).toBe("2024-06-02T08:00:00.000Z");
     expect(rows[1]?.avg_hr).toBeNull();
     expect(rows[1]?.load).toBeNull();
   });

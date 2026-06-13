@@ -12,7 +12,6 @@ import {
   type HRVPoint,
   HRVPointSchema,
   type LoadRow,
-  LoadRowSchema,
   type MetricWindowComparison,
   MetricWindowComparisonSchema,
   type PowerPoint,
@@ -98,7 +97,10 @@ function buildUrl(path: string, params: object): string {
   return url.toString();
 }
 
-async function requestJson<T>(url: string, schema: z.ZodType<T>): Promise<FetchResult<T>> {
+async function requestJson<T>(
+  url: string,
+  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+): Promise<FetchResult<T>> {
   let response: Response;
   try {
     response = await fetch(url, { cache: "no-store" });
@@ -137,7 +139,21 @@ const ZoneTimeDistributionSchema = ZoneTimeDistributionListSchema;
 const HRPointListSchema = z.array(HRPointSchema);
 const RestingHRListSchema = z.array(RestingHRPointSchema);
 const RestingHRRollingListSchema = z.array(RestingHRRollingPointSchema);
-const LoadListSchema = z.array(LoadRowSchema);
+const WebLoadRowSchema: z.ZodType<LoadRow, z.ZodTypeDef, unknown> = z
+  .object({
+    workout_id: z.string(),
+    start_ts: z.string().datetime({ offset: true }).optional(),
+    duration_sec: z.number().finite().nonnegative(),
+    avg_hr: z.number().finite().positive().nullable(),
+    load: z.number().finite().nonnegative().nullable(),
+  })
+  .transform(
+    (row): LoadRow => ({
+      ...row,
+      start_ts: row.start_ts ?? "",
+    }),
+  );
+const LoadListSchema: z.ZodType<LoadRow[], z.ZodTypeDef, unknown> = z.array(WebLoadRowSchema);
 const WorkoutRecoveryListSchema = z.array(WorkoutRecoveryRowSchema);
 const WorkoutHRAtPaceListSchema = z.array(WorkoutHRAtPaceSchema);
 const MetricWindowComparisonListSchema = z.array(MetricWindowComparisonSchema);
@@ -262,7 +278,7 @@ export function getSleepSummary(range: DateRange): Promise<FetchResult<SleepSumm
 }
 
 export function getLoad(range: DateRange): Promise<FetchResult<LoadRow[]>> {
-  return requestJson(buildUrl("metrics/load", range), LoadListSchema);
+  return requestJson<LoadRow[]>(buildUrl("metrics/load", range), LoadListSchema);
 }
 
 export function getWorkoutRecoveryTimes(

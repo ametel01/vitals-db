@@ -184,7 +184,13 @@ describe("DTO round-trip parsing", () => {
   });
 
   test("LoadRow", () => {
-    const fixture = { workout_id: "abc123", duration_sec: 3600, avg_hr: 144, load: 518_400 };
+    const fixture = {
+      workout_id: "abc123",
+      start_ts: "2024-06-01T08:00:00.000Z",
+      duration_sec: 3600,
+      avg_hr: 144,
+      load: 518_400,
+    };
     expect(LoadRowSchema.parse(fixture)).toEqual(fixture);
   });
 

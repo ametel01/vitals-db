@@ -219,7 +219,9 @@ Query params:
 - `from` — required
 - `to` — required
 
-Response: `LoadRow[]`, one row per workout in range.
+Response: `LoadRow[]`, one row per workout in range. Each row includes the
+workout `start_ts` so clients can plot dated training-load trends without
+joining back to `/workouts`.
 
 ### `GET /metrics/recovery-times`
 

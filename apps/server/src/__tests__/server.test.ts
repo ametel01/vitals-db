@@ -474,7 +474,7 @@ describe("Hono server", () => {
     ]);
   });
 
-  test("GET /metrics/load returns per-workout rows with workout_id, duration, avg_hr, load", async () => {
+  test("GET /metrics/load returns dated per-workout load rows", async () => {
     const res = await app.request("/metrics/load?from=2024-06-01&to=2024-06-03");
     expect(res.status).toBe(200);
     const body = z.array(LoadRowSchema).parse(await res.json());
@@ -482,12 +482,14 @@ describe("Hono server", () => {
 
     const running = body.find((r) => r.workout_id === WORKOUT_ID);
     expect(running).toBeDefined();
+    expect(running?.start_ts).toBe("2024-06-01T08:00:00.000Z");
     expect(running?.duration_sec).toBe(3600);
     expect(running?.avg_hr).toBeCloseTo(120, 5);
     expect(running?.load).toBeCloseTo(432_000, 3);
 
     const walking = body.find((r) => r.workout_id === WORKOUT_ID_WALK);
     expect(walking).toBeDefined();
+    expect(walking?.start_ts).toBe("2024-06-03T09:00:00.000Z");
     expect(walking?.duration_sec).toBe(1800);
     expect(walking?.avg_hr).toBeNull();
     expect(walking?.load).toBeNull();

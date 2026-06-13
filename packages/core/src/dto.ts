@@ -142,6 +142,7 @@ export type ActivityPoint = z.infer<typeof ActivityPointSchema>;
 
 export const LoadRowSchema = z.object({
   workout_id: z.string(),
+  start_ts: IsoDateTime,
   duration_sec: NonNegativeNumber,
   avg_hr: PositiveNumber.nullable(),
   load: NonNegativeNumber.nullable(),

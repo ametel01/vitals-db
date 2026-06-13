@@ -1,12 +1,13 @@
 import { type LoadRow, LoadRowSchema } from "@vitals/core";
 import type { Db } from "@vitals/db";
-import { type DateRange, normalizeRangeEnd, normalizeRangeStart } from "./dates";
+import { type DateRange, normalizeRangeEnd, normalizeRangeStart, toIsoDateTime } from "./dates";
 
 // Spec §4.6: naive `duration_sec * avg_hr` per workout. Returns null avg_hr +
 // null load when no HR samples fall within the workout window so callers can
 // render "no data" instead of 0.
 const SQL_FOR_WORKOUT = `SELECT
                            w.id AS workout_id,
+                           w.start_ts AS start_ts,
                            w.duration_sec,
                            AVG(hr.bpm) AS avg_hr,
                            CASE
@@ -17,17 +18,21 @@ const SQL_FOR_WORKOUT = `SELECT
                          LEFT JOIN heart_rate hr
                            ON hr.ts BETWEEN w.start_ts AND w.end_ts
                          WHERE w.id = ?
-                         GROUP BY w.id, w.duration_sec`;
+                         GROUP BY w.id, w.start_ts, w.duration_sec`;
 
 interface RawLoadRow {
   workout_id: string;
+  start_ts: Date;
   duration_sec: number;
   avg_hr: number | null;
   load: number | null;
 }
 
 function parseRow(row: RawLoadRow): LoadRow {
-  return LoadRowSchema.parse(row);
+  return LoadRowSchema.parse({
+    ...row,
+    start_ts: toIsoDateTime(row.start_ts),
+  });
 }
 
 export async function getWorkoutLoad(db: Db, workoutId: string): Promise<LoadRow | null> {
@@ -39,6 +44,7 @@ export async function getLoadForRange(db: Db, range: DateRange): Promise<LoadRow
   const upper = normalizeRangeEnd(range.to);
   const sql = `SELECT
                  w.id AS workout_id,
+                 w.start_ts AS start_ts,
                  w.duration_sec,
                  AVG(hr.bpm) AS avg_hr,
                  CASE
