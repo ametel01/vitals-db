@@ -103,7 +103,7 @@ export function buildMetricFromDailyValues({
   };
 }
 
-export function dailyValuePoints<T extends { day: string }>(
+function dailyValuePoints<T extends { day: string }>(
   points: T[],
   value: (point: T) => number,
 ): Array<{ day: string; value: number }> {
@@ -132,7 +132,7 @@ export function metricSummary(values: number[], unit: string, decimals: number):
   return formatValue(latest, unit, decimals);
 }
 
-export function formatValue(value: number, unit: string, decimals: number): string {
+function formatValue(value: number, unit: string, decimals: number): string {
   const formatted = value.toLocaleString(undefined, {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
@@ -147,11 +147,6 @@ export function formatDelta(value: number, unit: string, decimals: number): stri
     maximumFractionDigits: decimals,
   })}`;
   return unit.length === 0 ? formatted : `${formatted} ${unit}`;
-}
-
-export function formatNullableDelta(value: number | null, unit: string): string {
-  if (value === null) return "—";
-  return formatDelta(value, unit.trim(), 1);
 }
 
 export function flagTone(flag: RecoveryFlag["flag"]): "success" | "warning" | "danger" {

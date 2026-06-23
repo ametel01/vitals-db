@@ -126,7 +126,7 @@ function okResult<T>(data: T): FetchResult<T> {
   return { ok: true, data };
 }
 
-export function toPerformanceRunRow(row: WorkoutPerformanceRunRow): PerformanceRunRow {
+function toPerformanceRunRow(row: WorkoutPerformanceRunRow): PerformanceRunRow {
   return {
     workout: row.workout,
     detail: okResult(row.detail),
@@ -257,7 +257,7 @@ export function buildInsightCards(
   });
 }
 
-export function buildMetricCards({
+function buildMetricCards({
   vo2Result,
   rollingResult,
   hrvResult,
@@ -310,7 +310,7 @@ export function buildMetricCards({
   ];
 }
 
-export function buildPrimaryInsight(
+function buildPrimaryInsight(
   reportResult: FetchResult<AdvancedCompositeReport>,
   loadResult: FetchResult<LoadRow[]>,
   hrvResult: FetchResult<HRVPoint[]>,
@@ -328,7 +328,7 @@ export function buildPrimaryInsight(
   return "Collect more recent samples to connect fitness, recovery, and load into one interpretation.";
 }
 
-export function buildCardiacFlags(rows: PerformanceRunRow[]): {
+function buildCardiacFlags(rows: PerformanceRunRow[]): {
   count: number;
   series: LineSeries[];
 } {
@@ -347,9 +347,7 @@ export function buildCardiacFlags(rows: PerformanceRunRow[]): {
   };
 }
 
-export function buildMechanics(
-  result: FetchResult<RunningDynamicsPoint[]>,
-): DashboardModel["mechanics"] {
+function buildMechanics(result: FetchResult<RunningDynamicsPoint[]>): DashboardModel["mechanics"] {
   return result.ok ? buildPerformanceMechanicsRows(result.data) : [];
 }
 
@@ -370,7 +368,7 @@ export function buildZoneShare(
   };
 }
 
-export function buildRecoveryOverlap(
+function buildRecoveryOverlap(
   loadResult: FetchResult<LoadRow[]>,
   recoveryResult: FetchResult<WorkoutRecoveryRow[]>,
 ): DashboardModel["overlap"] {
@@ -395,7 +393,7 @@ export function buildRecoveryOverlap(
   };
 }
 
-export function buildBenchmarkRows(rows: PerformanceRunRow[]): BenchmarkRow[] {
+function buildBenchmarkRows(rows: PerformanceRunRow[]): BenchmarkRow[] {
   return rows.slice(0, 5).map((row) => {
     const drift = row.detail.ok ? row.detail.data.drift_pct : null;
     const load = row.detail.ok ? row.detail.data.load : null;
@@ -453,7 +451,7 @@ export function buildGuidance(
   };
 }
 
-export function sectionByKey(
+function sectionByKey(
   sections: Array<{ key: string } & { result: CompositeResult }>,
   key: string,
 ): { result: CompositeResult } | null {
@@ -463,7 +461,7 @@ export function sectionByKey(
   );
 }
 
-export function insightTitle(section: { key: string }): string {
+function insightTitle(section: { key: string }): string {
   const titles: Record<string, string> = {
     fitness_direction: "Fitness direction",
     easy_run_quality: "Load quality",
@@ -492,7 +490,7 @@ export function lineSeries<T extends { day?: string; week?: string }, K extends 
   return data.length === 0 ? null : { name, color, data, yAxisIndex };
 }
 
-export function loadSeries(result: FetchResult<LoadRow[]>, yAxisIndex = 0): LineSeries | null {
+function loadSeries(result: FetchResult<LoadRow[]>, yAxisIndex = 0): LineSeries | null {
   if (!result.ok) return null;
   const data: Array<[string, number]> = [];
   for (const row of result.data) {
@@ -528,7 +526,7 @@ export function hasPaceRows(result: FetchResult<{ avg_hr: number | null }[]>): b
   return result.ok && result.data.some((row) => row.avg_hr !== null);
 }
 
-export function latestMetric<T extends object, K extends keyof T>(
+function latestMetric<T extends object, K extends keyof T>(
   result: FetchResult<T[]>,
   key: K,
   formatter: (value: number) => string,
@@ -539,7 +537,7 @@ export function latestMetric<T extends object, K extends keyof T>(
   return typeof value === "number" && Number.isFinite(value) ? formatter(value) : EMPTY_VALUE;
 }
 
-export function trendText<T extends object, K extends keyof T>(
+function trendText<T extends object, K extends keyof T>(
   result: FetchResult<T[]>,
   key: K,
   suffix: string,
@@ -567,7 +565,7 @@ function numericDelta<T extends object, K extends keyof T>(
   return lastValue - firstValue;
 }
 
-export function runMetricSummary(
+function runMetricSummary(
   rows: PerformanceRunRow[],
   name: string,
   color: string,
@@ -612,16 +610,16 @@ export function thresholdTone(
   return value !== null && value > threshold ? highTone : lowTone;
 }
 
-export function sumLoad(rows: LoadRow[]): number {
+function sumLoad(rows: LoadRow[]): number {
   return rows.reduce((sum, row) => sum + (row.load ?? 0), 0);
 }
 
-export function getStat(row: PerformanceRunRow, type: string): WorkoutStat | null {
+function getStat(row: PerformanceRunRow, type: string): WorkoutStat | null {
   if (!row.stats.ok) return null;
   return row.stats.data.find((stat) => stat.type === type) ?? null;
 }
 
-export function formatWorkoutStat(
+function formatWorkoutStat(
   row: PerformanceRunRow,
   type: string,
   field: "average" | "sum" = "sum",
@@ -640,7 +638,7 @@ export function formatWorkoutStat(
   return stat.unit === null ? formatNumber(value, 1) : `${formatNumber(value, 1)} ${stat.unit}`;
 }
 
-export function classifyRun(row: PerformanceRunRow): string {
+function classifyRun(row: PerformanceRunRow): string {
   const duration = row.workout.duration_sec;
   const drift = row.detail.ok ? row.detail.data.drift_pct : null;
   const z2 = row.detail.ok ? row.detail.data.z2_ratio : null;
@@ -652,17 +650,13 @@ export function classifyRun(row: PerformanceRunRow): string {
   return "Easy Run";
 }
 
-export function statNumber(
-  row: PerformanceRunRow,
-  type: string,
-  field: "average" | "sum",
-): number | null {
+function statNumber(row: PerformanceRunRow, type: string, field: "average" | "sum"): number | null {
   const stat = getStat(row, type);
   const value = stat?.[field] ?? null;
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-export function loadClass(load: number | null): string {
+function loadClass(load: number | null): string {
   if (load === null) return "No data";
   if (load >= 350_000) return "High";
   if (load >= 180_000) return "Medium";
@@ -676,24 +670,24 @@ export function actionTone(kind: CompositeResult["action"]["kind"]): Tone {
   return "neutral";
 }
 
-export function tagTone(confidence: CompositeResult["confidence"]): Tone {
+function tagTone(confidence: CompositeResult["confidence"]): Tone {
   if (confidence === "high") return "success";
   if (confidence === "medium") return "warning";
   return "danger";
 }
 
-export function sampleLabel(sampleQuality: CompositeResult["sample_quality"]): string {
+function sampleLabel(sampleQuality: CompositeResult["sample_quality"]): string {
   if (sampleQuality === "high") return "high sample";
   if (sampleQuality === "mixed") return "mixed sample";
   return "poor sample";
 }
 
-export function insightAccent(index: number): Accent {
+function insightAccent(index: number): Accent {
   const accents: Accent[] = ["lime", "chlorophyll", "amber", "coral"];
   return accents[index] ?? "lime";
 }
 
-export function generatedVisualValues(index: number): number[] {
+function generatedVisualValues(index: number): number[] {
   const values = [
     [31, 29, 35, 33, 39, 36, 38, 34, 35, 32, 31, 33, 32, 31],
     [12, 22, 28, 34, 38, 20, 16, 28, 30, 36, 42, 39, 44, 41],
@@ -722,20 +716,20 @@ export function barStyle(value: number): CSSProperties {
   return { "--bar-height": `${height}%` } as CSSProperties;
 }
 
-export function average(values: number[]): number {
+function average(values: number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-export function formatSigned(value: number): string {
+function formatSigned(value: number): string {
   const sign = value > 0 ? "+" : "";
   return `${sign}${formatNumber(value, 1)}`;
 }
 
-export function formatDateShort(isoDate: string): string {
+function formatDateShort(isoDate: string): string {
   return formatIsoDate(isoDate).replace(/, \d{4}$/, "");
 }
 
-export function shortDate(iso: string): string {
+function shortDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -743,7 +737,7 @@ export function shortDate(iso: string): string {
   });
 }
 
-export function chronologicalRows(rows: PerformanceRunRow[]): PerformanceRunRow[] {
+function chronologicalRows(rows: PerformanceRunRow[]): PerformanceRunRow[] {
   return rows.toSorted(
     (left, right) => Date.parse(left.workout.start_ts) - Date.parse(right.workout.start_ts),
   );
