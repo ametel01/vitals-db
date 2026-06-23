@@ -49,6 +49,14 @@ describe("workouts queries", () => {
     expect(rows[0]?.id).toBe("wk-running-2024-06-08");
   });
 
+  test("listWorkouts normalizes offset datetimes to UTC wall-clock before filtering", async () => {
+    const rows = await listWorkouts(db, {
+      from: "2024-06-01T16:00:00+08:00",
+      to: "2024-06-01T17:00:00+08:00",
+    });
+    expect(rows.map((row) => row.id)).toContain(WORKOUT_ID);
+  });
+
   test("listWorkouts respects limit + offset", async () => {
     const page = await listWorkouts(db, { limit: 1, offset: 1 });
     expect(page).toHaveLength(1);

@@ -13,19 +13,25 @@ export function toIsoDate(d: Date): string {
 }
 
 export interface DateRange {
-  /** ISO 8601 date (`YYYY-MM-DD`) or datetime; DuckDB coerces to TIMESTAMP. */
+  /** ISO 8601 date (`YYYY-MM-DD`) or datetime; non-date inputs are normalized to UTC wall-clock format before SQL binding. */
   from: string;
-  /** ISO 8601 date (`YYYY-MM-DD`) or datetime; DuckDB coerces to TIMESTAMP. */
+  /** ISO 8601 date (`YYYY-MM-DD`) or datetime; non-date inputs are normalized to UTC wall-clock format before SQL binding. */
   to: string;
 }
 
+function normalizeDateTimeForDuckDb(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return `${date.toISOString().slice(0, 10)} ${date.toISOString().slice(11, 23)}`;
+}
+
 export function normalizeRangeStart(value: string): string {
-  return isDateOnly(value) ? `${value} 00:00:00` : value;
+  return isDateOnly(value) ? `${value} 00:00:00` : normalizeDateTimeForDuckDb(value);
 }
 
 export function normalizeRangeEnd(value: string): { operator: "<" | "<="; value: string } {
   if (!isDateOnly(value)) {
-    return { operator: "<=", value };
+    return { operator: "<=", value: normalizeDateTimeForDuckDb(value) };
   }
 
   const parts = value.split("-");

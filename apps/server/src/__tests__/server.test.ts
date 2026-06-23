@@ -101,9 +101,32 @@ describe("Hono server", () => {
     expect(body[0]?.id).toBe(WORKOUT_ID_WALK);
   });
 
+  test("GET /workouts accepts mixed datetime and date-only bounds", async () => {
+    const res = await app.request("/workouts?from=2024-06-01T08:00:00.000Z&to=2024-06-01");
+    expect(res.status).toBe(200);
+    const body = z.array(WorkoutSummarySchema).parse(await res.json());
+    expect(body).toHaveLength(1);
+    expect(body[0]?.id).toBe(WORKOUT_ID);
+  });
+
+  test("GET /workouts rejects reversed date ranges", async () => {
+    const res = await app.request("/workouts?from=2024-06-14&to=2024-06-08");
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("invalid_query");
+    expect(body.issues.length).toBeGreaterThan(0);
+  });
+
   test("GET /workouts rejects invalid date filters", async () => {
     const res = await app.request("/workouts?from=not-a-date&to=2024-06-03");
     expect(res.status).toBe(400);
+  });
+
+  test("GET /workouts?limit=501 is rejected", async () => {
+    const res = await app.request("/workouts?limit=501");
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("invalid_query");
   });
 
   test("GET /workouts?limit=x is parsed as a number", async () => {
@@ -132,6 +155,13 @@ describe("Hono server", () => {
     ]);
     expect(body.every((row) => row.workout.type === "Running")).toBe(true);
     expect(body[0]?.workout.id).toBe(WORKOUT_ID_EFFICIENCY_SHORT);
+  });
+
+  test("GET /workouts/performance-runs rejects oversized limits", async () => {
+    const res = await app.request(
+      "/workouts/performance-runs?from=2024-06-01&to=2024-06-06&limit=51",
+    );
+    expect(res.status).toBe(400);
   });
 
   test("GET /workouts/performance-runs rejects invalid dates", async () => {
@@ -335,6 +365,16 @@ describe("Hono server", () => {
     const body = await res.json();
     expect(body.error).toBe("invalid_query");
     expect(body.issues.length).toBeGreaterThan(0);
+  });
+
+  test("GET /metrics/resting-hr accepts mixed datetime and date-only bounds", async () => {
+    const res = await app.request(
+      "/metrics/resting-hr?from=2024-06-01T05:00:00.000Z&to=2024-06-01",
+    );
+    expect(res.status).toBe(200);
+    const body = z.array(RestingHRPointSchema).parse(await res.json());
+    expect(body).toHaveLength(1);
+    expect(body[0]?.day).toBe("2024-06-01");
   });
 
   test("GET /metrics/zones rejects invalid date ranges", async () => {
@@ -959,5 +999,15 @@ describe("Hono server", () => {
       "score",
       "sleep_hours_per_day",
     ]);
+  });
+
+  test("GET /workouts returns internal_error without leaking implementation details", async () => {
+    fixture.db.close();
+
+    const res = await app.request("/workouts");
+    expect(res.status).toBe(500);
+    const body = (await res.json()) as Record<string, unknown>;
+
+    expect(body).toEqual({ error: "internal_error" });
   });
 });

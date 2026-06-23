@@ -168,6 +168,74 @@ describe("workout context queries", () => {
     expect(allRows[1]?.routes).toHaveLength(1);
   });
 
+  test("separates context arrays by workout id across multiple rows", async () => {
+    await db.run(
+      "INSERT INTO workouts (id, type, start_ts, end_ts, duration_sec, source) VALUES (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)",
+      [
+        "wk-running-full-context",
+        "Running",
+        "2024-06-02 08:00:00",
+        "2024-06-02 09:00:00",
+        3600,
+        "Apple Watch",
+        "wk-running-empty-context",
+        "Running",
+        "2024-06-03 07:00:00",
+        "2024-06-03 07:45:00",
+        2700,
+        "Apple Watch",
+      ],
+    );
+    await db.run(
+      "INSERT INTO workout_stats (workout_id, type, start_ts, end_ts, average, minimum, maximum, sum, unit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        "wk-running-full-context",
+        "HKQuantityTypeIdentifierRunningPower",
+        "2024-06-02 08:00:00",
+        "2024-06-02 09:00:00",
+        210,
+        190,
+        250,
+        null,
+        "W",
+      ],
+    );
+    await db.run(
+      "INSERT INTO workout_events (workout_id, type, ts, duration_sec) VALUES (?, ?, ?, ?)",
+      ["wk-running-full-context", "HKWorkoutEventTypePause", "2024-06-02 08:40:00", null],
+    );
+    await db.run("INSERT INTO workout_metadata (workout_id, key, value) VALUES (?, ?, ?)", [
+      "wk-running-full-context",
+      "HKIndoorWorkout",
+      "0",
+    ]);
+    await db.run(
+      "INSERT INTO workout_routes (workout_id, start_ts, end_ts, source, path) VALUES (?, ?, ?, ?, ?)",
+      [
+        "wk-running-full-context",
+        "2024-06-02 08:00:00",
+        "2024-06-02 09:00:00",
+        "Apple Watch",
+        "/workout-routes/full.gpx",
+      ],
+    );
+
+    const rows = await getWorkoutPerformanceRunRows(db, {
+      from: "2024-06-01",
+      to: "2024-06-04",
+    });
+    const byId = new Map(rows.map((row) => [row.workout.id, row]));
+
+    expect(byId.get("wk-running-empty-context")?.stats).toEqual([]);
+    expect(byId.get("wk-running-empty-context")?.events).toEqual([]);
+    expect(byId.get("wk-running-empty-context")?.metadata).toEqual([]);
+    expect(byId.get("wk-running-empty-context")?.routes).toEqual([]);
+    expect(byId.get("wk-running-full-context")?.stats).toHaveLength(1);
+    expect(byId.get("wk-running-full-context")?.events).toHaveLength(1);
+    expect(byId.get("wk-running-full-context")?.metadata).toHaveLength(1);
+    expect(byId.get("wk-running-full-context")?.routes).toHaveLength(1);
+  });
+
   test("infers indoor and unknown context when routes are absent", async () => {
     await db.run(
       "INSERT INTO workouts (id, type, start_ts, end_ts, duration_sec, source) VALUES (?, ?, ?, ?, ?, ?)",

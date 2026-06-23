@@ -18,10 +18,11 @@ Query params (all optional):
 - `type` — string
 - `from` — date or datetime
 - `to` — date or datetime
-- `limit` — positive integer
+- `limit` — optional positive integer, default `100`, max `500`
 - `offset` — non-negative integer
 
 Response: `WorkoutSummary[]`, ordered by descending `start_ts`.
+`to` must be on or after `from`; reversed ranges return `400 invalid_query`.
 
 ### `GET /workouts/performance-runs`
 
@@ -29,7 +30,7 @@ Query params:
 
 - `from` — optional date or datetime
 - `to` — optional date or datetime
-- `limit` — optional positive integer, default `14`
+- `limit` — optional positive integer, default `14`, max `50`
 
 Response: `WorkoutPerformanceRunRow[]`, ordered by descending workout
 `start_ts`. Each row contains the running workout summary, detail, efficiency,
@@ -476,4 +477,4 @@ mechanics, output, or mixed economy evidence.
 - `400 { error: "invalid_query", issues: ZodIssue[] }` — invalid query params
 - `400 { error: "invalid_params", issues: ZodIssue[] }` — invalid path params
 - `404 { error: "not_found" }` — resource missing
-- `500 { error: "internal_error", message: string }` — unhandled server error
+- `500 { error: "internal_error" }` — unhandled server error

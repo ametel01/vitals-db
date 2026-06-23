@@ -1,5 +1,7 @@
 #!/usr/bin/env bun
-import { parse, resolve } from "node:path";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, parse, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { type Db, migrate, openDb } from "@vitals/db";
 import {
@@ -14,7 +16,7 @@ import { createApp } from "./server";
 const USAGE = `Usage:
   health ingest <path>   Migrate, then ingest an Apple Health export incrementally.
   health crop <in> [out] Crop an Apple Health export to data newer than the last import window.
-  health serve           Start the Hono API on PORT (default 8787).
+  health serve           Start the Hono API on HOST:PORT (default 127.0.0.1:8787).
   health rebuild         Drop analytics data and re-ingest the last imported file.
 `;
 
@@ -82,11 +84,13 @@ async function runServe(): Promise<void> {
   await migrate(db);
   const app = createApp({ db });
   const server = Bun.serve({
+    hostname: env.HOST,
     port: env.PORT,
     idleTimeout: API_IDLE_TIMEOUT_SECONDS,
     fetch: app.fetch,
   });
-  process.stdout.write(`serve: listening on http://localhost:${server.port}\n`);
+  const listeningUrl = `http://${env.HOST}:${server.port}`;
+  process.stdout.write(`serve: listening on ${listeningUrl}\n`);
 
   const shutdown = (): void => {
     server.stop();
@@ -95,6 +99,19 @@ async function runServe(): Promise<void> {
   };
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
+}
+
+async function preflightFullImport(path: string): Promise<void> {
+  const dir = await mkdtemp(join(tmpdir(), "vitals-rebuild-preflight-"));
+  const db = await openDb(join(dir, "preflight.duckdb"));
+  try {
+    await migrate(db);
+    const engine = await createHealthIngestEngine(db);
+    await engine.ingestFile(path, { mode: "full" });
+  } finally {
+    db.close();
+    await rm(dir, { recursive: true, force: true });
+  }
 }
 
 async function runRebuild(): Promise<void> {
@@ -107,6 +124,7 @@ async function runRebuild(): Promise<void> {
     if (lastFile === null) {
       throw new Error("no previous import recorded; run `health ingest <path>` first");
     }
+    await preflightFullImport(lastFile);
     await clearAnalytics(db);
     await migrate(db);
     const stats = await engine.ingestFile(lastFile, { mode: "full" });
@@ -150,7 +168,16 @@ async function clearAnalytics(db: Db): Promise<void> {
   }
 }
 
+function isHelpArg(arg: string | undefined): arg is string {
+  return arg === "help" || arg === "--help" || arg === "-h";
+}
+
 export async function main(argv: string[]): Promise<number> {
+  if (argv.length === 1 && isHelpArg(argv[0])) {
+    process.stdout.write(USAGE);
+    return 0;
+  }
+
   const { positionals } = parseArgs({
     args: argv,
     allowPositionals: true,
@@ -159,9 +186,9 @@ export async function main(argv: string[]): Promise<number> {
   });
 
   const [command, ...rest] = positionals;
-  if (command === undefined || command === "help" || command === "--help" || command === "-h") {
+  if (command === undefined) {
     process.stdout.write(USAGE);
-    return command === undefined ? 1 : 0;
+    return 1;
   }
 
   try {

@@ -133,6 +133,117 @@ export async function getWorkoutRoutes(db: Db, workoutId: string): Promise<Worko
   );
 }
 
+async function getWorkoutStatsByWorkoutId(
+  db: Db,
+  workoutIds: string[],
+): Promise<Map<string, WorkoutStat[]>> {
+  if (workoutIds.length === 0) return new Map<string, WorkoutStat[]>();
+
+  const rows = await db.all<WorkoutStatRow>(
+    `SELECT workout_id, type, start_ts, end_ts, average, minimum, maximum, sum, unit
+     FROM workout_stats
+     WHERE workout_id IN (${workoutIds.map(() => "?").join(", ")})
+     ORDER BY workout_id, type`,
+    workoutIds,
+  );
+
+  const byWorkout = new Map<string, WorkoutStat[]>();
+  for (const row of rows) {
+    const parsed = WorkoutStatSchema.parse({
+      ...row,
+      start_ts: toIsoDateTime(row.start_ts),
+      end_ts: toIsoDateTime(row.end_ts),
+    });
+    const list = byWorkout.get(row.workout_id) ?? [];
+    list.push(parsed);
+    byWorkout.set(row.workout_id, list);
+  }
+
+  return byWorkout;
+}
+
+async function getWorkoutEventsByWorkoutId(
+  db: Db,
+  workoutIds: string[],
+): Promise<Map<string, WorkoutEvent[]>> {
+  if (workoutIds.length === 0) return new Map<string, WorkoutEvent[]>();
+
+  const rows = await db.all<WorkoutEventRow>(
+    `SELECT workout_id, type, ts, duration_sec
+     FROM workout_events
+     WHERE workout_id IN (${workoutIds.map(() => "?").join(", ")})
+     ORDER BY workout_id, ts, type`,
+    workoutIds,
+  );
+
+  const byWorkout = new Map<string, WorkoutEvent[]>();
+  for (const row of rows) {
+    const parsed = WorkoutEventSchema.parse({
+      ...row,
+      ts: toIsoDateTime(row.ts),
+    });
+    const list = byWorkout.get(row.workout_id) ?? [];
+    list.push(parsed);
+    byWorkout.set(row.workout_id, list);
+  }
+
+  return byWorkout;
+}
+
+async function getWorkoutMetadataByWorkoutId(
+  db: Db,
+  workoutIds: string[],
+): Promise<Map<string, WorkoutMetadata[]>> {
+  if (workoutIds.length === 0) return new Map<string, WorkoutMetadata[]>();
+
+  const rows = await db.all<WorkoutMetadataRow>(
+    `SELECT workout_id, key, value
+     FROM workout_metadata
+     WHERE workout_id IN (${workoutIds.map(() => "?").join(", ")})
+     ORDER BY workout_id, key, value`,
+    workoutIds,
+  );
+
+  const byWorkout = new Map<string, WorkoutMetadata[]>();
+  for (const row of rows) {
+    const parsed = WorkoutMetadataSchema.parse(row);
+    const list = byWorkout.get(row.workout_id) ?? [];
+    list.push(parsed);
+    byWorkout.set(row.workout_id, list);
+  }
+
+  return byWorkout;
+}
+
+async function getWorkoutRoutesByWorkoutId(
+  db: Db,
+  workoutIds: string[],
+): Promise<Map<string, WorkoutRoute[]>> {
+  if (workoutIds.length === 0) return new Map<string, WorkoutRoute[]>();
+
+  const rows = await db.all<WorkoutRouteRow>(
+    `SELECT workout_id, start_ts, end_ts, source, path
+     FROM workout_routes
+     WHERE workout_id IN (${workoutIds.map(() => "?").join(", ")})
+     ORDER BY workout_id, start_ts`,
+    workoutIds,
+  );
+
+  const byWorkout = new Map<string, WorkoutRoute[]>();
+  for (const row of rows) {
+    const parsed = WorkoutRouteSchema.parse({
+      ...row,
+      start_ts: toIsoDateTime(row.start_ts),
+      end_ts: toIsoDateTime(row.end_ts),
+    });
+    const list = byWorkout.get(row.workout_id) ?? [];
+    list.push(parsed);
+    byWorkout.set(row.workout_id, list);
+  }
+
+  return byWorkout;
+}
+
 export async function getWorkoutPerformanceRunRows(
   db: Db,
   params: WorkoutPerformanceRunRowsParams = {},
@@ -144,17 +255,25 @@ export async function getWorkoutPerformanceRunRows(
   if (params.from !== undefined) listParams.from = params.from;
   if (params.to !== undefined) listParams.to = params.to;
   const workouts = await listWorkouts(db, listParams);
+  const workoutIds = workouts.map((workout) => workout.id);
+  const [statsByWorkoutId, eventsByWorkoutId, metadataByWorkoutId, routesByWorkoutId] =
+    await Promise.all([
+      getWorkoutStatsByWorkoutId(db, workoutIds),
+      getWorkoutEventsByWorkoutId(db, workoutIds),
+      getWorkoutMetadataByWorkoutId(db, workoutIds),
+      getWorkoutRoutesByWorkoutId(db, workoutIds),
+    ]);
 
   return Promise.all(
     workouts.map(async (workout) => {
-      const [detail, efficiency, stats, events, metadata, routes] = await Promise.all([
+      const [detail, efficiency] = await Promise.all([
         getWorkoutDetail(db, workout.id),
         getWorkoutEfficiency(db, workout.id),
-        getWorkoutStats(db, workout.id),
-        getWorkoutEvents(db, workout.id),
-        getWorkoutMetadata(db, workout.id),
-        getWorkoutRoutes(db, workout.id),
       ]);
+      const stats = statsByWorkoutId.get(workout.id) ?? [];
+      const events = eventsByWorkoutId.get(workout.id) ?? [];
+      const metadata = metadataByWorkoutId.get(workout.id) ?? [];
+      const routes = routesByWorkoutId.get(workout.id) ?? [];
 
       if (detail === null || efficiency === null) {
         throw new Error(`Missing performance row dependency for workout ${workout.id}`);

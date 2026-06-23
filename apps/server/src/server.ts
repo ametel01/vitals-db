@@ -13,8 +13,9 @@ export function createApp(deps: AppDeps): Hono {
   const readService = createVitalsReadService(deps.db);
 
   app.onError((err, c) => {
-    const message = err instanceof Error ? err.message : "internal_error";
-    return c.json({ error: "internal_error", message }, 500);
+    const message = err instanceof Error ? (err.stack ?? err.message) : String(err);
+    process.stderr.write(`internal_error: ${message}\n`);
+    return c.json({ error: "internal_error" }, 500);
   });
 
   app.route("/workouts", workoutsRouter(readService));

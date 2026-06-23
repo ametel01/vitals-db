@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# @vitals/web
 
-## Getting Started
+Dashboard frontend for `vitals-db`, built with Next.js App Router and powered by the local Hono API.
 
-First, run the development server:
+## Development setup
+
+From the repository root:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+bun install
+bun run --filter @vitals/web dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Environment defaults:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `VITALS_API_URL`: `http://127.0.0.1:8787`
+- `NODE_ENV`: development unless overridden
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Local script flow
 
-## Learn More
+- Run the API server in one terminal with `bun run health serve`.
+- Run the web app in a second terminal with `bun run --filter @vitals/web dev`.
+- Open `http://localhost:3000` for the dashboard.
 
-To learn more about Next.js, take a look at the following resources:
+## Route coverage
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `/` — recovery dashboard with KPI cards, recovery snapshot, workout summary, and trend charts
+- `/performance` — performance model dashboard and benchmark diagnostics
+- `/sleep` — sleep score, consistency, stage lanes, and recent-night detail
+- `/workouts` — paginated workout list and filters
+- `/workouts/:id` — workout detail, including drift, load, Z2 share, and HR zones
+- `/workouts/:id/stats` — workout-level Apple metric aggregates
+- `/workouts/:id/events` — workout event and segment timeline
+- `/workouts/:id/metadata` — workout metadata records
+- `/workouts/:id/routes` — route file references for workout mapping data
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Feature notes
 
-## Deploy on Vercel
+- API data is read through `apps/web/lib/api.ts` with strict schema decode.
+- Dashboard helpers used by `/`, `/performance`, and `/sleep` are intentionally split into `apps/web/lib/*-dashboard.ts` files for testability.
+- Legacy derived activity fallback remains in helper logic for compatibility in edge ranges where `/metrics/activity` is not available.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Testing
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+bun test apps/web/lib/__tests__
+```
+
+The test suite includes shared helper coverage for:
+
+- overview metrics helpers (`apps/web/lib/__tests__/overview-dashboard.test.ts`)
+- performance model helpers (`apps/web/lib/__tests__/performance-dashboard.test.ts`)
+- sleep-performance helper behavior and comparison math
+

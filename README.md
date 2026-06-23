@@ -158,7 +158,9 @@ Run the API in one terminal:
 DB_PATH=./vitals.duckdb bun run health serve
 ```
 
-This serves the Hono API on `http://localhost:8787` by default.
+This serves the Hono API on `http://127.0.0.1:8787` by default.
+
+Set `HOST` explicitly to expose the API on a different interface.
 
 Run the web app in a second terminal:
 
@@ -168,7 +170,7 @@ bun run --filter @vitals/web dev
 
 Then open `http://localhost:3000`.
 
-If the API is not on `http://localhost:8787`, point the web app at it:
+If the API is not on `http://127.0.0.1:8787`, point the web app at it:
 
 ```bash
 VITALS_API_URL=http://localhost:9999 bun run --filter @vitals/web dev
@@ -177,7 +179,7 @@ VITALS_API_URL=http://localhost:9999 bun run --filter @vitals/web dev
 If you also changed the server port, start the API with:
 
 ```bash
-PORT=9999 DB_PATH=./vitals.duckdb bun run health serve
+HOST=0.0.0.0 PORT=9999 DB_PATH=./vitals.duckdb bun run health serve
 ```
 
 ## Dashboard Views
@@ -198,9 +200,15 @@ The current UI has:
   selected-night stage lanes, stage breakdown, recent nights table, consistency
   chart, local-time labels, and insight cards
 - `/workouts`: latest 100 workouts with type and date filters
+- `/workouts/performance-runs`: running performance rows with efficiency, drift,
+  and pace/recovery metadata for performance-focused analysis
 - `/workouts/:id`: workout duration, explicit Z2 share, pace at 120-130 bpm,
   fixed-duration decoupling, HR drift classification, load, HR chart, and
   Z1..Z5 zones-distribution stacked bar
+- `/workouts/:id/stats`: per-metric Apple workout summaries
+- `/workouts/:id/events`: workout events and pause/segment annotations
+- `/workouts/:id/metadata`: raw metadata key-value pairs attached to workouts
+- `/workouts/:id/routes`: route references and source GPX/track metadata
 
 ## API Surface
 
@@ -211,6 +219,11 @@ The server currently exposes:
 - `GET /workouts/:id/hr`
 - `GET /workouts/:id/zones`
 - `GET /workouts/:id/efficiency`
+- `GET /workouts/:id/stats`
+- `GET /workouts/:id/events`
+- `GET /workouts/:id/metadata`
+- `GET /workouts/:id/routes`
+- `GET /workouts/performance-runs`
 - `GET /metrics/zones`
 - `GET /metrics/zones/time`
 - `GET /metrics/zones/z2-weekly`
@@ -232,8 +245,19 @@ The server currently exposes:
 - `GET /metrics/steps`
 - `GET /metrics/distance`
 - `GET /metrics/energy`
+- `GET /metrics/running-dynamics`
 - `GET /metrics/daily-comparison`
 - `GET /metrics/recovery-flag`
+- `GET /metrics/composites/report`
+- `GET /metrics/composites/aerobic-efficiency`
+- `GET /metrics/composites/readiness`
+- `GET /metrics/composites/training-strain`
+- `GET /metrics/composites/run-fatigue`
+- `GET /metrics/composites/fitness-trend`
+- `GET /metrics/composites/load-quality`
+- `GET /metrics/composites/recovery-debt`
+- `GET /metrics/composites/consistency-index`
+- `GET /metrics/composites/run-economy`
 
 See [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) for query params,
 response DTOs, and error shapes. Date-only bounds are treated as full UTC days.
@@ -241,8 +265,9 @@ response DTOs, and error shapes. Date-only bounds are treated as full UTC days.
 ## Useful Environment Variables
 
 - `DB_PATH`: DuckDB file path, default `./vitals.duckdb`
+- `HOST`: API bind host for `health serve`, default `127.0.0.1` (set to `0.0.0.0` for LAN access)
 - `PORT`: API port for `health serve`, default `8787`
-- `VITALS_API_URL`: base URL used by the Next.js app, default `http://localhost:8787`
+- `VITALS_API_URL`: base URL used by the Next.js app, default `http://127.0.0.1:8787`
 - `NODE_ENV`: parsed by the server env loader, default `development`
 
 ## Development Checks

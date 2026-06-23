@@ -116,8 +116,21 @@ const DateInputSchema = z
     },
   );
 
-function dateInputToTime(value: string): number {
-  return new Date(isValidDateOnly(value) ? `${value}T00:00:00.000Z` : value).getTime();
+const DEFAULT_WORKOUT_LIST_LIMIT = 100;
+const MAX_WORKOUT_LIST_LIMIT = 500;
+const DEFAULT_PERFORMANCE_RUN_LIMIT = 14;
+const MAX_PERFORMANCE_RUN_LIMIT = 50;
+
+function dateInputToRangeStartTime(value: string): number {
+  return isValidDateOnly(value)
+    ? new Date(`${value}T00:00:00.000Z`).getTime()
+    : new Date(value).getTime();
+}
+
+function dateInputToRangeEndTime(value: string): number {
+  if (!isValidDateOnly(value)) return new Date(value).getTime();
+  const start = new Date(`${value}T00:00:00.000Z`);
+  return start.getTime() + 24 * 60 * 60 * 1000 - 1;
 }
 
 const BaseRangeSchema = z.object({
@@ -126,7 +139,7 @@ const BaseRangeSchema = z.object({
 });
 
 function isOrderedRange(value: { from: string; to: string }): boolean {
-  return dateInputToTime(value.from) <= dateInputToTime(value.to);
+  return dateInputToRangeStartTime(value.from) <= dateInputToRangeEndTime(value.to);
 }
 
 const RangeSchema = BaseRangeSchema.refine(isOrderedRange, {
@@ -164,19 +177,40 @@ const EfficiencyQuerySchema = z
     },
   );
 
-const ListQuerySchema = z.object({
-  type: z.string().min(1).optional(),
-  from: DateInputSchema.optional(),
-  to: DateInputSchema.optional(),
-  limit: z.coerce.number().int().positive().optional(),
-  offset: z.coerce.number().int().nonnegative().optional(),
-});
+const ListQuerySchema = z
+  .object({
+    type: z.string().min(1).optional(),
+    from: DateInputSchema.optional(),
+    to: DateInputSchema.optional(),
+    limit: z.coerce
+      .number()
+      .int()
+      .positive()
+      .max(MAX_WORKOUT_LIST_LIMIT)
+      .default(DEFAULT_WORKOUT_LIST_LIMIT),
+    offset: z.coerce.number().int().nonnegative().optional(),
+  })
+  .refine(
+    (value) =>
+      value.from === undefined ||
+      value.to === undefined ||
+      isOrderedRange({ from: value.from, to: value.to }),
+    {
+      message: "Expected to to be on or after from",
+      path: ["to"],
+    },
+  );
 
 const PerformanceRunsQuerySchema = z
   .object({
     from: DateInputSchema.optional(),
     to: DateInputSchema.optional(),
-    limit: z.coerce.number().int().positive().optional(),
+    limit: z.coerce
+      .number()
+      .int()
+      .positive()
+      .max(MAX_PERFORMANCE_RUN_LIMIT)
+      .default(DEFAULT_PERFORMANCE_RUN_LIMIT),
   })
   .refine(
     (value) =>
@@ -301,7 +335,7 @@ export function createVitalsReadService(db: Db): VitalsReadService {
         if (parsed.data.type !== undefined) params.type = parsed.data.type;
         if (parsed.data.from !== undefined) params.from = parsed.data.from;
         if (parsed.data.to !== undefined) params.to = parsed.data.to;
-        if (parsed.data.limit !== undefined) params.limit = parsed.data.limit;
+        params.limit = parsed.data.limit;
         if (parsed.data.offset !== undefined) params.offset = parsed.data.offset;
         return { ok: true, data: await listWorkouts(db, params) };
       },
@@ -311,7 +345,7 @@ export function createVitalsReadService(db: Db): VitalsReadService {
         const params: WorkoutPerformanceRunRowsParams = {};
         if (parsed.data.from !== undefined) params.from = parsed.data.from;
         if (parsed.data.to !== undefined) params.to = parsed.data.to;
-        if (parsed.data.limit !== undefined) params.limit = parsed.data.limit;
+        params.limit = parsed.data.limit;
         return { ok: true, data: await getWorkoutPerformanceRunRows(db, params) };
       },
       async detail(rawId) {
