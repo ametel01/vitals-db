@@ -35,6 +35,8 @@ const ANALYTICS_TABLES = [
   "workout_routes",
 ] as const;
 
+const API_IDLE_TIMEOUT_SECONDS = 60;
+
 async function runIngest(path: string): Promise<void> {
   const env = loadEnv();
   const db = await openDb(env.DB_PATH);
@@ -79,7 +81,11 @@ async function runServe(): Promise<void> {
   const db = await openDb(env.DB_PATH);
   await migrate(db);
   const app = createApp({ db });
-  const server = Bun.serve({ port: env.PORT, fetch: app.fetch });
+  const server = Bun.serve({
+    port: env.PORT,
+    idleTimeout: API_IDLE_TIMEOUT_SECONDS,
+    fetch: app.fetch,
+  });
   process.stdout.write(`serve: listening on http://localhost:${server.port}\n`);
 
   const shutdown = (): void => {
